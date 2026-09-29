@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pointeuse</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EDF1; --panel:#FFFFFF; --ink:#18212B; --muted:#5B6773; --line:#D3DAE1;
+  --punch:#C4302B; --punch-ink:#FFFFFF; --go:#1F6F5C; --go-ink:#FFFFFF; --soft:#F3F5F8;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow","Segoe UI",Arial,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#101820; --panel:#18232E; --ink:#E8EDF2; --muted:#98A5B2; --line:#2A3846;
+    --punch:#E0514B; --go:#3FA88C; --go-ink:#0D1A16; --soft:#1F2C38; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101820; --panel:#18232E; --ink:#E8EDF2; --muted:#98A5B2; --line:#2A3846;
+  --punch:#E0514B; --go:#3FA88C; --go-ink:#0D1A16; --soft:#1F2C38; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--go);outline-offset:2px}
+.wrap{max-width:980px;margin:0 auto;padding:24px 20px 60px}
+header.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+h1{font-family:var(--display);font-weight:700;font-size:2.2rem;margin:0;letter-spacing:.01em}
+.today{color:var(--muted)}
+.sync{font-size:.85rem;color:var(--muted)}
+
+/* Clock card */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:22px}
+.clock{display:grid;gap:18px}
+.status{display:flex;align-items:center;gap:10px;color:var(--muted);font-weight:500}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--line)}
+.dot.on{background:var(--punch);animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.dot.on{animation:none}}
+.timer{font-family:var(--display);font-weight:600;font-size:clamp(4rem,16vw,8.5rem);line-height:.9;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.timer.idle{color:var(--line)}
+.since{color:var(--muted);margin-top:4px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;font-weight:500}
+.chip .sw{width:10px;height:10px;border-radius:50%}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--soft)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+input[type=text],input[type=date],input[type=time],select{background:var(--soft);border:1px solid var(--line);border-radius:4px;padding:9px 11px;min-width:0}
+.note{flex:1 1 240px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:4px;padding:9px 16px;font-weight:600}
+.btn:hover{background:var(--soft)}
+.btn.big{font-family:var(--display);font-size:1.5rem;padding:12px 28px;border:none;letter-spacing:.02em}
+.btn.in{background:var(--go);color:var(--go-ink)}
+.btn.out{background:var(--punch);color:var(--punch-ink)}
+.btn.big:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--muted);padding:6px 10px}
+.btn.ghost:hover{color:var(--ink);background:var(--soft)}
+.btn.danger{color:var(--punch)}
+
+/* Sections */
+section{margin-top:28px}
+h2{font-family:var(--display);font-weight:600;font-size:1.6rem;margin:0 0 12px}
+.sechead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.sechead h2{margin:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--panel)}
+.seg button{border:none;background:none;padding:7px 12px;font-weight:500;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--panel)}
+.total{display:flex;align-items:baseline;gap:10px;margin-bottom:16px}
+.total b{font-family:var(--display);font-size:2.6rem;font-weight:600;line-height:1}
+.total span{color:var(--muted)}
+.bars{display:grid;gap:12px}
+.bar{display:grid;grid-template-columns:minmax(110px,180px) 1fr auto;gap:12px;align-items:center}
+.bar .lbl{display:flex;align-items:center;gap:8px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar .track{height:14px;background:var(--soft);border-radius:2px;overflow:hidden}
+.bar .fill{height:100%;border-radius:2px}
+.bar .val{font-variant-numeric:tabular-nums;white-space:nowrap;min-width:110px;text-align:right}
+.bar .val small{color:var(--muted);margin-left:6px}
+.empty{color:var(--muted);padding:6px 0}
+
+.day{margin-top:18px}
+.dayhead{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:4px;font-weight:600}
+.dayhead span:last-child{font-variant-numeric:tabular-nums}
+.entry{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.entry .sw{width:10px;height:10px;border-radius:50%}
+.entry .what{min-width:0}
+.entry .what .n{color:var(--muted);font-size:.9rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.entry .hrs{font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
+.entry .dur{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}
+.entry .acts{grid-column:1/-1;display:flex;gap:4px;justify-content:flex-end;margin-top:-4px}
+@media (min-width:640px){
+  .entry{grid-template-columns:auto 1fr auto auto auto}
+  .entry .acts{grid-column:auto;margin-top:0}
+}
+.more{margin-top:14px}
+
+.types{display:grid;gap:8px}
+.type{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.type input[type=text]{flex:1 1 160px}
+.swatches{display:flex;gap:4px}
+.swatches button{width:22px;height:22px;border-radius:50%;border:2px solid transparent;padding:0}
+.swatches button[aria-pressed="true"]{border-color:var(--ink)}
+.type.archived{opacity:.55}
+
+dialog{border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);padding:22px;width:min(440px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(10,15,20,.45)}
+dialog h3{font-family:var(--display);font-size:1.5rem;margin:0 0 14px;font-weight:600}
+.field{display:grid;gap:4px;margin-bottom:12px}
+.field label{font-size:.9rem;color:var(--muted);font-weight:500}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.err{color:var(--punch);font-size:.9rem;min-height:1.2em}
+.dlgacts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:10px 16px;border-radius:4px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.tabs button{border:none;background:none;padding:10px 14px;font-weight:600;color:var(--muted);border-bottom:3px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--ink)}
+.tabs[hidden]{display:none}
+.who{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.who img{width:40px;height:40px;border-radius:50%}
+.who .nm{font-family:var(--display);font-size:1.8rem;font-weight:600;line-height:1}
+.ro{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.ro .timer{font-size:clamp(2.6rem,9vw,4.5rem)}
+.scroll{overflow-x:auto}
+table.team{width:100%;border-collapse:collapse;min-width:620px}
+table.team th{text-align:left;font-size:.85rem;color:var(--muted);font-weight:500;padding:8px 10px;border-bottom:1px solid var(--line)}
+table.team td{padding:10px;border-bottom:1px dashed var(--line);font-variant-numeric:tabular-nums;vertical-align:middle}
+table.team th.num,table.team td.num{text-align:right}
+table.team tr.click{cursor:pointer}
+table.team tr.click:hover td{background:var(--soft)}
+.person{display:flex;align-items:center;gap:10px}
+.person img{width:28px;height:28px;border-radius:50%;flex:none}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:.9rem}
+.pill .dot{width:9px;height:9px}
+.hint{color:var(--muted);font-size:.9rem;margin-top:12px}
+[hidden]{display:none!important}
+.auth{max-width:420px;margin:40px auto 0}
+.auth h2{margin-bottom:16px}
+.auth .btn.big{width:100%}
+.or{color:var(--muted);text-align:center;margin:18px 0 12px;font-size:.9rem}
+.auth input{width:100%}
+.account{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.account img{width:28px;height:28px;border-radius:50%}
+
+.daynav{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.daynav .arrow{width:40px;padding:8px 0;font-size:1.2rem;line-height:1}
+.daytitle{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.daytitle b{font-family:var(--display);font-size:1.5rem;font-weight:600}
+.daytitle span{font-variant-numeric:tabular-nums;color:var(--muted)}
+.tl{position:relative;height:30px;background:var(--soft);border-radius:3px;overflow:hidden}
+.tl .blk{position:absolute;top:0;bottom:0;min-width:2px;opacity:.9}
+.tl .blk.live{background-image:repeating-linear-gradient(45deg,transparent 0 6px,rgba(255,255,255,.35) 6px 12px)}
+.tl .grid{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+.axis{position:relative;height:18px;font-size:.75rem;color:var(--muted);font-variant-numeric:tabular-nums;margin-bottom:14px}
+.axis span{position:absolute;transform:translateX(-50%)}
+.axis span:first-child{transform:none}
+.axis span:last-child{transform:translateX(-100%)}
+.jumps{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.teamday{display:grid;grid-template-columns:minmax(120px,190px) 1fr auto;gap:12px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.teamday:last-child{border-bottom:none}
+.teamday .tot{font-variant-numeric:tabular-nums;font-weight:600;min-width:64px;text-align:right}
+.teamday .tl{height:22px}
+.dayaxis-wrap{display:grid;grid-template-columns:minmax(120px,190px) 1fr auto;gap:12px}
+.dayaxis-wrap .axis{margin:0}
+@media (max-width:560px){.teamday,.dayaxis-wrap{grid-template-columns:1fr auto}.teamday .tl,.dayaxis-wrap .axis{grid-column:1/-1;grid-row:2}.dayaxis-wrap>div:first-child{display:none}}
+
+.st{display:inline-block;font-size:.78rem;font-weight:600;border-radius:3px;padding:1px 7px;margin-left:8px;vertical-align:1px;border:1px solid var(--line);color:var(--muted)}
+.st.ok{background:var(--go);border-color:var(--go);color:var(--go-ink)}
+.st.rejected{border-color:var(--punch);color:var(--punch)}
+.st.changed{border-color:#D98A1C;color:#B06E10}
+.btn.ok{color:var(--go)}
+
+.badge{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.85rem;color:var(--ink);background:var(--panel);margin-left:8px;vertical-align:middle;font-family:var(--body);font-weight:500}
+.notice{background:var(--soft);border:1px solid var(--line);border-radius:6px;padding:12px 14px;margin-bottom:16px}
+.role{border-bottom:1px dashed var(--line);padding:14px 0;display:grid;gap:10px}
+.role:first-child{padding-top:0}
+.role:last-child{border-bottom:none}
+.role .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.role .top input{flex:1 1 180px;font-weight:600}
+.role .lvl{font-size:.9rem;color:var(--muted)}
+.perms{display:flex;gap:18px;flex-wrap:wrap}
+.perms label{display:flex;gap:8px;align-items:center}
+.perms input{width:18px;height:18px;accent-color:var(--go)}
+select.rolesel{padding:6px 8px}
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+</head>
+<body>
+<div class="wrap" id="authView" hidden>
+  <h1 style="text-align:center">Pointeuse</h1>
+  <div class="card auth">
+    <h2 id="authTitle">Connexion</h2>
+    <button class="btn big in" id="gBtn">Continuer avec Google</button>
+    <div class="or">ou avec votre courriel</div>
+    <div class="field" id="nameField" hidden><label for="authName">Nom complet</label><input type="text" id="authName" autocomplete="name"></div>
+    <div class="field"><label for="authEmail">Courriel</label><input type="email" id="authEmail" autocomplete="email"></div>
+    <div class="field"><label for="authPass">Mot de passe</label><input type="password" id="authPass" autocomplete="current-password"></div>
+    <div class="err" id="authErr"></div>
+    <div class="row">
+      <button class="btn" id="authSubmit">Se connecter</button>
+      <button class="btn ghost" id="authToggle">Créer un compte</button>
+      <button class="btn ghost" id="authReset">Mot de passe oublié</button>
+    </div>
+  </div>
+</div>
+<div class="wrap" id="configView" hidden>
+  <h1>Pointeuse</h1>
+  <div class="card" style="margin-top:20px"><h2>Configuration manquante</h2>
+  <p>Le fichier <b>firebase-config.js</b> ne contient pas encore la configuration de votre projet Firebase. Suivez l'étape 4 du guide d'installation.</p></div>
+</div>
+<div class="wrap" id="app" hidden>
+  <header class="top">
+    <div>
+      <h1>Pointeuse<span class="badge" id="roleBadge" hidden></span></h1>
+      <div class="today" id="today"></div>
+    </div>
+    <div class="account">
+      <img alt="" id="meAvatar" hidden>
+      <span id="meName"></span>
+      <button class="btn ghost" id="editName">Modifier mon nom</button>
+      <button class="btn ghost" id="signOut">Se déconnecter</button>
+      <span class="sync" id="sync" style="flex-basis:100%;text-align:right">Chargement…</span>
+    </div>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist" hidden>
+    <button role="tab" data-tab="mine" aria-selected="true">Mon espace</button>
+    <button role="tab" data-tab="team" aria-selected="false" id="teamTab">Équipe</button>
+    <button role="tab" data-tab="roles" aria-selected="false">Rôles</button>
+  </nav>
+
+  <div id="teamView" hidden>
+    <div class="sechead">
+      <h2>Équipe</h2>
+      <div class="row">
+        <div class="seg" id="teamPeriod" role="group" aria-label="Période du tableau">
+          <button data-p="day">Aujourd'hui</button>
+          <button data-p="week">Semaine</button>
+          <button data-p="month">Mois</button>
+        </div>
+        <button class="btn" id="exportTeam">Exporter l'équipe en CSV</button>
+      </div>
+    </div>
+    <div class="card"><div class="scroll" id="teamTable"></div>
+      <div class="hint">Cliquez sur une personne pour voir le détail de ses activités.</div></div>
+    <section>
+      <div class="sechead">
+        <h2>Journée de l'équipe</h2>
+        <div class="daynav" role="group" aria-label="Choisir le jour">
+          <button class="btn arrow" data-dnav="-1" aria-label="Jour précédent">‹</button>
+          <input type="date" class="dayPick" aria-label="Date">
+          <button class="btn arrow" data-dnav="1" aria-label="Jour suivant">›</button>
+          <button class="btn" data-dtoday>Aujourd'hui</button>
+        </div>
+      </div>
+      <div class="card" id="teamDayCard"></div>
+    </section>
+  </div>
+
+  <div id="rolesView" hidden>
+    <div class="sechead"><h2>Rôles et accès</h2></div>
+    <div class="card">
+      <div id="rolesList"></div>
+      <div class="row" style="margin-top:14px">
+        <input type="text" id="newRole" placeholder="Nouveau rôle, ex. Superviseur" aria-label="Nom du nouveau rôle">
+        <button class="btn" id="addRole">Créer le rôle</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="row" style="margin-bottom:12px">
+        <label for="orgName" style="font-weight:500">Nom de l'organisation</label>
+        <input type="text" id="orgName" placeholder="Ex. Association étudiante de…" style="flex:1 1 240px">
+      </div>
+      <div class="row">
+        <label for="defaultRole" style="font-weight:500">Rôle donné aux nouvelles personnes</label>
+        <select id="defaultRole"></select>
+      </div>
+      <div class="hint">Les rôles administrateurs voient toute l'équipe, valident les heures et gèrent les rôles. Les nouvelles personnes qui créent un compte reçoivent le rôle choisi ici.</div>
+    </div>
+  </div>
+
+  <div id="personalView">
+    <div class="notice" id="roleNotice" hidden></div>
+    <div class="who" id="who" hidden></div>
+    <div class="card clock" id="clock"></div>
+
+    <section>
+      <div class="sechead">
+        <h2>Vue par jour</h2>
+        <div class="daynav" role="group" aria-label="Choisir le jour">
+          <button class="btn arrow" data-dnav="-1" aria-label="Jour précédent">‹</button>
+          <input type="date" class="dayPick" aria-label="Date">
+          <button class="btn arrow" data-dnav="1" aria-label="Jour suivant">›</button>
+          <button class="btn" data-dtoday>Aujourd'hui</button>
+        </div>
+      </div>
+      <div class="card" id="dayCard"></div>
+    </section>
+
+    <section>
+      <div class="sechead">
+        <h2>Heures par activité</h2>
+        <div class="seg" id="period" role="group" aria-label="Période">
+          <button data-p="day">Aujourd'hui</button>
+          <button data-p="week">Semaine</button>
+          <button data-p="month">Mois</button>
+          <button data-p="all">Tout</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="total" id="total"></div>
+        <div class="bars" id="bars"></div>
+      </div>
+    </section>
+
+    <section>
+      <div class="sechead">
+        <h2>Journal</h2>
+        <div class="row">
+          <button class="btn in" id="validateAll" style="border:none" hidden></button>
+          <button class="btn" id="addManual">Ajouter une entrée</button>
+          <button class="btn" id="openAttest">Générer une attestation</button>
+          <button class="btn" id="exportCsv">Exporter en CSV</button>
+        </div>
+      </div>
+      <div class="card" id="journal"></div>
+    </section>
+
+    <section id="typesSection">
+      <div class="sechead"><h2>Types d'activités</h2></div>
+      <div class="card">
+        <div class="types" id="types"></div>
+        <div class="row" style="margin-top:14px">
+          <input type="text" id="newType" placeholder="Nouveau type, ex. Formation" aria-label="Nom du nouveau type">
+          <button class="btn" id="addType">Ajouter le type</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<dialog id="nameDlg">
+  <h3>Mon nom</h3>
+  <div class="field"><label for="nName">Nom complet, tel qu'il apparaîtra sur les attestations</label><input type="text" id="nName"></div>
+  <div class="dlgacts"><button class="btn ghost" id="nCancel">Annuler</button><button class="btn in" id="nSave" style="border:none">Enregistrer</button></div>
+</dialog>
+
+<dialog id="attDlg">
+  <h3>Attestation d'heures</h3>
+  <div class="since" style="margin-bottom:12px">Seules les heures validées par un administrateur figurent sur l'attestation.</div>
+  <div class="field"><label for="aName">Nom de la personne</label><input type="text" id="aName"></div>
+  <div class="grid2">
+    <div class="field"><label for="aFrom">Du</label><input type="date" id="aFrom"></div>
+    <div class="field"><label for="aTo">Au</label><input type="date" id="aTo"></div>
+  </div>
+  <div class="field"><label for="aSigner">Signataire (nom et fonction)</label><input type="text" id="aSigner" placeholder="Ex. Marie Tremblay, présidente"></div>
+  <div class="since" id="aPreview"></div>
+  <div class="err" id="aErr"></div>
+  <div class="dlgacts">
+    <button class="btn ghost" id="aCancel">Annuler</button>
+    <button class="btn in" id="aMake" style="border:none">Télécharger l'attestation (PDF)</button>
+  </div>
+</dialog>
+
+<dialog id="dlg">
+  <h3 id="dlgTitle">Modifier l'entrée</h3>
+  <div class="field"><label for="fType">Activité</label><select id="fType"></select></div>
+  <div class="field"><label for="fDate">Date</label><input type="date" id="fDate"></div>
+  <div class="grid2">
+    <div class="field"><label for="fStart">Entrée</label><input type="time" id="fStart"></div>
+    <div class="field"><label for="fEnd">Sortie</label><input type="time" id="fEnd"></div>
+  </div>
+  <div class="field"><label for="fNote">Note</label><input type="text" id="fNote" placeholder="Facultatif"></div>
+  <div class="err" id="fErr"></div>
+  <div class="dlgacts">
+    <button class="btn ghost" id="fCancel">Annuler</button>
+    <button class="btn in" id="fSave" style="border:none">Enregistrer</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+const COLORS=["#1F6F5C","#2F6FB5","#C4302B","#D98A1C","#7A4DB3","#3C9BB0","#8A6A3B","#B8488A"];
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const DEFAULT={
+  types:[
+    {id:"t_travail",name:"Travail",color:COLORS[0],archived:false},
+    {id:"t_reunion",name:"Réunions",color:COLORS[1],archived:false},
+    {id:"t_formation",name:"Formation",color:COLORS[3],archived:false},
+    {id:"t_admin",name:"Administratif",color:COLORS[4],archived:false}
+  ],
+  sessions:[], active:null
+};
+let state=JSON.parse(JSON.stringify(DEFAULT)); // mes données
+let selectedType=state.types[0].id;
+let period="week", teamPeriod="week";
+let journalLimit=14;
+let backend=null;
+let pendingDelete=null;
+let myId=null;
+let team={};          // id -> données de chaque personne (admin)
+let mode="mine";      // mine | team | roles | person
+const DEFAULT_ROLES={defaultRoleId:"r_employe",roles:[
+  {id:"r_president",name:"Président",level:"admin",locked:true},
+  {id:"r_vp",name:"Vice-président",level:"admin",locked:true},
+  {id:"r_employe",name:"Employé",level:"standard",canManual:true,canDelete:false,canManageTypes:true}
+]};
+let org=JSON.parse(JSON.stringify(DEFAULT_ROLES));
+let assignments={};   // id personne -> id rôle
+let fdb=null, auth=null, ownerUid=null, teamSub=null, pendingName="";
+let myProfile={displayName:"",email:"",photoURL:""};
+const isOwnerNow=()=>!!myId&&ownerUid===myId;
+const roleById=id=>org.roles.find(r=>r.id===id);
+const roleOf=pid=>roleById(assignments[pid])||roleById(org.defaultRoleId)||org.roles.find(r=>r.level==="standard")||org.roles[0];
+const adminUI=()=>isOwnerNow()||(!!assignments[myId]&&roleOf(myId)?.level==="admin");
+function perms(){
+  if(adminUI()) return {canManual:true,canDelete:true,canManageTypes:true};
+  const r=roleOf(myId)||{};
+  if(r.level==="admin") return {canManual:true,canDelete:true,canManageTypes:true};
+  return {canManual:!!r.canManual,canDelete:!!r.canDelete,canManageTypes:!!r.canManageTypes};
+}
+let viewingId=null;
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad=n=>String(n).padStart(2,"0");
+const fmtDur=ms=>{ms=Math.max(0,ms);const h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000);return h+" h "+pad(m);};
+const fmtClock=ms=>{ms=Math.max(0,ms);const s=Math.floor(ms/1000);return pad(Math.floor(s/3600))+":"+pad(Math.floor(s%3600/60))+":"+pad(s%60);};
+const fmtTime=t=>{const d=new Date(t);return pad(d.getHours())+":"+pad(d.getMinutes());};
+const dayKey=t=>{const d=new Date(t);return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());};
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const dayLabel=t=>cap(new Date(t).toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long"}));
+const typeIn=(data,id)=>data.types.find(t=>t.id===id)||{name:"Type supprimé",color:"#888"};
+const view=()=>mode==="person"&&viewingId!==myId?(team[viewingId]||{types:[],sessions:[],active:null}):state;
+const readOnly=()=>mode==="person"&&viewingId!==myId;
+let valid={};         // id personne -> {entries, rejected} (copie officielle, écrite seulement par les administrateurs)
+let validSub=false;
+const getValid=pid=>valid[pid]||{entries:{},rejected:{}};
+const curPid=()=>mode==="person"?viewingId:myId;
+function statusOf(pid,s){
+  if(s.live) return null;
+  const v=getValid(pid);const e=v.entries[s.id];
+  if(e) return (e.start===s.start&&e.end===s.end&&e.typeId===s.typeId)?"ok":"changed";
+  const r=v.rejected[s.id];
+  if(r&&r.start===s.start&&r.end===s.end) return "rejected";
+  return "pending";
+}
+const ST_LABEL={ok:"Validée",changed:"Modifiée après validation",rejected:"Refusée",pending:"En attente"};
+function pendingCount(pid,d){return d.sessions.filter(s=>{const st=statusOf(pid,s);return st==="pending"||st==="changed";}).length;}
+function writeValid(pid,mutate){
+  const v=JSON.parse(JSON.stringify(getValid(pid)));mutate(v);valid[pid]=v;render();
+  if(!fdb) return;
+  fdb.collection("validations").doc(pid).set(v).catch(()=>toast("Validation refusée : accès administrateur requis"));
+}
+function validateSessions(pid,d,list){
+  writeValid(pid,v=>list.forEach(s=>{v.entries[s.id]={typeId:s.typeId,typeName:typeIn(d,s.typeId).name,start:s.start,end:s.end,note:s.note||"",by:myId,byName:nameOf(myId),at:Date.now()};delete v.rejected[s.id];}));
+}
+const profileOf=id=>id===myId?myProfile:(team[id]||{});
+const nameOf=id=>{const p=profileOf(id);return p.displayName||p.email||(id===myId?"Moi":"Personne sans nom");};
+function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove("show"),2200);}
+
+/* ---------- Persistance (Firebase) ---------- */
+let saveTimer=null;
+function persist(){
+  if(!backend) return;
+  setSync("Enregistrement…");
+  clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{
+    try{await backend.save(state);setSync("Enregistré");}
+    catch(e){setSync("Échec de l'enregistrement. Vérifiez votre connexion.");}
+  },400);
+}
+function setSync(t){$("sync").textContent=t;}
+function sanitize(o){
+  if(!o||!Array.isArray(o.types)||!Array.isArray(o.sessions)) return null;
+  return {types:o.types.filter(t=>t&&t.id&&t.name),sessions:o.sessions.filter(s=>s&&s.start&&s.end),active:o.active&&o.active.start?o.active:null};
+}
+function showOnly(id){["authView","configView","app"].forEach(v=>$(v).hidden=v!==id);}
+function initFirebase(){
+  const cfg=window.FIREBASE_CONFIG;
+  if(!window.firebase||!cfg||!cfg.apiKey||/COLLEZ|VOTRE/i.test(cfg.apiKey)){showOnly("configView");return;}
+  firebase.initializeApp(cfg);
+  auth=firebase.auth();fdb=firebase.firestore();
+  auth.onAuthStateChanged(u=>{if(u) startSession(u).catch(err=>{console.error(err);setSync("Erreur de chargement : "+(err.code||err.message));});else showOnly("authView");});
+}
+async function startSession(u){
+  myId=u.uid;showOnly("app");render();
+  // Premier démarrage : la première personne connectée devient propriétaire
+  const cfgRef=fdb.doc("org/config"),asgRef=fdb.doc("org/assignments");
+  const c=await cfgRef.get();
+  if(!c.exists){
+    try{
+      await cfgRef.set({ownerUid:myId,orgName:"",defaultRoleId:DEFAULT_ROLES.defaultRoleId,roles:DEFAULT_ROLES.roles,adminRoleIds:DEFAULT_ROLES.roles.filter(r=>r.level==="admin").map(r=>r.id)});
+      await asgRef.set({byUser:{}});
+    }catch(e){}
+  }
+  const ref=fdb.collection("users").doc(myId);
+  const snap=await ref.get();
+  const raw=snap.exists?snap.data():null;
+  const remote=sanitize(raw);
+  if(remote) state=remote;
+  myProfile={displayName:(raw&&raw.displayName)||pendingName||u.displayName||"",email:u.email||"",photoURL:u.photoURL||""};
+  backend={save:o=>ref.set(Object.assign(JSON.parse(JSON.stringify(o)),{updatedAt:Date.now(),displayName:myProfile.displayName,email:myProfile.email,photoURL:myProfile.photoURL}))};
+  if(!snap.exists||pendingName||!raw.email) persist();
+  pendingName="";
+  if(!state.types.some(t=>t.id===selectedType&&!t.archived)){const f=state.types.find(t=>!t.archived);selectedType=f?f.id:null;}
+  setSync("Enregistré");
+  fdb.collection("validations").doc(myId).onSnapshot(sn=>{
+    if(validSub) return;
+    const v=sn.exists?JSON.parse(JSON.stringify(sn.data())):{};
+    valid[myId]={entries:v.entries||{},rejected:v.rejected||{}};render();
+  },()=>{});
+  cfgRef.onSnapshot(sn=>{
+    if(sn.exists){const v=sn.data();ownerUid=v.ownerUid||null;
+      if(Array.isArray(v.roles)&&v.roles.length) org={defaultRoleId:v.defaultRoleId,roles:JSON.parse(JSON.stringify(v.roles)),orgName:v.orgName||""};}
+    onAccessChange();
+  },()=>{});
+  asgRef.onSnapshot(sn=>{
+    assignments=sn.exists?Object.assign({},(sn.data()||{}).byUser||{}):{};
+    onAccessChange();
+  },()=>{});
+  render();
+}
+function onAccessChange(){
+  const admin=adminUI();
+  $("tabs").hidden=!admin;
+  if(admin&&!teamSub&&fdb){
+    teamSub=fdb.collection("users").onSnapshot(snap=>{
+      const next={};
+      snap.docs.forEach(d=>{const raw=d.data();const v=sanitize(raw);if(v){Object.assign(v,{updatedAt:raw.updatedAt||0,displayName:raw.displayName||"",email:raw.email||"",photoURL:raw.photoURL||""});next[d.id]=v;}});
+      team=next;
+      $("teamTab").textContent="Équipe ("+Object.keys(team).length+")";
+      if(mode!=="mine") render();
+    },()=>{teamSub=null;});
+  }
+  if(admin&&!validSub&&fdb){
+    validSub=true;
+    fdb.collection("validations").onSnapshot(snap=>{
+      const next={};
+      snap.docs.forEach(d=>{const v=JSON.parse(JSON.stringify(d.data()||{}));next[d.id]={entries:v.entries||{},rejected:v.rejected||{}};});
+      if(!next[myId]&&valid[myId]) next[myId]=valid[myId];
+      valid=next;render();
+    },()=>{validSub=false;});
+  }
+  if(!admin&&mode!=="mine"){mode="mine";viewingId=null;}
+  render();
+}
+async function saveOrg(){
+  if(!fdb) return;
+  const adminRoleIds=org.roles.filter(r=>r.level==="admin").map(r=>r.id);
+  try{await fdb.doc("org/config").set(Object.assign(JSON.parse(JSON.stringify(org)),{ownerUid,adminRoleIds}));}
+  catch(e){toast("Modification refusée : accès administrateur requis");}
+}
+async function saveAssignments(){
+  if(!fdb) return;
+  try{await fdb.doc("org/assignments").set({byUser:Object.assign({},assignments)});}
+  catch(e){toast("Modification refusée : accès administrateur requis");}
+}
+async function resolveNames(){return false;}
+
+/* ---------- Authentification ---------- */
+let signUpMode=false;
+const AUTH_ERR={"auth/invalid-credential":"Courriel ou mot de passe incorrect.","auth/wrong-password":"Courriel ou mot de passe incorrect.","auth/user-not-found":"Aucun compte avec ce courriel.","auth/email-already-in-use":"Un compte existe déjà avec ce courriel. Connectez-vous.","auth/weak-password":"Le mot de passe doit contenir au moins 6 caractères.","auth/invalid-email":"Ce courriel n'est pas valide.","auth/popup-closed-by-user":"La fenêtre de connexion a été fermée avant la fin.","auth/unauthorized-domain":"Ce site n'est pas autorisé dans Firebase. Ajoutez son adresse aux domaines autorisés (étape 7 du guide).","auth/operation-not-allowed":"Cette méthode de connexion n'est pas activée dans Firebase (étape 3 du guide).","auth/too-many-requests":"Trop de tentatives. Réessayez dans quelques minutes.","auth/network-request-failed":"Pas de connexion Internet."};
+const authErr=e=>{$("authErr").textContent=AUTH_ERR[e&&e.code]||("Connexion impossible ("+((e&&e.code)||"erreur inconnue")+").");};
+function setAuthMode(up){
+  signUpMode=up;$("nameField").hidden=!up;
+  $("authTitle").textContent=up?"Créer un compte":"Connexion";
+  $("authSubmit").textContent=up?"Créer mon compte":"Se connecter";
+  $("authToggle").textContent=up?"J'ai déjà un compte":"Créer un compte";
+  $("authPass").autocomplete=up?"new-password":"current-password";
+  $("authErr").textContent="";
+}
+$("authToggle").onclick=()=>setAuthMode(!signUpMode);
+$("gBtn").onclick=async()=>{
+  $("authErr").textContent="";
+  const p=new firebase.auth.GoogleAuthProvider();
+  try{await auth.signInWithPopup(p);}
+  catch(e){if(e&&(e.code==="auth/popup-blocked"||e.code==="auth/operation-not-supported-in-this-environment"))auth.signInWithRedirect(p);else authErr(e);}
+};
+$("authSubmit").onclick=async()=>{
+  const email=$("authEmail").value.trim(),pass=$("authPass").value;
+  if(!email||!pass){$("authErr").textContent="Entrez votre courriel et votre mot de passe.";return;}
+  try{
+    if(signUpMode){
+      const name=$("authName").value.trim();
+      if(!name){$("authErr").textContent="Entrez votre nom complet.";return;}
+      pendingName=name;
+      const cred=await auth.createUserWithEmailAndPassword(email,pass);
+      await cred.user.updateProfile({displayName:name}).catch(()=>{});
+    }else await auth.signInWithEmailAndPassword(email,pass);
+  }catch(e){pendingName="";authErr(e);}
+};
+$("authPass").onkeydown=e=>{if(e.key==="Enter")$("authSubmit").click();};
+$("authReset").onclick=async()=>{
+  const email=$("authEmail").value.trim();
+  if(!email){$("authErr").textContent="Entrez d'abord votre courriel ci-dessus.";return;}
+  try{await auth.sendPasswordResetEmail(email);$("authErr").textContent="";toast("Courriel de réinitialisation envoyé");}catch(e){authErr(e);}
+};
+$("signOut").onclick=()=>auth.signOut().then(()=>location.reload());
+$("editName").onclick=()=>{$("nName").value=myProfile.displayName||"";$("nameDlg").showModal();};
+$("nCancel").onclick=()=>$("nameDlg").close();
+$("nSave").onclick=()=>{const v=$("nName").value.trim();if(!v)return;myProfile.displayName=v;persist();$("nameDlg").close();render();toast("Nom enregistré");};
+
+/* ---------- Pointage ---------- */
+function clockIn(){
+  if(!selectedType){toast("Ajoutez d'abord un type d'activité");return;}
+  state.active={typeId:selectedType,start:Date.now(),note:$("noteIn")?$("noteIn").value.trim():""};
+  persist();render();toast("Entrée pointée à "+fmtTime(state.active.start));
+}
+function closeActive(){
+  const a=state.active;if(!a) return null;
+  const end=Date.now();
+  if(end-a.start>=30000) state.sessions.push({id:uid(),typeId:a.typeId,start:a.start,end,note:a.note||""});
+  state.active=null;return end;
+}
+function clockOut(){const end=closeActive();persist();render();if(end) toast("Sortie pointée à "+fmtTime(end));}
+function switchTo(typeId){
+  if(!state.active||state.active.typeId===typeId) return;
+  closeActive();state.active={typeId,start:Date.now(),note:""};
+  selectedType=typeId;persist();render();toast("Activité changée : "+typeIn(state,typeId).name);
+}
+
+function renderClock(){
+  const el=$("clock");
+  if(readOnly()){
+    const d=view();const a=d.active;
+    if(a){const t=typeIn(d,a.typeId);
+      el.innerHTML=`<div class="status"><span class="dot on"></span>En cours · ${esc(t.name)}</div>
+      <div class="ro"><div class="timer" id="timer">${fmtClock(Date.now()-a.start)}</div><div class="since">Entrée à ${fmtTime(a.start)}${a.note?" · "+esc(a.note):""}</div></div>`;
+    }else{
+      const last=d.sessions.reduce((m,s)=>Math.max(m,s.end),0);
+      el.innerHTML=`<div class="status"><span class="dot"></span>Hors service</div>
+      <div class="since">${last?"Dernière sortie : "+dayLabel(last)+" à "+fmtTime(last):"Aucune activité pointée pour l'instant."}</div>`;
+    }
+    return;
+  }
+  const a=state.active;const activeTypes=state.types.filter(t=>!t.archived);
+  if(a){
+    const t=typeIn(state,a.typeId);
+    el.innerHTML=`
+      <div class="status"><span class="dot on"></span>En cours · ${esc(t.name)}</div>
+      <div>
+        <div class="timer" id="timer">${fmtClock(Date.now()-a.start)}</div>
+        <div class="since">Entrée à ${fmtTime(a.start)}${a.note?" · "+esc(a.note):""}</div>
+      </div>
+      <div>
+        <div class="since" style="margin-bottom:6px">Passer à une autre activité sans pointer la sortie :</div>
+        <div class="chips">${activeTypes.filter(x=>x.id!==a.typeId).map(x=>`<button class="chip" data-switch="${x.id}"><span class="sw" style="background:${x.color}"></span>${esc(x.name)}</button>`).join("")}</div>
+      </div>
+      <div class="row"><button class="btn big out" id="outBtn">Pointer la sortie</button></div>`;
+    el.querySelectorAll("[data-switch]").forEach(b=>b.onclick=()=>switchTo(b.dataset.switch));
+    $("outBtn").onclick=clockOut;
+  }else{
+    el.innerHTML=`
+      <div class="status"><span class="dot"></span>Hors service</div>
+      <div class="timer idle">00:00:00</div>
+      <div>
+        <div class="since" style="margin-bottom:6px">Activité</div>
+        <div class="chips" role="group" aria-label="Choisir l'activité">${activeTypes.length?activeTypes.map(x=>`<button class="chip" data-sel="${x.id}" aria-pressed="${x.id===selectedType}"><span class="sw" style="background:${x.color}"></span>${esc(x.name)}</button>`).join(""):'<span class="empty">Aucun type actif. Ajoutez-en un plus bas.</span>'}</div>
+      </div>
+      <div class="row">
+        <input type="text" class="note" id="noteIn" placeholder="Note (facultatif)" aria-label="Note">
+        <button class="btn big in" id="inBtn" ${activeTypes.length?"":"disabled"}>Pointer l'entrée</button>
+      </div>`;
+    el.querySelectorAll("[data-sel]").forEach(b=>b.onclick=()=>{selectedType=b.dataset.sel;el.querySelectorAll("[data-sel]").forEach(x=>x.setAttribute("aria-pressed",x.dataset.sel===selectedType));});
+    $("inBtn").onclick=clockIn;
+    $("noteIn").onkeydown=e=>{if(e.key==="Enter")clockIn();};
+  }
+}
+
+/* ---------- Totaux ---------- */
+function rangeFor(p){
+  const now=new Date();const s=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  if(p==="day") return [s.getTime(),s.getTime()+86400000];
+  if(p==="week"){const dow=(s.getDay()+6)%7;const st=new Date(s);st.setDate(s.getDate()-dow);const en=new Date(st);en.setDate(st.getDate()+7);return [st.getTime(),en.getTime()];}
+  if(p==="month") return [new Date(now.getFullYear(),now.getMonth(),1).getTime(),new Date(now.getFullYear(),now.getMonth()+1,1).getTime()];
+  return [0,Infinity];
+}
+function allSessions(d){
+  const list=d.sessions.slice();
+  if(d.active) list.push({id:"__active",typeId:d.active.typeId,start:d.active.start,end:Date.now(),note:d.active.note,live:true});
+  return list;
+}
+function totals(d,p){
+  const [from,to]=rangeFor(p);const per={};let total=0;
+  allSessions(d).forEach(s=>{const x=Math.min(s.end,to)-Math.max(s.start,from);if(x>0){per[s.typeId]=(per[s.typeId]||0)+x;total+=x;}});
+  return {per,total};
+}
+function renderSummary(){
+  document.querySelectorAll("#period button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===period));
+  const d=view();const {per,total}=totals(d,period);
+  const labels={day:"aujourd'hui",week:"cette semaine",month:"ce mois-ci",all:"au total"};
+  const [vf,vt]=rangeFor(period);let vtot=0;
+  Object.values(getValid(curPid()).entries).forEach(e=>{const x=Math.min(e.end,vt)-Math.max(e.start,vf);if(x>0)vtot+=x;});
+  $("total").innerHTML=`<b>${fmtDur(total)}</b><span>${labels[period]}, dont ${fmtDur(vtot)} validées</span>`;
+  const ids=Object.keys(per).sort((a,b)=>per[b]-per[a]);
+  const max=ids.length?per[ids[0]]:1;
+  $("bars").innerHTML=ids.length?ids.map(id=>{const t=typeIn(d,id);const pct=total?Math.round(per[id]/total*100):0;
+    return `<div class="bar"><div class="lbl"><span style="width:10px;height:10px;border-radius:50%;background:${t.color};flex:none"></span>${esc(t.name)}</div>
+    <div class="track"><div class="fill" style="width:${per[id]/max*100}%;background:${t.color}"></div></div>
+    <div class="val">${fmtDur(per[id])}<small>${pct} %</small></div></div>`;}).join("")
+    :`<div class="empty">Aucune heure pointée pour cette période.</div>`;
+}
+
+/* ---------- Journal ---------- */
+function actionsFor(pid,s,ro,P,admin){
+  const st=statusOf(pid,s);let h="";
+  if(!ro&&st!=="ok"){
+    if(P.canManual) h+=`<button class="btn ghost" data-edit="${s.id}">Modifier</button>`;
+    if(P.canDelete) h+=`<button class="btn ghost danger" data-del="${s.id}">${pendingDelete===s.id?"Confirmer la suppression":"Supprimer"}</button>`;
+  }
+  if(admin){
+    if(st!=="ok") h+=`<button class="btn ghost ok" data-val="${s.id}">Valider</button>`;
+    if(st==="pending"||st==="changed") h+=`<button class="btn ghost danger" data-ref="${s.id}">Refuser</button>`;
+    if(st==="ok") h+=`<button class="btn ghost" data-unval="${s.id}">Annuler la validation</button>`;
+  }
+  return h;
+}
+function renderJournal(){
+  const d=view();const ro=readOnly();
+  const P=perms();const pid=curPid();const admin=adminUI();
+  $("addManual").hidden=ro||!P.canManual;
+  const nPend=pendingCount(pid,d);
+  $("validateAll").hidden=!(admin&&nPend>0);
+  $("validateAll").textContent="Valider les "+nPend+" entrée"+(nPend>1?"s":"")+" en attente";
+  const list=allSessions(d).sort((a,b)=>b.start-a.start);
+  if(!list.length){$("journal").innerHTML=`<div class="empty">${ro?"Aucune entrée pour cette personne.":"Le journal est vide. Pointez votre entrée ou ajoutez une entrée à la main."}</div>`;return;}
+  const groups=[];const map={};
+  list.forEach(s=>{const k=dayKey(s.start);if(!map[k]){map[k]={t:s.start,items:[],total:0};groups.push(map[k]);}map[k].items.push(s);map[k].total+=s.end-s.start;});
+  const shown=groups.slice(0,journalLimit);
+  $("journal").innerHTML=shown.map((g,i)=>`<div class="day" style="${i===0?"margin-top:0":""}">
+    <div class="dayhead"><span>${dayLabel(g.t)}</span><span>${fmtDur(g.total)}</span></div>
+    ${g.items.map(s=>{const t=typeIn(d,s.typeId);const overnight=dayKey(s.end)!==dayKey(s.start)&&!s.live;
+      return `<div class="entry"><span class="sw" style="background:${t.color}"></span>
+      <div class="what"><div>${esc(t.name)}${s.live?"":`<span class="st ${statusOf(pid,s)}">${ST_LABEL[statusOf(pid,s)]}</span>`}</div>${s.note?`<div class="n">${esc(s.note)}</div>`:""}</div>
+      <div class="hrs">${fmtTime(s.start)} – ${s.live?"en cours":fmtTime(s.end)+(overnight?" (+1 j)":"")}</div>
+      <div class="dur">${fmtDur(s.end-s.start)}</div>
+      <div class="acts">${s.live?"":actionsFor(pid,s,ro,P,admin)}</div></div>`;}).join("")}
+  </div>`).join("")+(groups.length>journalLimit?`<div class="more"><button class="btn" id="moreBtn">Afficher plus de jours</button></div>`:"");
+  document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>openDialog(b.dataset.edit));
+  const byId=id=>d.sessions.find(x=>x.id===id);
+  document.querySelectorAll("[data-val]").forEach(b=>b.onclick=()=>{validateSessions(pid,d,[byId(b.dataset.val)]);toast("Entrée validée");});
+  document.querySelectorAll("[data-ref]").forEach(b=>b.onclick=()=>{const x=byId(b.dataset.ref);writeValid(pid,v=>{v.rejected[x.id]={start:x.start,end:x.end,by:myId,at:Date.now()};delete v.entries[x.id];});toast("Entrée refusée");});
+  document.querySelectorAll("[data-unval]").forEach(b=>b.onclick=()=>{writeValid(pid,v=>{delete v.entries[b.dataset.unval];});toast("Validation annulée");});
+  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.del;
+    if(pendingDelete===id){state.sessions=state.sessions.filter(s=>s.id!==id);pendingDelete=null;persist();render();toast("Entrée supprimée");}
+    else{pendingDelete=id;renderJournal();clearTimeout(renderJournal._t);renderJournal._t=setTimeout(()=>{pendingDelete=null;renderJournal();},4000);}
+  });
+  const m=$("moreBtn");if(m)m.onclick=()=>{journalLimit+=14;renderJournal();};
+}
+
+/* ---------- Fenêtre d'édition ---------- */
+let editingId=null;
+function openDialog(id){
+  editingId=id||null;
+  const s=id?state.sessions.find(x=>x.id===id):null;
+  $("dlgTitle").textContent=s?"Modifier l'entrée":"Ajouter une entrée";
+  const opts=state.types.filter(t=>!t.archived||(s&&t.id===s.typeId));
+  $("fType").innerHTML=opts.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join("");
+  const now=Date.now();const st=s?s.start:now-3600000, en=s?s.end:now;
+  $("fType").value=s?s.typeId:(selectedType||opts[0]?.id||"");
+  $("fDate").value=dayKey(st);$("fStart").value=fmtTime(st);$("fEnd").value=fmtTime(en);
+  $("fNote").value=s?s.note||"":"";$("fErr").textContent="";
+  $("dlg").showModal();
+}
+$("fCancel").onclick=()=>$("dlg").close();
+$("fSave").onclick=()=>{
+  const typeId=$("fType").value,date=$("fDate").value,a=$("fStart").value,b=$("fEnd").value;
+  if(!typeId||!date||!a||!b){$("fErr").textContent="Remplissez l'activité, la date et les deux heures.";return;}
+  const [y,mo,d]=date.split("-").map(Number);const [ah,am]=a.split(":").map(Number);const [bh,bm]=b.split(":").map(Number);
+  const start=new Date(y,mo-1,d,ah,am).getTime();let end=new Date(y,mo-1,d,bh,bm).getTime();
+  if(end<=start) end+=86400000;
+  if(end-start>24*3600000){$("fErr").textContent="Une entrée ne peut pas dépasser 24 heures.";return;}
+  const note=$("fNote").value.trim();
+  if(editingId){Object.assign(state.sessions.find(x=>x.id===editingId),{typeId,start,end,note});}
+  else state.sessions.push({id:uid(),typeId,start,end,note});
+  $("dlg").close();persist();render();toast(editingId?"Entrée modifiée":"Entrée ajoutée");
+};
+$("addManual").onclick=()=>{if(!state.types.some(t=>!t.archived)){toast("Ajoutez d'abord un type d'activité");return;}openDialog(null);};
+
+/* ---------- Types ---------- */
+function renderTypes(){
+  const hideT=readOnly()||!perms().canManageTypes;
+  $("typesSection").hidden=hideT;
+  if(hideT) return;
+  $("types").innerHTML=state.types.map(t=>`<div class="type ${t.archived?"archived":""}">
+    <input type="text" value="${esc(t.name)}" data-rename="${t.id}" aria-label="Nom du type">
+    <div class="swatches" role="group" aria-label="Couleur">${COLORS.map(c=>`<button style="background:${c}" data-color="${t.id}" data-c="${c}" aria-pressed="${c===t.color}" aria-label="Couleur ${c}"></button>`).join("")}</div>
+    <button class="btn ghost" data-arch="${t.id}">${t.archived?"Réactiver":"Archiver"}</button>
+  </div>`).join("");
+  document.querySelectorAll("[data-rename]").forEach(i=>i.onchange=()=>{const t=state.types.find(x=>x.id===i.dataset.rename);const v=i.value.trim();if(v){t.name=v;persist();render();}else i.value=t.name;});
+  document.querySelectorAll("[data-color]").forEach(b=>b.onclick=()=>{state.types.find(x=>x.id===b.dataset.color).color=b.dataset.c;persist();render();});
+  document.querySelectorAll("[data-arch]").forEach(b=>b.onclick=()=>{
+    const t=state.types.find(x=>x.id===b.dataset.arch);
+    if(!t.archived&&state.active&&state.active.typeId===t.id){toast("Pointez la sortie avant d'archiver l'activité en cours");return;}
+    t.archived=!t.archived;
+    if(t.archived&&selectedType===t.id){const f=state.types.find(x=>!x.archived);selectedType=f?f.id:null;}
+    if(!t.archived&&!selectedType) selectedType=t.id;
+    persist();render();
+  });
+}
+function addType(){
+  const v=$("newType").value.trim();if(!v) return;
+  if(state.types.some(t=>t.name.toLowerCase()===v.toLowerCase())){toast("Ce type existe déjà");return;}
+  const t={id:"t_"+uid(),name:v,color:COLORS[state.types.length%COLORS.length],archived:false};
+  state.types.push(t);if(!selectedType) selectedType=t.id;
+  $("newType").value="";persist();render();toast("Type ajouté : "+v);
+}
+$("addType").onclick=addType;
+$("newType").onkeydown=e=>{if(e.key==="Enter")addType();};
+
+/* ---------- Équipe (administrateur) ---------- */
+function renderTeam(){
+  document.querySelectorAll("#teamPeriod button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===teamPeriod));
+  const ids=Object.keys(team);
+  if(!ids.length){$("teamTable").innerHTML=`<div class="empty">Personne n'a encore pointé. Partagez la page avec votre équipe pour qu'elle apparaisse ici.</div>`;return;}
+  const rows=ids.map(id=>{const d=team[id];return {id,d,t:totals(d,teamPeriod)};});
+  rows.sort((a,b)=>(!!b.d.active-!!a.d.active)||(b.t.total-a.t.total));
+  const lbl={day:"Aujourd'hui",week:"Cette semaine",month:"Ce mois-ci"}[teamPeriod];
+  $("teamTable").innerHTML=`<table class="team"><thead><tr><th>Personne</th><th>Rôle</th><th>Statut</th><th class="num">${lbl}</th><th class="num">À valider</th><th>Activité principale</th><th>Dernière mise à jour</th></tr></thead><tbody>
+  ${rows.map(r=>{const top=Object.keys(r.t.per).sort((a,b)=>r.t.per[b]-r.t.per[a])[0];const tt=top?typeIn(r.d,top):null;
+    const st=r.d.active?`<span class="pill"><span class="dot on"></span>En cours · ${esc(typeIn(r.d,r.d.active.typeId).name)}</span>`:`<span class="pill"><span class="dot"></span>Hors service</span>`;
+    return `<tr class="click" data-person="${esc(r.id)}" tabindex="0"><td><div class="person"><img alt="" data-av="${esc(r.id)}"><span data-nm="${esc(r.id)}"></span></div></td>
+    <td>${roleCell(r.id,r.d)}</td><td>${st}</td><td class="num"><b>${fmtDur(r.t.total)}</b></td><td class="num">${pendingCount(r.id,r.d)||"—"}</td>
+    <td>${tt?`<span class="pill"><span style="width:9px;height:9px;border-radius:50%;background:${tt.color}"></span>${esc(tt.name)}</span>`:"—"}</td>
+    <td>${r.d.updatedAt?dayLabel(r.d.updatedAt)+" "+fmtTime(r.d.updatedAt):"—"}</td></tr>`;}).join("")}
+  </tbody></table>`;
+  fillNames();
+  resolveNames(ids).then(()=>fillNames());
+  document.querySelectorAll("select[data-assign]").forEach(sel=>{
+    sel.onclick=e=>e.stopPropagation();sel.onkeydown=e=>e.stopPropagation();
+    sel.onchange=()=>{assignments[sel.dataset.assign]=sel.value;saveAssignments();renderTeam();toast("Rôle modifié : "+roleById(sel.value).name);};
+  });
+  document.querySelectorAll("[data-person]").forEach(tr=>{
+    const go=()=>openPerson(tr.dataset.person);
+    tr.onclick=go;tr.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}};
+  });
+}
+function roleCell(pid,d){
+  const r=roleOf(pid);
+  const warn="";
+  return `<select class="rolesel" data-assign="${esc(pid)}" aria-label="Rôle">${org.roles.map(x=>`<option value="${x.id}" ${x.id===r.id?"selected":""}>${esc(x.name)}</option>`).join("")}</select>${warn}`;
+}
+/* ---------- Rôles ---------- */
+function renderRoles(){
+  const counts={};Object.keys(team).forEach(id=>{const r=roleOf(id);counts[r.id]=(counts[r.id]||0)+1;});
+  const permList=[["canManual","Ajouter et modifier des entrées à la main"],["canDelete","Supprimer des entrées"],["canManageTypes","Gérer ses types d'activités"]];
+  $("rolesList").innerHTML=org.roles.map(r=>`<div class="role">
+    <div class="top">
+      <input type="text" value="${esc(r.name)}" data-rname="${r.id}" aria-label="Nom du rôle">
+      <span class="lvl">${r.level==="admin"?"Accès administrateur":"Accès restreint"} · ${counts[r.id]||0} personne${(counts[r.id]||0)>1?"s":""}</span>
+      ${r.locked?"":`<button class="btn ghost danger" data-rdel="${r.id}">${pendingDelete===r.id?"Confirmer la suppression":"Supprimer"}</button>`}
+    </div>
+    ${r.level==="admin"?`<div class="since">Voit toute l'équipe, attribue les rôles et a toutes les permissions dans son espace.</div>`:
+    `<div class="perms">${permList.map(([k,l])=>`<label><input type="checkbox" data-rperm="${r.id}" data-k="${k}" ${r[k]?"checked":""}>${l}</label>`).join("")}</div>
+     <div class="since">Voit uniquement son propre espace.</div>`}
+  </div>`).join("");
+  const std=org.roles.filter(r=>r.level==="standard");
+  if(document.activeElement!==$("orgName")) $("orgName").value=org.orgName||"";
+  $("defaultRole").innerHTML=std.map(r=>`<option value="${r.id}" ${r.id===org.defaultRoleId?"selected":""}>${esc(r.name)}</option>`).join("");
+  document.querySelectorAll("[data-rname]").forEach(i=>i.onchange=()=>{const r=roleById(i.dataset.rname);const v=i.value.trim();if(!v){i.value=r.name;return;}r.name=v;saveOrg();render();});
+  document.querySelectorAll("[data-rperm]").forEach(c=>c.onchange=()=>{roleById(c.dataset.rperm)[c.dataset.k]=c.checked;saveOrg();});
+  document.querySelectorAll("[data-rdel]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.rdel;
+    if(org.roles.filter(r=>r.level==="standard").length<=1){toast("Gardez au moins un rôle à accès restreint");return;}
+    if(pendingDelete!==id){pendingDelete=id;renderRoles();setTimeout(()=>{if(pendingDelete===id){pendingDelete=null;renderRoles();}},4000);return;}
+    pendingDelete=null;
+    org.roles=org.roles.filter(r=>r.id!==id);
+    if(org.defaultRoleId===id) org.defaultRoleId=org.roles.find(r=>r.level==="standard").id;
+    let changed=false;Object.keys(assignments).forEach(p=>{if(assignments[p]===id){delete assignments[p];changed=true;}});
+    saveOrg();if(changed)saveAssignments();render();toast("Rôle supprimé");
+  });
+}
+function addRole(){
+  const v=$("newRole").value.trim();if(!v) return;
+  if(org.roles.some(r=>r.name.toLowerCase()===v.toLowerCase())){toast("Ce rôle existe déjà");return;}
+  org.roles.push({id:"r_"+uid(),name:v,level:"standard",canManual:false,canDelete:false,canManageTypes:false});
+  $("newRole").value="";saveOrg();render();toast("Rôle créé : "+v);
+}
+$("addRole").onclick=addRole;
+$("newRole").onkeydown=e=>{if(e.key==="Enter")addRole();};
+$("orgName").onchange=()=>{org.orgName=$("orgName").value.trim();saveOrg();toast("Nom de l'organisation enregistré");};
+$("defaultRole").onchange=()=>{org.defaultRoleId=$("defaultRole").value;saveOrg();};
+function renderAccess(){
+  const b=$("roleBadge");
+  if(myId){b.hidden=false;b.textContent=isOwnerNow()?"Propriétaire":roleOf(myId).name;}
+  $("meName").textContent=nameOf(myId);
+  if(myProfile.photoURL){$("meAvatar").src=myProfile.photoURL;$("meAvatar").hidden=false;}
+  const n=$("roleNotice");
+  const needShare=false;
+  n.hidden=!(needShare&&mode==="mine");
+  if(needShare) n.textContent="Votre rôle donne l'accès administrateur. Pour voir l'équipe, demandez au propriétaire de vous donner le rôle Éditeur dans le menu Partager de cette page.";
+}
+function fillNames(){
+  document.querySelectorAll("[data-nm]").forEach(el=>{el.textContent=nameOf(el.dataset.nm)+(el.dataset.nm===myId?" (vous)":"");});
+  document.querySelectorAll("[data-av]").forEach(el=>{const p=profileOf(el.dataset.av);if(p&&p.photoURL){el.src=p.photoURL;el.referrerPolicy="no-referrer";}else el.hidden=true;});
+}
+function openPerson(id){mode="person";viewingId=id;journalLimit=14;render();window.scrollTo(0,0);}
+function renderWho(){
+  const w=$("who");
+  if(mode!=="person"){w.hidden=true;return;}
+  w.hidden=false;
+  w.innerHTML=`<button class="btn" id="backBtn">Retour à l'équipe</button><img alt="" data-av="${esc(viewingId)}"><span class="nm" data-nm="${esc(viewingId)}"></span>`;
+  $("backBtn").onclick=()=>{mode="team";render();};
+  fillNames();resolveNames([viewingId]).then(()=>fillNames());
+}
+
+/* ---------- Export ---------- */
+const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
+function sessionRows(d,who){
+  return d.sessions.slice().sort((a,b)=>a.start-b.start).map(s=>[...(who!=null?[who]:[]),dayKey(s.start),typeIn(d,s.typeId).name,fmtTime(s.start),fmtTime(s.end),((s.end-s.start)/3600000).toFixed(2).replace(".",","),s.note||""].map(q).join(";"));
+}
+async function offerCsv(filename,lines){
+  const csv="\uFEFF"+lines.join("\r\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download=filename;a.click();
+}
+$("exportCsv").onclick=()=>{
+  const d=view();if(!d.sessions.length){toast("Rien à exporter pour l'instant");return;}
+  const head=["Date","Activité","Entrée","Sortie","Durée (h)","Note"].map(q).join(";");
+  const who=readOnly()?nameOf(viewingId).replace(/[^\p{L}\p{N}]+/gu,"-").toLowerCase()+"-":"";
+  offerCsv("pointeuse-"+who+dayKey(Date.now())+".csv",[head,...sessionRows(d)]);
+};
+$("exportTeam").onclick=async()=>{
+  const ids=Object.keys(team);if(!ids.length){toast("Rien à exporter pour l'instant");return;}
+  await resolveNames(ids);
+  const lines=[["Personne","Date","Activité","Entrée","Sortie","Durée (h)","Note"].map(q).join(";")];
+  ids.forEach(id=>lines.push(...sessionRows(team[id],nameOf(id))));
+  offerCsv("pointeuse-equipe-"+dayKey(Date.now())+".csv",lines);
+};
+
+$("validateAll").onclick=()=>{
+  const pid=curPid();const d=view();
+  const list=d.sessions.filter(s=>{const st=statusOf(pid,s);return st==="pending"||st==="changed";});
+  if(list.length){validateSessions(pid,d,list);toast(list.length+" entrée"+(list.length>1?"s validées":" validée"));}
+};
+
+/* ---------- Attestation ---------- */
+function attEntries(){
+  const pid=curPid();const f=$("aFrom").value,t=$("aTo").value;
+  if(!f||!t) return {pid,list:[]};
+  const [y1,m1,d1]=f.split("-").map(Number),[y2,m2,d2]=t.split("-").map(Number);
+  const from=new Date(y1,m1-1,d1).getTime(),to=new Date(y2,m2-1,d2+1).getTime();
+  const list=Object.entries(getValid(pid).entries).map(([id,e])=>Object.assign({id},e)).filter(e=>e.start>=from&&e.start<to).sort((a,b)=>a.start-b.start);
+  return {pid,list,from,to};
+}
+function updateAttPreview(){
+  const {list}=attEntries();const tot=list.reduce((m,e)=>m+e.end-e.start,0);
+  $("aPreview").textContent=list.length?list.length+" entrée"+(list.length>1?"s":"")+" validée"+(list.length>1?"s":"")+", "+fmtDur(tot)+" au total.":"Aucune heure validée sur cette période.";
+}
+$("openAttest").onclick=async()=>{
+  const pid=curPid();
+  await resolveNames([pid]);
+  const nm=nameOf(pid);$("aName").value=(nm==="Moi"||nm==="Personne sans nom")?"":nm;
+  const es=Object.values(getValid(pid).entries).map(e=>e.start);
+  const now=Date.now();
+  $("aFrom").value=dayKey(es.length?Math.min(...es):now);$("aTo").value=dayKey(now);
+  $("aSigner").value="";$("aErr").textContent="";updateAttPreview();
+  $("attDlg").showModal();
+};
+$("aFrom").onchange=updateAttPreview;$("aTo").onchange=updateAttPreview;
+$("aCancel").onclick=()=>$("attDlg").close();
+async function verifCode(pid,list){
+  const src=pid+"|"+list.map(e=>e.id+":"+e.start+":"+e.end+":"+e.typeId).join(",");
+  try{const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(src));
+    const hex=[...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("").toUpperCase().slice(0,12);
+    return hex.match(/.{4}/g).join("-");}catch(e){return "";}
+}
+const longDate=t=>new Date(t).toLocaleDateString("fr-CA",{day:"numeric",month:"long",year:"numeric"});
+$("aMake").onclick=async()=>{
+  const name=$("aName").value.trim();const {pid,list,from,to}=attEntries();
+  if(!name){$("aErr").textContent="Indiquez le nom de la personne.";return;}
+  if(!list.length){$("aErr").textContent="Aucune heure validée sur cette période. Faites d'abord valider les entrées.";return;}
+  if(!window.jspdf){$("aErr").textContent="Le générateur de PDF n'a pas pu se charger. Rechargez la page.";return;}
+  const byIds=[...new Set(list.map(e=>e.by).filter(Boolean))];await resolveNames(byIds);
+  const validators=[...new Set(list.map(e=>e.byName||(team[e.by]&&nameOf(e.by))||"").filter(Boolean))];
+  const code=await verifCode(pid,list);
+  const total=list.reduce((m,e)=>m+e.end-e.start,0);
+  const per={};list.forEach(e=>{per[e.typeName]=(per[e.typeName]||0)+e.end-e.start;});
+  const org=(window.__orgName&&window.__orgName())||"l'organisation";
+  const hrs=ms=>(ms/3600000).toFixed(2).replace(".",",")+" h";
+
+  const doc=new window.jspdf.jsPDF({unit:"mm",format:"letter"});
+  const W=215.9,M=20;let y=24;
+  const line=()=>{doc.setDrawColor(200);doc.line(M,y,W-M,y);};
+  const need=h=>{if(y+h>262){doc.addPage();y=22;}};
+  doc.setFont("helvetica","bold");doc.setFontSize(20);doc.text("Attestation d'heures d'implication",M,y);y+=8;
+  doc.setFont("helvetica","normal");doc.setFontSize(12);if(org!=="l'organisation"){doc.setTextColor(90);doc.text(org,M,y);doc.setTextColor(0);y+=12;}else{y+=4;}
+  doc.setFontSize(11.5);
+  const para=doc.splitTextToSize(`Nous attestons que ${name} a consacré ${hrs(total)} d'implication au sein de ${org}, du ${longDate(from)} au ${longDate(to-86400000)}. Ces heures ont été enregistrées au moyen de notre système de pointage et validées par un administrateur de l'organisation.`,W-2*M);
+  doc.text(para,M,y,{lineHeightFactor:1.45});y+=para.length*6+6;
+  doc.setFont("helvetica","bold");doc.text("Répartition par type d'activité",M,y);y+=4;line();y+=6;
+  doc.setFont("helvetica","normal");
+  Object.keys(per).sort((a,b)=>per[b]-per[a]).forEach(k=>{need(8);doc.text(k,M,y);doc.text(hrs(per[k]),W-M,y,{align:"right"});y+=7;});
+  line();y+=6;doc.setFont("helvetica","bold");doc.text("Total",M,y);doc.text(hrs(total),W-M,y,{align:"right"});y+=14;
+
+  need(20);doc.text("Détail des entrées validées",M,y);y+=4;line();y+=6;
+  doc.setFontSize(9.5);doc.setTextColor(90);
+  const cols=[M,M+26,M+72,M+100];
+  doc.text("Date",cols[0],y);doc.text("Activité",cols[1],y);doc.text("Horaire",cols[2],y);doc.text("Note",cols[3],y);doc.text("Durée",W-M,y,{align:"right"});
+  doc.setTextColor(0);doc.setFont("helvetica","normal");y+=6;
+  list.forEach(e=>{
+    need(7);
+    const note=doc.splitTextToSize(e.note||"",W-M-cols[3]-18)[0]||"";
+    doc.text(dayKey(e.start),cols[0],y);
+    doc.text(doc.splitTextToSize(e.typeName,44)[0],cols[1],y);
+    doc.text(fmtTime(e.start)+" – "+fmtTime(e.end),cols[2],y);
+    doc.text(note,cols[3],y);
+    doc.text(hrs(e.end-e.start),W-M,y,{align:"right"});y+=6;
+  });
+  y+=8;need(56);doc.setFontSize(10.5);
+  if(validators.length){doc.text("Heures validées par : "+validators.join(", "),M,y);y+=6;}
+  doc.text("Document émis le "+longDate(Date.now()),M,y);y+=6;
+  if(code){doc.text("Code de vérification : "+code,M,y);y+=6;}
+  y+=14;doc.setDrawColor(0);doc.line(M,y,M+80,y);y+=5;
+  doc.text($("aSigner").value.trim()||"Signature et fonction du signataire",M,y);
+
+  const buf=doc.output("arraybuffer");
+  const filename="attestation-"+name.replace(/[^\p{L}\p{N}]+/gu,"-").toLowerCase()+".pdf";
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([buf],{type:"application/pdf"}));a.download=filename;a.click();$("attDlg").close();
+};
+window.__orgName=()=>org.orgName;
+
+
+/* ---------- Vue par jour ---------- */
+const startOfDay=t=>{const d=new Date(t);return new Date(d.getFullYear(),d.getMonth(),d.getDate()).getTime();};
+const addDays=(t,n)=>{const d=new Date(t);return new Date(d.getFullYear(),d.getMonth(),d.getDate()+n).getTime();};
+let dayCursor=startOfDay(Date.now());
+function daySessions(d,ds){
+  const de=addDays(ds,1);
+  return allSessions(d).filter(s=>s.end>ds&&s.start<de).sort((a,b)=>a.start-b.start)
+    .map(s=>Object.assign({},s,{cs:Math.max(s.start,ds),ce:Math.min(s.end,de)}));
+}
+function timelineHTML(d,list,ds){
+  const span=addDays(ds,1)-ds; // gère les changements d'heure
+  const grid=[6,12,18].map(h=>`<div class="grid" style="left:${h/24*100}%"></div>`).join("");
+  return `<div class="tl">${grid}${list.map(s=>{const t=typeIn(d,s.typeId);
+    return `<div class="blk ${s.live?"live":""}" style="left:${(s.cs-ds)/span*100}%;width:${(s.ce-s.cs)/span*100}%;background:${t.color}" title="${esc(t.name)} · ${fmtTime(s.start)} – ${s.live?"en cours":fmtTime(s.end)}"></div>`;}).join("")}</div>`;
+}
+const axisHTML=()=>`<div class="axis">${[0,6,12,18,24].map(h=>`<span style="left:${h/24*100}%">${h} h</span>`).join("")}</div>`;
+function nearestActiveDay(lists,dir){
+  let best=null;
+  lists.forEach(d=>allSessions(d).forEach(s=>{
+    const k=startOfDay(s.start);
+    if(dir<0&&k<dayCursor&&(best===null||k>best)) best=k;
+    if(dir>0&&k>dayCursor&&(best===null||k<best)) best=k;
+  }));
+  return best;
+}
+function syncDayPickers(){document.querySelectorAll(".dayPick").forEach(i=>{i.value=dayKey(dayCursor);});}
+function jumpsHTML(lists){
+  const p=nearestActiveDay(lists,-1),n=nearestActiveDay(lists,1);
+  if(p===null&&n===null) return "";
+  return `<div class="jumps">${p!==null?`<button class="btn" data-djump="${p}">Jour d'activité précédent (${esc(dayKey(p))})</button>`:""}${n!==null?`<button class="btn" data-djump="${n}">Jour d'activité suivant (${esc(dayKey(n))})</button>`:""}</div>`;
+}
+function renderDay(){
+  syncDayPickers();
+  const d=view();const pid=curPid();const list=daySessions(d,dayCursor);
+  const total=list.reduce((m,s)=>m+s.ce-s.cs,0);
+  const head=`<div class="daytitle"><b>${dayLabel(dayCursor)} ${new Date(dayCursor).getFullYear()}</b><span>${fmtDur(total)}</span></div>`;
+  if(!list.length){
+    $("dayCard").innerHTML=head+`<div class="empty">Aucune activité ce jour-là.</div>`+jumpsHTML([d]);
+  }else{
+    $("dayCard").innerHTML=head+timelineHTML(d,list,dayCursor)+axisHTML()+list.map(s=>{const t=typeIn(d,s.typeId);const st=statusOf(pid,s);
+      const from=s.start<dayCursor?" (veille)":"",to=!s.live&&s.end>addDays(dayCursor,1)?" (lendemain)":"";
+      return `<div class="entry"><span class="sw" style="background:${t.color}"></span>
+      <div class="what"><div>${esc(t.name)}${st?`<span class="st ${st}">${ST_LABEL[st]}</span>`:""}</div>${s.note?`<div class="n">${esc(s.note)}</div>`:""}</div>
+      <div class="hrs">${fmtTime(s.start)}${from} – ${s.live?"en cours":fmtTime(s.end)+to}</div>
+      <div class="dur">${fmtDur(s.ce-s.cs)}</div><div class="acts"></div></div>`;}).join("")+jumpsHTML([d]);
+  }
+  bindDayJumps($("dayCard"));
+}
+function renderTeamDay(){
+  syncDayPickers();
+  const ids=Object.keys(team);
+  const rows=ids.map(id=>{const d=team[id];const list=daySessions(d,dayCursor);return {id,d,list,total:list.reduce((m,s)=>m+s.ce-s.cs,0)};}).filter(r=>r.list.length).sort((a,b)=>b.total-a.total);
+  const total=rows.reduce((m,r)=>m+r.total,0);
+  const head=`<div class="daytitle"><b>${dayLabel(dayCursor)} ${new Date(dayCursor).getFullYear()}</b><span>${rows.length} personne${rows.length>1?"s":""} · ${fmtDur(total)}</span></div>`;
+  if(!rows.length){$("teamDayCard").innerHTML=head+`<div class="empty">Personne n'a pointé ce jour-là.</div>`+jumpsHTML(ids.map(i=>team[i]));bindDayJumps($("teamDayCard"));return;}
+  $("teamDayCard").innerHTML=head+`<div class="dayaxis-wrap"><div></div>${axisHTML()}<div style="min-width:64px"></div></div>`+
+    rows.map(r=>`<div class="teamday click" data-dayperson="${esc(r.id)}" tabindex="0" style="cursor:pointer">
+      <div class="person"><img alt="" data-av="${esc(r.id)}"><span data-nm="${esc(r.id)}"></span></div>
+      ${timelineHTML(r.d,r.list,dayCursor)}<div class="tot">${fmtDur(r.total)}</div></div>`).join("")+jumpsHTML(ids.map(i=>team[i]));
+  fillNames();resolveNames(rows.map(r=>r.id)).then(()=>fillNames());
+  document.querySelectorAll("[data-dayperson]").forEach(el=>{const go=()=>openPerson(el.dataset.dayperson);el.onclick=go;el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();go();}};});
+  bindDayJumps($("teamDayCard"));
+}
+function bindDayJumps(root){root.querySelectorAll("[data-djump]").forEach(b=>b.onclick=()=>setDay(Number(b.dataset.djump)));}
+function setDay(t){dayCursor=startOfDay(t);if(mode==="team")renderTeamDay();else renderDay();}
+document.querySelectorAll("[data-dnav]").forEach(b=>b.onclick=()=>setDay(addDays(dayCursor,Number(b.dataset.dnav))));
+document.querySelectorAll("[data-dtoday]").forEach(b=>b.onclick=()=>setDay(Date.now()));
+document.querySelectorAll(".dayPick").forEach(i=>i.onchange=()=>{if(!i.value)return;const [y,m,d]=i.value.split("-").map(Number);setDay(new Date(y,m-1,d).getTime());});
+
+/* ---------- Navigation / rendu ---------- */
+document.querySelectorAll("#period button").forEach(b=>b.onclick=()=>{period=b.dataset.p;renderSummary();});
+document.querySelectorAll("#teamPeriod button").forEach(b=>b.onclick=()=>{teamPeriod=b.dataset.p;renderTeam();});
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{mode=b.dataset.tab;viewingId=null;journalLimit=14;render();});
+function render(){
+  $("today").textContent=cap(new Date().toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));
+  const tabSel=mode==="person"?"team":mode;
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tabSel));
+  renderAccess();
+  $("teamView").hidden=mode!=="team";
+  $("rolesView").hidden=mode!=="roles";
+  $("personalView").hidden=mode==="team"||mode==="roles";
+  if(mode==="team"){renderTeam();renderTeamDay();return;}
+  if(mode==="roles"){renderRoles();return;}
+  renderWho();renderClock();renderDay();renderSummary();renderJournal();renderTypes();
+}
+let lastMinute=-1;
+setInterval(()=>{
+  const d=view();
+  if(mode!=="team"&&mode!=="roles"&&d.active){const t=$("timer");if(t)t.textContent=fmtClock(Date.now()-d.active.start);}
+  const m=new Date().getMinutes();
+  if(m!==lastMinute){lastMinute=m;
+    if(mode==="team"){renderTeam();renderTeamDay();}
+    else if(mode==="roles"){}
+    else if(d.active){renderSummary();renderDay();if(!pendingDelete)renderJournal();}
+  }
+},1000);
+initFirebase();
+})();
+</script>
+</body>
+</html>
