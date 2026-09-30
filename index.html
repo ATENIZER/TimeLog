@@ -4,6 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pointeuse</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20200%20200%22%3E%3Crect%20width%3D%22200%22%20height%3D%22200%22%20rx%3D%2244%22%20fill%3D%22%2314213D%22/%3E%3Cg%20transform%3D%22translate%28100%20100%29%20scale%28.8125%29%20translate%28-100%20-100%29%22%3E%3Ccircle%20cx%3D%22100%22%20cy%3D%22100%22%20r%3D%2268%22%20fill%3D%22none%22%20stroke%3D%22%23EEF1F5%22%20stroke-width%3D%2226%22/%3E%3Cline%20x1%3D%22100%22%20y1%3D%22100%22%20x2%3D%22160%22%20y2%3D%2224%22%20stroke%3D%22%2314213D%22%20stroke-width%3D%2254%22%20stroke-linecap%3D%22round%22/%3E%3Cpolyline%20points%3D%2274%2C76%20100%2C108%20160%2C24%22%20fill%3D%22none%22%20stroke%3D%22%23F2A33A%22%20stroke-width%3D%2230%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/g%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#14213D">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
@@ -328,7 +332,8 @@ body.nav-wide .side{width:var(--rail-wide)}
 .side-toggle:hover,.mmenu:hover{background:var(--soft)}
 .side-toggle .ico,.mmenu .ico{width:24px;height:24px}
 .side-brand{font-family:var(--display);font-weight:700;font-size:1.35rem;display:flex;align-items:center;gap:8px}
-.side-brand::before{content:"";width:.5em;height:.5em;border-radius:50%;background:var(--go);box-shadow:0 0 0 .14em color-mix(in srgb,var(--go) 25%,transparent)}
+.side-brand .logo{flex:none;border-radius:8px}
+.auth-logo{display:block;margin:0 auto 10px;border-radius:18px;box-shadow:0 10px 30px rgba(20,33,61,.25)}
 .side .lbl{white-space:nowrap;opacity:0;transition:opacity .15s ease;pointer-events:none}
 body.nav-wide .side .lbl,.side.open .lbl{opacity:1}
 #tabs{display:flex;flex-direction:column;gap:4px;background:none;box-shadow:none;padding:0;border-radius:0;margin:0}
@@ -410,6 +415,12 @@ input[type=text],input[type=email],input[type=password],input[type=date],input[t
   .bar .val{min-width:0}
   header.top .sync{display:none}
 }
+
+.side-top{flex-direction:column;align-items:center;height:auto;gap:6px;margin-bottom:8px}
+.side-brand{gap:10px;min-width:0}
+.side-brand .logo{width:32px;height:32px}
+body.nav-wide .side-top,.side.open .side-top{flex-direction:row;justify-content:space-between;padding-left:6px}
+body:not(.nav-wide) .side:not(.open) .side-brand .lbl{display:none}
 body.noscroll{overflow:hidden}
 .total{flex-wrap:wrap;row-gap:2px}
 .total b{white-space:nowrap}
@@ -422,7 +433,7 @@ body.noscroll{overflow:hidden}
 </head>
 <body>
 <div class="wrap" id="authView" hidden>
-  <h1 style="text-align:center">Pointeuse</h1>
+  <div style="text-align:center;margin-top:24px"><svg class="auth-logo" width="72" height="72" viewBox="0 0 200 200" role="img" aria-label="Logo de la pointeuse"><rect width="200" height="200" rx="47" fill="#14213D"/><g transform="translate(100 100) scale(.75) translate(-100 -100)"><circle cx="100" cy="100" r="70" fill="none" stroke="#EEF1F5" stroke-width="20"/><line x1="100" y1="100" x2="160" y2="24" stroke="#14213D" stroke-width="46" stroke-linecap="round"/><polyline points="74,76 100,108 160,24" fill="none" stroke="#F2A33A" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/></g></svg><h1 style="margin:0">Pointeuse</h1></div>
   <div class="card auth">
     <h2 id="authTitle">Connexion</h2>
     <button class="btn big in" id="gBtn">Continuer avec Google</button>
@@ -446,8 +457,8 @@ body.noscroll{overflow:hidden}
 <div class="wrap main" id="app" hidden>
   <aside class="side" id="side" aria-label="Navigation">
     <div class="side-top">
+      <span class="side-brand"><svg class="logo" width="28" height="28" viewBox="0 0 200 200" role="img" aria-label="Logo de la pointeuse"><rect width="200" height="200" rx="47" fill="#14213D"/><g transform="translate(100 100) scale(.75) translate(-100 -100)"><circle cx="100" cy="100" r="70" fill="none" stroke="#EEF1F5" stroke-width="20"/><line x1="100" y1="100" x2="160" y2="24" stroke="#14213D" stroke-width="46" stroke-linecap="round"/><polyline points="74,76 100,108 160,24" fill="none" stroke="#F2A33A" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/></g></svg><span class="lbl">Pointeuse</span></span>
       <button class="side-toggle" id="sideToggle" aria-label="Afficher ou réduire le menu" aria-expanded="false"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
-      <span class="side-brand lbl">Pointeuse</span>
     </div>
     <nav class="tabs" id="tabs" role="tablist" aria-orientation="vertical">
       <button role="tab" data-tab="mine" aria-selected="true" title="Mon espace"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span class="lbl">Mon espace</span></button>
