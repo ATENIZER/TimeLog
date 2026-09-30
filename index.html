@@ -283,7 +283,7 @@ dialog[open]{animation:pop .18s ease-out}
 .kind{font-size:.78rem;font-weight:600;border-radius:999px;padding:1px 9px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
 .tst{font-size:.78rem;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
 .tst.a_faire{background:var(--soft);color:var(--muted)}
-.tst.en_cours{background:color-mix(in srgb,#2F6FB5 16%,var(--panel));color:#2F6FB5}
+.tst.en_cours{background:color-mix(in srgb,#4F7CFF 16%,var(--panel));color:#4F7CFF}
 .tst.a_verifier{background:color-mix(in srgb,#D98A1C 18%,var(--panel));color:#A5650C}
 .tst.terminee{background:var(--go);color:var(--go-ink)}
 .mytasks{display:grid;gap:8px}
@@ -424,6 +424,37 @@ body:not(.nav-wide) .side:not(.open) .side-brand .lbl{display:none}
 body.noscroll{overflow:hidden}
 .total{flex-wrap:wrap;row-gap:2px}
 .total b{white-space:nowrap}
+
+/* ===== Palette de la marque (logo) ===== */
+:root{--bg:#EEF1F5;--panel:#FFFFFF;--ink:#14213D;--muted:#5A6782;--line:#D5DBE3;--soft:#F3F5F9;
+  --go:#14213D;--go-ink:#FFFFFF;--punch:#E4572E;--punch-ink:#FFFFFF;--accent:#F2A33A;
+  --glow1:#DDE3EB;--glow2:#FDEBD0;--side:#14213D;--side-ink:#C5CEDD}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0C1428;--panel:#14213D;--ink:#EEF1F5;--muted:#9AA6BD;--line:#26355A;--soft:#1A2A4C;
+  --go:#F2A33A;--go-ink:#14213D;--punch:#F0694A;--glow1:rgba(79,124,255,.14);--glow2:rgba(242,163,58,.10);--side:#0A1122;--side-ink:#AEB8CC}}
+:root[data-theme="dark"]{--bg:#0C1428;--panel:#14213D;--ink:#EEF1F5;--muted:#9AA6BD;--line:#26355A;--soft:#1A2A4C;
+  --go:#F2A33A;--go-ink:#14213D;--punch:#F0694A;--glow1:rgba(79,124,255,.14);--glow2:rgba(242,163,58,.10);--side:#0A1122;--side-ink:#AEB8CC}
+.side{background:var(--side);color:var(--side-ink);box-shadow:none}
+.side-toggle{color:#fff}
+.side-toggle:hover{background:rgba(255,255,255,.08)}
+.side-brand{color:#fff}
+.side .logo{box-shadow:0 0 0 1px rgba(255,255,255,.18)}
+#tabs button,.navbtn{color:var(--side-ink)}
+#tabs button:hover,.navbtn:hover{background:rgba(255,255,255,.08);color:#fff}
+#tabs button[aria-selected="true"]{background:rgba(242,163,58,.16);color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.cnt{background:var(--accent);color:#14213D}
+.cnt.muted{background:rgba(255,255,255,.14);color:#fff}
+body:not(.nav-wide) .side:not(.open) .cnt{box-shadow:0 0 0 2px var(--side)}
+.side-foot{border-top-color:rgba(255,255,255,.12)}
+.side-me{color:#fff}
+.dot.on{background:var(--act,var(--accent))}
+.badge{background:color-mix(in srgb,var(--accent) 22%,var(--panel));border-color:color-mix(in srgb,var(--accent) 55%,transparent);color:var(--ink)}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent);outline:none}
+:focus-visible{outline-color:var(--accent)}
+.tst.a_verifier,.due.soon{background:color-mix(in srgb,var(--accent) 22%,var(--panel));color:#9A5B07}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tst.a_verifier,:root:not([data-theme="light"]) .due.soon{color:var(--accent)}}
+:root[data-theme="dark"] .tst.a_verifier,:root[data-theme="dark"] .due.soon{color:var(--accent)}
+.chip[aria-pressed="true"]{border-color:var(--c,var(--accent))}
+h1 #pageTitle{color:var(--ink)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -685,7 +716,7 @@ body.noscroll{overflow:hidden}
 
 <script>
 (function(){
-const COLORS=["#1F6F5C","#2F6FB5","#C4302B","#D98A1C","#7A4DB3","#3C9BB0","#8A6A3B","#B8488A"];
+const COLORS=["#F2A33A","#4F7CFF","#2FB7A0","#E4572E","#8B5CF6","#3AA0D8","#B7791F","#D6457F"];
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
 const DEFAULT={
   types:[
@@ -1462,7 +1493,7 @@ function uploadErr(e){const c=e&&e.code,m=(e&&e.message)||"";
 
 /* ---------- Projets et tâches ---------- */
 const TASK_ST={a_faire:"À faire",en_cours:"En cours",a_verifier:"À vérifier",terminee:"Terminée"};
-const AV_COLORS=["#1F6F5C","#2F6FB5","#C4302B","#D98A1C","#7A4DB3","#3C9BB0","#8A6A3B","#B8488A"];
+const AV_COLORS=["#F2A33A","#4F7CFF","#2FB7A0","#E4572E","#8B5CF6","#3AA0D8","#B7791F","#D6457F"];
 let projects={}, ptasks={}, pfiles={};
 let projOpen=null, projFilter="actifs";
 let projUnsub=null, projAsAdmin=null, filesUnsub=null, filesFor=null;
@@ -1598,7 +1629,7 @@ function renderProjectDetail(p){
 function taskHTML(p,t,files,fileHTML){
   const admin=adminUI();const mine=(t.assigneeIds||[]).includes(myId);
   const prog=t.status==="terminee"?100:(t.progress||0);
-  const col={a_faire:"var(--line)",en_cours:"#2F6FB5",a_verifier:"#D98A1C",terminee:"var(--go)"}[t.status]||"var(--line)";
+  const col={a_faire:"var(--line)",en_cours:"#4F7CFF",a_verifier:"#D98A1C",terminee:"var(--go)"}[t.status]||"var(--line)";
   const canUp=(admin||mine)&&t.status!=="terminee";
   let acts="";
   if(mine&&t.status==="a_faire") acts+=`<button class="btn" data-tst="en_cours" data-t="${t.id}">Commencer</button>`;
