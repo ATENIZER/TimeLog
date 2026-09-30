@@ -428,11 +428,11 @@ body.noscroll{overflow:hidden}
 /* ===== Palette de la marque (logo) ===== */
 :root{--bg:#EEF1F5;--panel:#FFFFFF;--ink:#14213D;--muted:#5A6782;--line:#D5DBE3;--soft:#F3F5F9;
   --go:#14213D;--go-ink:#FFFFFF;--punch:#E4572E;--punch-ink:#FFFFFF;--accent:#F2A33A;
-  --glow1:#DDE3EB;--glow2:#FDEBD0;--side:#14213D;--side-ink:#C5CEDD}
+  --glow1:#DDE3EB;--glow2:color-mix(in srgb,var(--accent) 20%,#fff);--accent-ink:#14213D;--side:#14213D;--side-ink:#C5CEDD}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0C1428;--panel:#14213D;--ink:#EEF1F5;--muted:#9AA6BD;--line:#26355A;--soft:#1A2A4C;
-  --go:#F2A33A;--go-ink:#14213D;--punch:#F0694A;--glow1:rgba(79,124,255,.14);--glow2:rgba(242,163,58,.10);--side:#0A1122;--side-ink:#AEB8CC}}
+  --go:var(--accent);--go-ink:var(--accent-ink);--punch:#F0694A;--glow1:rgba(79,124,255,.14);--glow2:color-mix(in srgb,var(--accent) 12%,transparent);--side:#0A1122;--side-ink:#AEB8CC}}
 :root[data-theme="dark"]{--bg:#0C1428;--panel:#14213D;--ink:#EEF1F5;--muted:#9AA6BD;--line:#26355A;--soft:#1A2A4C;
-  --go:#F2A33A;--go-ink:#14213D;--punch:#F0694A;--glow1:rgba(79,124,255,.14);--glow2:rgba(242,163,58,.10);--side:#0A1122;--side-ink:#AEB8CC}
+  --go:var(--accent);--go-ink:var(--accent-ink);--punch:#F0694A;--glow1:rgba(79,124,255,.14);--glow2:color-mix(in srgb,var(--accent) 12%,transparent);--side:#0A1122;--side-ink:#AEB8CC}
 .side{background:var(--side);color:var(--side-ink);box-shadow:none}
 .side-toggle{color:#fff}
 .side-toggle:hover{background:rgba(255,255,255,.08)}
@@ -440,8 +440,8 @@ body.noscroll{overflow:hidden}
 .side .logo{box-shadow:0 0 0 1px rgba(255,255,255,.18)}
 #tabs button,.navbtn{color:var(--side-ink)}
 #tabs button:hover,.navbtn:hover{background:rgba(255,255,255,.08);color:#fff}
-#tabs button[aria-selected="true"]{background:rgba(242,163,58,.16);color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
-.cnt{background:var(--accent);color:#14213D}
+#tabs button[aria-selected="true"]{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.cnt{background:var(--accent);color:var(--accent-ink)}
 .cnt.muted{background:rgba(255,255,255,.14);color:#fff}
 body:not(.nav-wide) .side:not(.open) .cnt{box-shadow:0 0 0 2px var(--side)}
 .side-foot{border-top-color:rgba(255,255,255,.12)}
@@ -450,21 +450,35 @@ body:not(.nav-wide) .side:not(.open) .cnt{box-shadow:0 0 0 2px var(--side)}
 .badge{background:color-mix(in srgb,var(--accent) 22%,var(--panel));border-color:color-mix(in srgb,var(--accent) 55%,transparent);color:var(--ink)}
 input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent);outline:none}
 :focus-visible{outline-color:var(--accent)}
-.tst.a_verifier,.due.soon{background:color-mix(in srgb,var(--accent) 22%,var(--panel));color:#9A5B07}
+.tst.a_verifier,.due.soon{background:color-mix(in srgb,var(--accent) 22%,var(--panel));color:color-mix(in srgb,var(--accent) 55%,#000)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .tst.a_verifier,:root:not([data-theme="light"]) .due.soon{color:var(--accent)}}
 :root[data-theme="dark"] .tst.a_verifier,:root[data-theme="dark"] .due.soon{color:var(--accent)}
 .chip[aria-pressed="true"]{border-color:var(--c,var(--accent))}
 h1 #pageTitle{color:var(--ink)}
+
+/* ===== Thème et couleur personnalisée ===== */
+.hbtn{width:38px;height:38px;flex:none;border:none;border-radius:12px;background:var(--panel);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;box-shadow:var(--shadow);padding:0}
+.hbtn .ico{width:20px;height:20px}
+.hbtn:hover{color:var(--accent)}
+.swatch-ico{display:inline-flex;align-items:center;justify-content:center}
+.swatch-ico span{width:18px;height:18px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+.swatch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:10px}
+.swatch-grid button{aspect-ratio:1;border-radius:50%;border:3px solid transparent;padding:0;cursor:pointer;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);transition:transform .12s}
+.swatch-grid button:hover{transform:scale(1.08)}
+.swatch-grid button[aria-pressed="true"]{border-color:var(--ink)}
+input[type=color]{width:52px;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--soft);padding:3px;cursor:pointer}
+#themeSeg button[aria-pressed="true"]{background:var(--go);color:var(--go-ink)}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script>(function(){try{var t=localStorage.getItem("pointeuse-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);var a=localStorage.getItem("pointeuse-accent");if(a&&/^#[0-9a-fA-F]{6}$/.test(a))document.documentElement.style.setProperty("--accent",a);}catch(e){}})();</script>
 </head>
 <body>
 <div class="wrap" id="authView" hidden>
-  <div style="text-align:center;margin-top:24px"><svg class="auth-logo" width="72" height="72" viewBox="0 0 200 200" role="img" aria-label="Logo de la pointeuse"><rect width="200" height="200" rx="47" fill="#14213D"/><g transform="translate(100 100) scale(.75) translate(-100 -100)"><circle cx="100" cy="100" r="70" fill="none" stroke="#EEF1F5" stroke-width="20"/><line x1="100" y1="100" x2="160" y2="24" stroke="#14213D" stroke-width="46" stroke-linecap="round"/><polyline points="74,76 100,108 160,24" fill="none" stroke="#F2A33A" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/></g></svg><h1 style="margin:0">Pointeuse</h1></div>
+  <div style="text-align:center;margin-top:24px"><svg class="auth-logo" width="72" height="72" viewBox="0 0 200 200" role="img" aria-label="Logo de la pointeuse"><rect width="200" height="200" rx="47" fill="#14213D"/><g transform="translate(100 100) scale(.75) translate(-100 -100)"><circle cx="100" cy="100" r="70" fill="none" stroke="#EEF1F5" stroke-width="20"/><line x1="100" y1="100" x2="160" y2="24" stroke="#14213D" stroke-width="46" stroke-linecap="round"/><polyline points="74,76 100,108 160,24" fill="none" style="stroke:var(--accent)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/></g></svg></div>
   <div class="card auth">
     <h2 id="authTitle">Connexion</h2>
     <button class="btn big in" id="gBtn">Continuer avec Google</button>
@@ -481,14 +495,13 @@ h1 #pageTitle{color:var(--ink)}
   </div>
 </div>
 <div class="wrap" id="configView" hidden>
-  <h1>Pointeuse</h1>
   <div class="card" style="margin-top:20px"><h2>Configuration manquante</h2>
   <p>Le fichier <b>firebase-config.js</b> ne contient pas encore la configuration de votre projet Firebase. Suivez l'étape 4 du guide d'installation.</p></div>
 </div>
 <div class="wrap main" id="app" hidden>
   <aside class="side" id="side" aria-label="Navigation">
     <div class="side-top">
-      <span class="side-brand"><svg class="logo" width="28" height="28" viewBox="0 0 200 200" role="img" aria-label="Logo de la pointeuse"><rect width="200" height="200" rx="47" fill="#14213D"/><g transform="translate(100 100) scale(.75) translate(-100 -100)"><circle cx="100" cy="100" r="70" fill="none" stroke="#EEF1F5" stroke-width="20"/><line x1="100" y1="100" x2="160" y2="24" stroke="#14213D" stroke-width="46" stroke-linecap="round"/><polyline points="74,76 100,108 160,24" fill="none" stroke="#F2A33A" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/></g></svg><span class="lbl">Pointeuse</span></span>
+      <span class="side-brand"><svg class="logo" width="28" height="28" viewBox="0 0 200 200" role="img" aria-label="Logo de la pointeuse"><rect width="200" height="200" rx="47" fill="#14213D"/><g transform="translate(100 100) scale(.75) translate(-100 -100)"><circle cx="100" cy="100" r="70" fill="none" stroke="#EEF1F5" stroke-width="20"/><line x1="100" y1="100" x2="160" y2="24" stroke="#14213D" stroke-width="46" stroke-linecap="round"/><polyline points="74,76 100,108 160,24" fill="none" style="stroke:var(--accent)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/></g></svg></span>
       <button class="side-toggle" id="sideToggle" aria-label="Afficher ou réduire le menu" aria-expanded="false"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
     </div>
     <nav class="tabs" id="tabs" role="tablist" aria-orientation="vertical">
@@ -498,6 +511,8 @@ h1 #pageTitle{color:var(--ink)}
       <button role="tab" data-tab="roles" aria-selected="false" id="rolesTab" title="Rôles" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l7 2.8v5c0 4.3-2.9 7.8-7 9.2-4.1-1.4-7-4.9-7-9.2v-5z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg><span class="lbl">Rôles</span></button>
     </nav>
   <div class="side-foot">
+    <button class="navbtn" id="themeBtn" title="Changer de mode"><svg class="ico" id="themeIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg><span class="lbl" id="themeLbl">Mode nuit</span></button>
+    <button class="navbtn" id="accentBtn" title="Couleur et apparence"><span class="ico swatch-ico"><span></span></span><span class="lbl">Couleur</span></button>
     <div class="side-me"><img alt="" id="meAvatar" hidden><span class="avatar-fallback" id="meInitial"></span><span class="lbl" id="meName"></span></div>
     <button class="navbtn" id="editName" title="Modifier mon nom"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4.2L19 9.2 14.8 5 4 15.8z"/><path d="M13 6.8l4.2 4.2"/></svg><span class="lbl">Modifier mon nom</span></button>
     <button class="navbtn" id="signOut" title="Se déconnecter"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4.5h4.5v15H14"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg><span class="lbl">Se déconnecter</span></button>
@@ -512,6 +527,7 @@ h1 #pageTitle{color:var(--ink)}
       <div class="today" id="today"></div>
     </div>
     <div class="sync" id="sync">Chargement…</div>
+    <button class="hbtn" id="themeQuick" aria-label="Changer de mode"><svg class="ico" id="themeQuickIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
   </header>
 
 
@@ -694,6 +710,18 @@ h1 #pageTitle{color:var(--ink)}
   <div class="field"><label>Assignée à</label><div class="checks" id="tAssignees"></div></div>
   <div class="err" id="tErr"></div>
   <div class="dlgacts"><button class="btn ghost" id="tCancel">Annuler</button><button class="btn in" id="tSave" style="border:none">Enregistrer</button></div>
+</dialog>
+
+<dialog id="accentDlg">
+  <h3>Apparence</h3>
+  <div class="field"><label>Mode</label>
+    <div class="seg" id="themeSeg" role="group" aria-label="Mode d'affichage" style="align-self:flex-start">
+      <button data-th="light">Jour</button><button data-th="dark">Nuit</button><button data-th="auto">Automatique</button>
+    </div>
+  </div>
+  <div class="field"><label>Couleur d'accent</label><div class="swatch-grid" id="accentGrid"></div></div>
+  <div class="row" style="margin-bottom:8px"><label for="accentCustom" class="since" style="margin:0">Couleur personnalisée</label><input type="color" id="accentCustom"></div>
+  <div class="dlgacts"><button class="btn ghost" id="accentReset">Rétablir les couleurs du logo</button><button class="btn in" id="accentDone" style="border:none">Terminé</button></div>
 </dialog>
 
 <dialog id="dlg">
@@ -1796,6 +1824,56 @@ $("tSave").onclick=async()=>{
   (mq.addEventListener?mq.addEventListener("change",apply):mq.addListener(apply));
   apply();
 })();
+
+/* ---------- Thème jour / nuit et couleur d'accent ---------- */
+(function(){
+  const root=document.documentElement,TK="pointeuse-theme",AK="pointeuse-accent",DEF="#F2A33A";
+  const ACCENTS=[["#F2A33A","Orange du logo"],["#2FB7A0","Turquoise"],["#E4572E","Corail"],["#4F7CFF","Bleu"],["#8B5CF6","Violet"],["#D6457F","Framboise"],["#22A05B","Vert"],["#E3B505","Moutarde"]];
+  const get=k=>{try{return localStorage.getItem(k);}catch(e){return null;}};
+  const set=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v);}catch(e){}};
+  const mq=window.matchMedia("(prefers-color-scheme: dark)");
+  const SUN='<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/>';
+  const MOON='<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>';
+  let pref=get(TK)||"auto";
+  const isDark=()=>pref==="dark"||(pref==="auto"&&mq.matches);
+  function applyTheme(){
+    if(pref==="light"||pref==="dark") root.setAttribute("data-theme",pref); else root.removeAttribute("data-theme");
+    const dark=isDark();
+    // L'icône montre le mode vers lequel on bascule
+    ["themeIco","themeQuickIco"].forEach(id=>{const el=$(id);if(el)el.innerHTML=dark?SUN:MOON;});
+    $("themeLbl").textContent=dark?"Mode jour":"Mode nuit";
+    $("themeBtn").title=$("themeQuick").ariaLabel=dark?"Passer en mode jour":"Passer en mode nuit";
+    $("themeQuick").setAttribute("aria-label",dark?"Passer en mode jour":"Passer en mode nuit");
+    document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===pref));
+    const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=dark?"#0A1122":"#14213D";
+  }
+  function inkFor(hex){const n=parseInt(hex.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255;return (0.299*r+0.587*g+0.114*b)/255>0.6?"#14213D":"#FFFFFF";}
+  function favicon(c){
+    const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" rx="44" fill="#14213D"/><g transform="translate(100 100) scale(.8125) translate(-100 -100)"><circle cx="100" cy="100" r="68" fill="none" stroke="#EEF1F5" stroke-width="26"/><line x1="100" y1="100" x2="160" y2="24" stroke="#14213D" stroke-width="54" stroke-linecap="round"/><polyline points="74,76 100,108 160,24" fill="none" stroke="${c}" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;
+    const l=document.querySelector('link[rel="icon"]');if(l)l.href="data:image/svg+xml,"+encodeURIComponent(svg);
+  }
+  let accent=get(AK)||DEF;
+  function applyAccent(c,save){
+    if(!/^#[0-9a-fA-F]{6}$/.test(c)) c=DEF;
+    accent=c.toUpperCase();
+    root.style.setProperty("--accent",accent);root.style.setProperty("--accent-ink",inkFor(accent));
+    favicon(accent);
+    if(save) set(AK,accent===DEF?null:accent);
+    $("accentCustom").value=accent.toLowerCase();
+    document.querySelectorAll("#accentGrid button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.c===accent));
+  }
+  $("accentGrid").innerHTML=ACCENTS.map(([c,n])=>`<button data-c="${c}" style="background:${c}" aria-label="${n}" title="${n}"></button>`).join("");
+  document.querySelectorAll("#accentGrid button").forEach(b=>b.onclick=()=>applyAccent(b.dataset.c,true));
+  $("accentCustom").oninput=e=>applyAccent(e.target.value,true);
+  $("accentReset").onclick=()=>{applyAccent(DEF,true);pref="auto";set(TK,null);applyTheme();};
+  $("accentDone").onclick=()=>$("accentDlg").close();
+  $("accentBtn").onclick=()=>$("accentDlg").showModal();
+  document.querySelectorAll("#themeSeg button").forEach(b=>b.onclick=()=>{pref=b.dataset.th;set(TK,pref==="auto"?null:pref);applyTheme();});
+  const toggle=()=>{pref=isDark()?"light":"dark";set(TK,pref);applyTheme();};
+  $("themeBtn").onclick=toggle;$("themeQuick").onclick=toggle;
+  (mq.addEventListener?mq.addEventListener("change",applyTheme):mq.addListener(applyTheme));
+  applyAccent(accent,false);applyTheme();
+})();
 /* ---------- Navigation / rendu ---------- */
 document.querySelectorAll("#period button").forEach(b=>b.onclick=()=>{period=b.dataset.p;renderSummary();const bs=$("bars");bs.classList.remove("anim");void bs.offsetWidth;bs.classList.add("anim");});
 document.querySelectorAll("#teamPeriod button").forEach(b=>b.onclick=()=>{teamPeriod=b.dataset.p;renderTeam();});
@@ -1805,7 +1883,7 @@ function render(){
   const first=nm&&nm!=="Moi"&&nm!=="Personne sans nom"?" "+nm.split(/\s+/)[0]:"";
   $("today").textContent=(hr>=18||hr<5?"Bonsoir":"Bonjour")+first+" · "+new Date().toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   const tabSel=mode==="person"?"team":mode==="project"?"projects":mode;
-  $("pageTitle").textContent={mine:"Mon espace",projects:"Projets",project:"Projets",team:"Équipe",person:"Équipe",roles:"Rôles"}[mode]||"Pointeuse";
+  $("pageTitle").textContent={mine:"Mon espace",projects:"Projets",project:"Projets",team:"Équipe",person:"Équipe",roles:"Rôles"}[mode]||"";
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tabSel));
   renderAccess();
   $("teamView").hidden=mode!=="team";
