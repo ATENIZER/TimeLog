@@ -194,6 +194,126 @@ table.team tr.click:hover td{background:var(--soft)}
 .perms input{width:18px;height:18px;accent-color:var(--go)}
 select.rolesel{padding:6px 8px}
 
+
+/* ===== Habillage plus vivant ===== */
+:root{--accent:#F2A93B;--radius:14px;--shadow:0 1px 2px rgba(16,24,40,.05),0 6px 20px rgba(16,24,40,.07);--glow1:#DCE9FF;--glow2:#FFE6CF}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);--glow1:rgba(63,120,200,.18);--glow2:rgba(242,169,59,.10)}}
+:root[data-theme="dark"]{--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);--glow1:rgba(63,120,200,.18);--glow2:rgba(242,169,59,.10)}
+body{background:radial-gradient(1100px 420px at 0% -8%,var(--glow1) 0,transparent 60%),radial-gradient(900px 380px at 100% 0%,var(--glow2) 0,transparent 55%),var(--bg);background-attachment:fixed}
+h1::before{content:"";display:inline-block;width:.5em;height:.5em;border-radius:50%;background:var(--go);box-shadow:0 0 0 .14em color-mix(in srgb,var(--go) 25%,transparent);margin-right:.4em;vertical-align:.1em}
+.card{border:none;border-radius:var(--radius);box-shadow:var(--shadow)}
+.btn{border-radius:10px;transition:transform .12s ease,box-shadow .15s ease,background .15s ease,filter .15s ease}
+.btn:hover{transform:translateY(-1px)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn.big{border-radius:14px}
+.btn.big.in{box-shadow:0 8px 20px color-mix(in srgb,var(--go) 35%,transparent)}
+.btn.big.out{box-shadow:0 8px 20px color-mix(in srgb,var(--punch) 35%,transparent)}
+.btn.ghost:hover{transform:none}
+input[type=text],input[type=email],input[type=password],input[type=date],input[type=time],select{border-radius:10px;transition:border-color .15s,box-shadow .15s}
+input:focus,select:focus{border-color:var(--go);box-shadow:0 0 0 3px color-mix(in srgb,var(--go) 20%,transparent);outline:none}
+/* Pointeuse */
+.clock{position:relative;overflow:hidden;transition:background .4s ease}
+.clock.running{background:linear-gradient(180deg,color-mix(in srgb,var(--act) 14%,var(--panel)) 0,var(--panel) 70%)}
+.clock.running::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:var(--act)}
+.clock.running .timer{color:var(--act)}
+.dot.on{background:var(--act,var(--punch));animation:pulse 1.8s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--act,var(--punch)) 55%,transparent)}100%{box-shadow:0 0 0 12px transparent}}
+@media (prefers-reduced-motion:reduce){.dot.on{animation:none}}
+.chip{transition:background .15s,border-color .15s,transform .12s;cursor:pointer}
+.chip:hover{border-color:var(--c,var(--ink));transform:translateY(-1px)}
+.chip[aria-pressed="true"]{background:color-mix(in srgb,var(--c,var(--ink)) 16%,var(--panel));border-color:var(--c,var(--ink))}
+.chip .sw{transition:transform .15s}
+.chip[aria-pressed="true"] .sw{transform:scale(1.3)}
+/* Navigation */
+.tabs{display:inline-flex;border:none;background:var(--panel);padding:4px;border-radius:999px;box-shadow:var(--shadow);gap:2px}
+.tabs button{border:none;border-radius:999px;margin:0;padding:8px 16px;transition:background .15s,color .15s}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--panel);border:none}
+.seg{border-radius:999px;padding:3px;gap:2px;border:none;box-shadow:var(--shadow)}
+.seg button{border-radius:999px;transition:background .15s,color .15s}
+.seg button[aria-pressed="true"]{background:var(--go);color:var(--go-ink)}
+/* Totaux */
+.bar .track{border-radius:999px;height:12px}
+.bar .fill{border-radius:999px}
+.bars.anim .fill{animation:grow .6s cubic-bezier(.2,.8,.2,1) both;transform-origin:left}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+/* Journal */
+.entry{border-bottom:none;border-left:3px solid var(--c,transparent);border-radius:8px;padding:9px 10px;margin:3px 0;transition:background .15s}
+.entry:hover{background:var(--soft)}
+.dayhead{border-bottom:none;padding:6px 2px}
+.st{border-radius:999px;padding:1px 9px}
+.tl{border-radius:10px}
+.tl .blk{border-radius:5px;margin:3px 0;top:0;bottom:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+.teamday .tl{border-radius:8px}
+table.team tr.click td{transition:background .15s}
+.empty{text-align:center;padding:22px 10px;font-size:1.02rem}
+.badge{background:color-mix(in srgb,var(--accent) 22%,var(--panel));border-color:color-mix(in srgb,var(--accent) 60%,transparent)}
+dialog{border:none;border-radius:var(--radius);box-shadow:0 20px 60px rgba(0,0,0,.25)}
+dialog[open]{animation:pop .18s ease-out}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.toast{border-radius:999px;transform:translate(-50%,14px);transition:opacity .2s,transform .25s cubic-bezier(.2,.8,.2,1);box-shadow:var(--shadow)}
+.toast.show{transform:translate(-50%,0)}
+#personalView,#teamView,#rolesView{animation:fadein .25s ease-out}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+.axis span{white-space:nowrap}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .clock.running .timer{color:color-mix(in srgb,var(--act) 60%,#fff)}}
+:root[data-theme="dark"] .clock.running .timer{color:color-mix(in srgb,var(--act) 60%,#fff)}
+/* ===== Projets ===== */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.pcard{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;cursor:pointer;display:grid;gap:10px;border-top:4px solid var(--c,var(--go));transition:transform .15s ease,box-shadow .15s ease;text-align:left;border-left:none;border-right:none;border-bottom:none;width:100%}
+.pcard:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(16,24,40,.12)}
+.pcard h3{margin:0;font-family:var(--display);font-size:1.35rem;font-weight:600;line-height:1.15}
+.pcard .pdesc{color:var(--muted);font-size:.92rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.prog{display:flex;align-items:center;gap:10px}
+.prog .track{flex:1;height:10px;background:var(--soft);border-radius:999px;overflow:hidden}
+.prog .fill{height:100%;border-radius:999px;background:var(--c,var(--go));transition:width .4s ease}
+.prog span{font-variant-numeric:tabular-nums;font-weight:600;min-width:44px;text-align:right}
+.pmeta{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:.9rem}
+.avs{display:flex}
+.av{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:#fff;border:2px solid var(--panel);margin-left:-7px}
+.avs .av:first-child{margin-left:0}
+.due{display:inline-flex;align-items:center;gap:5px;font-size:.82rem;font-weight:600;border-radius:999px;padding:2px 10px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.due.soon{background:color-mix(in srgb,#D98A1C 18%,var(--panel));color:#A5650C}
+.due.late{background:color-mix(in srgb,var(--punch) 16%,var(--panel));color:var(--punch)}
+.due.done{background:color-mix(in srgb,var(--go) 16%,var(--panel));color:var(--go)}
+.kind{font-size:.78rem;font-weight:600;border-radius:999px;padding:1px 9px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tst{font-size:.78rem;font-weight:700;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.tst.a_faire{background:var(--soft);color:var(--muted)}
+.tst.en_cours{background:color-mix(in srgb,#2F6FB5 16%,var(--panel));color:#2F6FB5}
+.tst.a_verifier{background:color-mix(in srgb,#D98A1C 18%,var(--panel));color:#A5650C}
+.tst.terminee{background:var(--go);color:var(--go-ink)}
+.mytasks{display:grid;gap:8px}
+.mytask{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;padding:10px 12px;border-radius:10px;border-left:3px solid var(--c,var(--go));cursor:pointer;transition:background .15s}
+.mytask:hover{background:var(--soft)}
+.mytask .sub{color:var(--muted);font-size:.88rem}
+.phead{display:grid;gap:12px}
+.phead h2{font-size:2rem;margin:0}
+.phead .row{justify-content:space-between}
+.tasks{display:grid;gap:12px}
+.task{background:var(--panel);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;display:grid;gap:10px;border-left:4px solid var(--tc,var(--line))}
+.task.terminee{opacity:.85}
+.task .thead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.task .ttitle{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.task .ttitle b{font-size:1.08rem}
+.task .tdesc{color:var(--muted);white-space:pre-wrap}
+.task .who{display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--muted);font-size:.92rem;margin:0}
+.task input[type=range]{flex:1;accent-color:var(--go)}
+.files{display:grid;gap:6px}
+.file{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--soft);border-radius:10px;flex-wrap:wrap}
+.file .fic{font-size:1.2rem}
+.file .fname{font-weight:600;background:none;border:none;padding:0;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer;text-align:left;word-break:break-all}
+.file .fsub{color:var(--muted);font-size:.85rem;flex:1 1 180px}
+.upl{position:relative;overflow:hidden;display:inline-flex;align-items:center}
+.upl input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.tlog{color:var(--muted);font-size:.84rem;display:grid;gap:2px}
+.tacts{display:flex;gap:6px;flex-wrap:wrap}
+.checks{display:grid;gap:6px;max-height:220px;overflow:auto;padding:8px;background:var(--soft);border-radius:10px}
+.checks label{display:flex;align-items:center;gap:8px}
+.checks input{width:18px;height:18px;accent-color:var(--go)}
+.radios{display:flex;gap:14px;flex-wrap:wrap}
+.radios label{display:flex;align-items:center;gap:6px}
+textarea{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;color:inherit;min-height:80px;resize:vertical;width:100%}
+dialog .field input,dialog .field select{width:100%}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -241,8 +361,9 @@ select.rolesel{padding:6px 8px}
 
   <nav class="tabs" id="tabs" role="tablist" hidden>
     <button role="tab" data-tab="mine" aria-selected="true">Mon espace</button>
+    <button role="tab" data-tab="projects" aria-selected="false" id="projTab">Projets</button>
     <button role="tab" data-tab="team" aria-selected="false" id="teamTab">Équipe</button>
-    <button role="tab" data-tab="roles" aria-selected="false">Rôles</button>
+    <button role="tab" data-tab="roles" aria-selected="false" id="rolesTab">Rôles</button>
   </nav>
 
   <div id="teamView" hidden>
@@ -293,6 +414,28 @@ select.rolesel{padding:6px 8px}
       </div>
       <div class="hint">Les rôles administrateurs voient toute l'équipe, valident les heures et gèrent les rôles. Les nouvelles personnes qui créent un compte reçoivent le rôle choisi ici.</div>
     </div>
+  </div>
+
+  <div id="projectsView" hidden>
+    <div id="projList">
+      <section style="margin-top:0">
+        <div class="sechead"><h2>Mes tâches</h2></div>
+        <div class="card"><div class="mytasks" id="myTasks"></div></div>
+      </section>
+      <section>
+        <div class="sechead">
+          <h2>Projets</h2>
+          <div class="row">
+            <div class="seg" id="projFilter" role="group" aria-label="Filtrer les projets">
+              <button data-f="actifs">En cours</button><button data-f="termines">Terminés</button><button data-f="tous">Tous</button>
+            </div>
+            <button class="btn in" id="newProject" style="border:none" hidden>Nouveau projet</button>
+          </div>
+        </div>
+        <div class="pgrid" id="projGrid"></div>
+      </section>
+    </div>
+    <div id="projDetail" hidden></div>
   </div>
 
   <div id="personalView">
@@ -376,6 +519,32 @@ select.rolesel{padding:6px 8px}
     <button class="btn ghost" id="aCancel">Annuler</button>
     <button class="btn in" id="aMake" style="border:none">Télécharger l'attestation (PDF)</button>
   </div>
+</dialog>
+
+<dialog id="projDlg">
+  <h3 id="projDlgTitle">Nouveau projet</h3>
+  <div class="field"><label for="pTitle">Nom du projet</label><input type="text" id="pTitle"></div>
+  <div class="field"><label for="pDesc">Description</label><textarea id="pDesc"></textarea></div>
+  <div class="grid2">
+    <div class="field"><label for="pDeadline">Date limite</label><input type="date" id="pDeadline"></div>
+    <div class="field"><label for="pStatus">État</label><select id="pStatus"><option value="actif">En cours</option><option value="termine">Terminé</option><option value="archive">Archivé</option></select></div>
+  </div>
+  <div class="field"><label>Membres du projet</label><div class="checks" id="pMembers"></div></div>
+  <div class="err" id="pErr"></div>
+  <div class="dlgacts"><button class="btn ghost" id="pCancel">Annuler</button><button class="btn in" id="pSave" style="border:none">Enregistrer</button></div>
+</dialog>
+
+<dialog id="taskDlg">
+  <h3 id="taskDlgTitle">Nouvelle tâche</h3>
+  <div class="field"><label for="tTitle">Tâche</label><input type="text" id="tTitle"></div>
+  <div class="field"><label for="tDesc">Consignes</label><textarea id="tDesc"></textarea></div>
+  <div class="field"><label for="tDeadline">Date limite</label><input type="date" id="tDeadline"></div>
+  <div class="field"><label>Type de tâche</label>
+    <div class="radios"><label><input type="radio" name="tKind" value="individuelle" checked> Individuelle (une personne)</label><label><input type="radio" name="tKind" value="collective"> Collective (plusieurs personnes)</label></div>
+  </div>
+  <div class="field"><label>Assignée à</label><div class="checks" id="tAssignees"></div></div>
+  <div class="err" id="tErr"></div>
+  <div class="dlgacts"><button class="btn ghost" id="tCancel">Annuler</button><button class="btn in" id="tSave" style="border:none">Enregistrer</button></div>
 </dialog>
 
 <dialog id="dlg">
@@ -541,7 +710,8 @@ async function startSession(u){
 }
 function onAccessChange(){
   const admin=adminUI();
-  $("tabs").hidden=!admin;
+  $("tabs").hidden=false;$("teamTab").hidden=!admin;$("rolesTab").hidden=!admin;
+  projSync();
   if(admin&&!teamSub&&fdb){
     teamSub=fdb.collection("users").onSnapshot(snap=>{
       const next={};
@@ -560,7 +730,7 @@ function onAccessChange(){
       valid=next;render();
     },()=>{validSub=false;});
   }
-  if(!admin&&mode!=="mine"){mode="mine";viewingId=null;}
+  if(!admin&&(mode==="team"||mode==="roles"||mode==="person")){mode="mine";viewingId=null;}
   render();
 }
 async function saveOrg(){
@@ -640,6 +810,7 @@ function switchTo(typeId){
 
 function renderClock(){
   const el=$("clock");
+  {const d0=readOnly()?view():state;const a0=d0.active;el.classList.toggle("running",!!a0);if(a0)el.style.setProperty("--act",typeIn(d0,a0.typeId).color);}
   if(readOnly()){
     const d=view();const a=d.active;
     if(a){const t=typeIn(d,a.typeId);
@@ -663,7 +834,7 @@ function renderClock(){
       </div>
       <div>
         <div class="since" style="margin-bottom:6px">Passer à une autre activité sans pointer la sortie :</div>
-        <div class="chips">${activeTypes.filter(x=>x.id!==a.typeId).map(x=>`<button class="chip" data-switch="${x.id}"><span class="sw" style="background:${x.color}"></span>${esc(x.name)}</button>`).join("")}</div>
+        <div class="chips">${activeTypes.filter(x=>x.id!==a.typeId).map(x=>`<button class="chip" data-switch="${x.id}" style="--c:${x.color}"><span class="sw" style="background:${x.color}"></span>${esc(x.name)}</button>`).join("")}</div>
       </div>
       <div class="row"><button class="btn big out" id="outBtn">Pointer la sortie</button></div>`;
     el.querySelectorAll("[data-switch]").forEach(b=>b.onclick=()=>switchTo(b.dataset.switch));
@@ -674,7 +845,7 @@ function renderClock(){
       <div class="timer idle">00:00:00</div>
       <div>
         <div class="since" style="margin-bottom:6px">Activité</div>
-        <div class="chips" role="group" aria-label="Choisir l'activité">${activeTypes.length?activeTypes.map(x=>`<button class="chip" data-sel="${x.id}" aria-pressed="${x.id===selectedType}"><span class="sw" style="background:${x.color}"></span>${esc(x.name)}</button>`).join(""):'<span class="empty">Aucun type actif. Ajoutez-en un plus bas.</span>'}</div>
+        <div class="chips" role="group" aria-label="Choisir l'activité">${activeTypes.length?activeTypes.map(x=>`<button class="chip" data-sel="${x.id}" style="--c:${x.color}" aria-pressed="${x.id===selectedType}"><span class="sw" style="background:${x.color}"></span>${esc(x.name)}</button>`).join(""):'<span class="empty">Aucun type actif. Ajoutez-en un plus bas.</span>'}</div>
       </div>
       <div class="row">
         <input type="text" class="note" id="noteIn" placeholder="Note (facultatif)" aria-label="Note">
@@ -717,7 +888,7 @@ function renderSummary(){
     return `<div class="bar"><div class="lbl"><span style="width:10px;height:10px;border-radius:50%;background:${t.color};flex:none"></span>${esc(t.name)}</div>
     <div class="track"><div class="fill" style="width:${per[id]/max*100}%;background:${t.color}"></div></div>
     <div class="val">${fmtDur(per[id])}<small>${pct} %</small></div></div>`;}).join("")
-    :`<div class="empty">Aucune heure pointée pour cette période.</div>`;
+    :`<div class="empty">📊 Aucune heure pointée pour cette période.</div>`;
 }
 
 /* ---------- Journal ---------- */
@@ -742,14 +913,14 @@ function renderJournal(){
   $("validateAll").hidden=!(admin&&nPend>0);
   $("validateAll").textContent="Valider les "+nPend+" entrée"+(nPend>1?"s":"")+" en attente";
   const list=allSessions(d).sort((a,b)=>b.start-a.start);
-  if(!list.length){$("journal").innerHTML=`<div class="empty">${ro?"Aucune entrée pour cette personne.":"Le journal est vide. Pointez votre entrée ou ajoutez une entrée à la main."}</div>`;return;}
+  if(!list.length){$("journal").innerHTML=`<div class="empty">${ro?"Aucune entrée pour cette personne.":"🕒 Le journal est vide. Pointez votre entrée pour commencer."}</div>`;return;}
   const groups=[];const map={};
   list.forEach(s=>{const k=dayKey(s.start);if(!map[k]){map[k]={t:s.start,items:[],total:0};groups.push(map[k]);}map[k].items.push(s);map[k].total+=s.end-s.start;});
   const shown=groups.slice(0,journalLimit);
   $("journal").innerHTML=shown.map((g,i)=>`<div class="day" style="${i===0?"margin-top:0":""}">
     <div class="dayhead"><span>${dayLabel(g.t)}</span><span>${fmtDur(g.total)}</span></div>
     ${g.items.map(s=>{const t=typeIn(d,s.typeId);const overnight=dayKey(s.end)!==dayKey(s.start)&&!s.live;
-      return `<div class="entry"><span class="sw" style="background:${t.color}"></span>
+      return `<div class="entry" style="--c:${t.color}"><span class="sw" style="background:${t.color}"></span>
       <div class="what"><div>${esc(t.name)}${s.live?"":`<span class="st ${statusOf(pid,s)}">${ST_LABEL[statusOf(pid,s)]}</span>`}</div>${s.note?`<div class="n">${esc(s.note)}</div>`:""}</div>
       <div class="hrs">${fmtTime(s.start)} – ${s.live?"en cours":fmtTime(s.end)+(overnight?" (+1 j)":"")}</div>
       <div class="dur">${fmtDur(s.end-s.start)}</div>
@@ -1077,11 +1248,11 @@ function renderDay(){
   const total=list.reduce((m,s)=>m+s.ce-s.cs,0);
   const head=`<div class="daytitle"><b>${dayLabel(dayCursor)} ${new Date(dayCursor).getFullYear()}</b><span>${fmtDur(total)}</span></div>`;
   if(!list.length){
-    $("dayCard").innerHTML=head+`<div class="empty">Aucune activité ce jour-là.</div>`+jumpsHTML([d]);
+    $("dayCard").innerHTML=head+`<div class="empty">🌙 Aucune activité ce jour-là.</div>`+jumpsHTML([d]);
   }else{
     $("dayCard").innerHTML=head+timelineHTML(d,list,dayCursor)+axisHTML()+list.map(s=>{const t=typeIn(d,s.typeId);const st=statusOf(pid,s);
       const from=s.start<dayCursor?" (veille)":"",to=!s.live&&s.end>addDays(dayCursor,1)?" (lendemain)":"";
-      return `<div class="entry"><span class="sw" style="background:${t.color}"></span>
+      return `<div class="entry" style="--c:${t.color}"><span class="sw" style="background:${t.color}"></span>
       <div class="what"><div>${esc(t.name)}${st?`<span class="st ${st}">${ST_LABEL[st]}</span>`:""}</div>${s.note?`<div class="n">${esc(s.note)}</div>`:""}</div>
       <div class="hrs">${fmtTime(s.start)}${from} – ${s.live?"en cours":fmtTime(s.end)+to}</div>
       <div class="dur">${fmtDur(s.ce-s.cs)}</div><div class="acts"></div></div>`;}).join("")+jumpsHTML([d]);
@@ -1094,7 +1265,7 @@ function renderTeamDay(){
   const rows=ids.map(id=>{const d=team[id];const list=daySessions(d,dayCursor);return {id,d,list,total:list.reduce((m,s)=>m+s.ce-s.cs,0)};}).filter(r=>r.list.length).sort((a,b)=>b.total-a.total);
   const total=rows.reduce((m,r)=>m+r.total,0);
   const head=`<div class="daytitle"><b>${dayLabel(dayCursor)} ${new Date(dayCursor).getFullYear()}</b><span>${rows.length} personne${rows.length>1?"s":""} · ${fmtDur(total)}</span></div>`;
-  if(!rows.length){$("teamDayCard").innerHTML=head+`<div class="empty">Personne n'a pointé ce jour-là.</div>`+jumpsHTML(ids.map(i=>team[i]));bindDayJumps($("teamDayCard"));return;}
+  if(!rows.length){$("teamDayCard").innerHTML=head+`<div class="empty">🌙 Personne n'a pointé ce jour-là.</div>`+jumpsHTML(ids.map(i=>team[i]));bindDayJumps($("teamDayCard"));return;}
   $("teamDayCard").innerHTML=head+`<div class="dayaxis-wrap"><div></div>${axisHTML()}<div style="min-width:64px"></div></div>`+
     rows.map(r=>`<div class="teamday click" data-dayperson="${esc(r.id)}" tabindex="0" style="cursor:pointer">
       <div class="person"><img alt="" data-av="${esc(r.id)}"><span data-nm="${esc(r.id)}"></span></div>
@@ -1109,18 +1280,374 @@ document.querySelectorAll("[data-dnav]").forEach(b=>b.onclick=()=>setDay(addDays
 document.querySelectorAll("[data-dtoday]").forEach(b=>b.onclick=()=>setDay(Date.now()));
 document.querySelectorAll(".dayPick").forEach(i=>i.onchange=()=>{if(!i.value)return;const [y,m,d]=i.value.split("-").map(Number);setDay(new Date(y,m-1,d).getTime());});
 
+/* ---------- Stockage des projets (Firebase) ---------- */
+// Les fichiers sont découpés en morceaux dans Firestore : aucun forfait payant n'est nécessaire.
+const cleanDoc=d=>{const o=JSON.parse(JSON.stringify(d));delete o.id;return o;};
+const snapList=sn=>sn.docs.map(d=>Object.assign({},d.data(),{id:d.id}));
+const CHUNK=900*1024;
+const pref=pid=>fdb.collection("projects").doc(pid);
+const PA={
+  ready:()=>!!fdb&&!!myId,
+  accept:"",
+  maxSize:5*1024*1024,
+  watchProjects(cb){
+    let q=fdb.collection("projects");
+    if(!adminUI()) q=q.where("memberIds","array-contains",myId);
+    return q.onSnapshot(sn=>cb(snapList(sn)),e=>console.warn("projets",e));
+  },
+  watchTasks:(pid,cb)=>pref(pid).collection("tasks").onSnapshot(sn=>cb(snapList(sn)),()=>{}),
+  watchFiles:(pid,cb)=>pref(pid).collection("files").onSnapshot(sn=>cb(snapList(sn)),()=>{}),
+  saveProject:(pid,d)=>pref(pid).set(cleanDoc(d)),
+  saveTask:(pid,tid,d)=>pref(pid).collection("tasks").doc(tid).set(cleanDoc(d)),
+  updateTask:(pid,tid,part)=>pref(pid).collection("tasks").doc(tid).update(cleanDoc(part)),
+  deleteTask:(pid,tid)=>pref(pid).collection("tasks").doc(tid).delete(),
+  async upload(pid,tid,file,meta){
+    const buf=new Uint8Array(await file.arrayBuffer());
+    const n=Math.max(1,Math.ceil(buf.length/CHUNK));
+    const fref=pref(pid).collection("files").doc();
+    const b=fdb.batch();
+    b.set(fref,cleanDoc(Object.assign({},meta,{chunks:n})));
+    for(let i=0;i<n;i++) b.set(fref.collection("chunks").doc(String(i)),{data:firebase.firestore.Blob.fromUint8Array(buf.subarray(i*CHUNK,(i+1)*CHUNK))});
+    await b.commit();
+  },
+  async open(pid,f){
+    const viewable=/^(image\/|video\/|text\/|application\/pdf)/.test(f.type||"");
+    const w=viewable?window.open("","_blank"):null;
+    try{
+      const fref=pref(pid).collection("files").doc(f.id);const parts=[];
+      for(let i=0;i<(f.chunks||1);i++){const d=await fref.collection("chunks").doc(String(i)).get();parts.push(d.data().data.toUint8Array());}
+      const url=URL.createObjectURL(new Blob(parts,{type:f.type||"application/octet-stream"}));
+      if(w) w.location.href=url;
+      else{const a=document.createElement("a");a.href=url;a.download=f.name;document.body.appendChild(a);a.click();a.remove();}
+      setTimeout(()=>URL.revokeObjectURL(url),120000);
+    }catch(e){if(w)w.close();throw e;}
+  },
+  async deleteFile(pid,f){
+    const fref=pref(pid).collection("files").doc(f.id);const b=fdb.batch();
+    for(let i=0;i<(f.chunks||1);i++) b.delete(fref.collection("chunks").doc(String(i)));
+    b.delete(fref);await b.commit();
+  },
+  async deleteProject(pid){
+    const fs=await pref(pid).collection("files").get();
+    for(const d of fs.docs) await PA.deleteFile(pid,Object.assign({},d.data(),{id:d.id}));
+    const ts=await pref(pid).collection("tasks").get();
+    for(const d of ts.docs) await d.ref.delete();
+    await pref(pid).delete();
+  }
+};
+function uploadErr(e){const c=e&&e.code,m=(e&&e.message)||"";
+  return c==="permission-denied"?"Vous n'avez pas le droit de déposer un fichier dans ce projet."
+    :c==="resource-exhausted"?"La limite gratuite du jour est atteinte. Réessayez demain."
+    :/exceed|too large|maximum|size/i.test(m)?"Fichier trop volumineux (5 Mo maximum)."
+    :"L'envoi a échoué.";}
+
+/* ---------- Projets et tâches ---------- */
+const TASK_ST={a_faire:"À faire",en_cours:"En cours",a_verifier:"À vérifier",terminee:"Terminée"};
+const AV_COLORS=["#1F6F5C","#2F6FB5","#C4302B","#D98A1C","#7A4DB3","#3C9BB0","#8A6A3B","#B8488A"];
+let projects={}, ptasks={}, pfiles={};
+let projOpen=null, projFilter="actifs";
+let projUnsub=null, projAsAdmin=null, filesUnsub=null, filesFor=null;
+const taskUnsubs={};
+let editingProj=null, editingTask=null, pendingProjDel=null;
+
+const DAY=86400000;
+const parseDay=s=>{if(!s)return null;const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d).getTime();};
+const shortDate=s=>new Date(parseDay(s)).toLocaleDateString("fr-CA",{day:"numeric",month:"short",year:new Date(parseDay(s)).getFullYear()!==new Date().getFullYear()?"numeric":undefined});
+function dueHTML(deadline,done){
+  if(!deadline) return "";
+  const days=Math.round((parseDay(deadline)-startOfDay(Date.now()))/DAY);
+  if(done) return `<span class="due done">✓ ${esc(shortDate(deadline))}</span>`;
+  if(days<0) return `<span class="due late">En retard de ${-days} j</span>`;
+  if(days===0) return `<span class="due late">Aujourd'hui</span>`;
+  if(days<=3) return `<span class="due soon">Dans ${days} j</span>`;
+  return `<span class="due">📅 ${esc(shortDate(deadline))}</span>`;
+}
+const hashColor=id=>{let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))>>>0;return AV_COLORS[h%AV_COLORS.length];};
+const initials=n=>String(n||"?").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join("")||"?";
+const pname=(p,id)=>(p&&p.memberNames&&p.memberNames[id])||nameOf(id);
+function avatarsHTML(p,ids,max=5){
+  const shown=ids.slice(0,max);
+  return `<span class="avs">${shown.map(id=>`<span class="av" style="background:${hashColor(id)}" title="${esc(pname(p,id))}">${esc(initials(pname(p,id)))}</span>`).join("")}${ids.length>max?`<span class="av" style="background:var(--muted)">+${ids.length-max}</span>`:""}</span>`;
+}
+const fmtSize=b=>b<1024?b+" o":b<1048576?Math.round(b/1024)+" Ko":(b/1048576).toFixed(1).replace(".",",")+" Mo";
+const fileIcon=t=>/^image\//.test(t)?"🖼️":t==="application/pdf"?"📄":/^video\//.test(t)?"🎬":"📎";
+
+function visibleProjects(){return Object.values(projects).filter(p=>adminUI()||(p.memberIds||[]).includes(myId));}
+function tasksOf(pid){return Object.values(ptasks[pid]||{}).sort((a,b)=>(a.status==="terminee")-(b.status==="terminee")||(parseDay(a.deadline)||9e15)-(parseDay(b.deadline)||9e15)||(a.createdAt||0)-(b.createdAt||0));}
+function projProgress(pid){
+  const ts=Object.values(ptasks[pid]||{});
+  if(!ts.length) return 0;
+  return Math.round(ts.reduce((m,t)=>m+(t.status==="terminee"?100:Math.min(95,t.progress||0)),0)/ts.length);
+}
+function myOpenTasks(){
+  const out=[];
+  visibleProjects().forEach(p=>tasksOf(p.id).forEach(t=>{if((t.assigneeIds||[]).includes(myId)&&t.status!=="terminee")out.push({p,t});}));
+  return out.sort((a,b)=>(parseDay(a.t.deadline)||9e15)-(parseDay(b.t.deadline)||9e15));
+}
+
+/* Abonnements */
+function projSync(){
+  if(!PA.ready()) return;
+  const a=adminUI();
+  if(projUnsub&&projAsAdmin===a) return;
+  if(projUnsub) projUnsub();
+  projAsAdmin=a;
+  projUnsub=PA.watchProjects(onProjects);
+}
+function onProjects(list){
+  projects={};list.forEach(p=>{projects[p.id]=p;});
+  const vis=new Set(visibleProjects().map(p=>p.id));
+  Object.keys(taskUnsubs).forEach(pid=>{if(!vis.has(pid)){taskUnsubs[pid]();delete taskUnsubs[pid];delete ptasks[pid];}});
+  vis.forEach(pid=>{if(!taskUnsubs[pid]) taskUnsubs[pid]=PA.watchTasks(pid,ts=>{ptasks[pid]={};ts.forEach(t=>{ptasks[pid][t.id]=t;});projRerender();});});
+  if(projOpen&&!vis.has(projOpen)){projOpen=null;if(mode==="project")mode="projects";}
+  projRerender();
+}
+function watchFilesFor(pid){
+  if(filesFor===pid) return;
+  if(filesUnsub) filesUnsub();
+  filesFor=pid;
+  filesUnsub=PA.watchFiles(pid,fs=>{pfiles[pid]={};fs.forEach(f=>{pfiles[pid][f.id]=f;});projRerender();});
+}
+function projRerender(){
+  const n=myOpenTasks().length;
+  const tab=$("projTab");if(tab) tab.textContent="Projets"+(n?" ("+n+")":"");
+  if(mode==="projects"||mode==="project") renderProjects();
+}
+
+/* Affichage */
+function renderProjects(){
+  const detail=mode==="project"&&projOpen&&projects[projOpen];
+  $("projList").hidden=!!detail;$("projDetail").hidden=!detail;
+  if(detail) return renderProjectDetail(projects[projOpen]);
+  $("newProject").hidden=!adminUI();
+  document.querySelectorAll("#projFilter button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.f===projFilter));
+  // Mes tâches
+  const mine=myOpenTasks();
+  $("myTasks").innerHTML=mine.length?mine.map(({p,t})=>`<div class="mytask" data-openp="${esc(p.id)}" tabindex="0" style="--c:${hashColor(p.id)}">
+      <div><b>${esc(t.title)}</b> <span class="tst ${t.status}">${TASK_ST[t.status]||""}</span><div class="sub">${esc(p.title)}</div></div>
+      <div>${dueHTML(t.deadline,false)}</div></div>`).join("")
+    :`<div class="empty">🎉 Aucune tâche en attente pour vous.</div>`;
+  // Grille
+  let list=visibleProjects();
+  if(projFilter==="actifs") list=list.filter(p=>(p.status||"actif")==="actif");
+  if(projFilter==="termines") list=list.filter(p=>p.status==="termine");
+  list.sort((a,b)=>(parseDay(a.deadline)||9e15)-(parseDay(b.deadline)||9e15));
+  $("projGrid").innerHTML=list.length?list.map(p=>{
+    const ts=Object.values(ptasks[p.id]||{});const done=ts.filter(t=>t.status==="terminee").length;const pr=projProgress(p.id);
+    return `<button class="pcard" data-openp="${esc(p.id)}" style="--c:${hashColor(p.id)}">
+      <div class="pmeta"><span>${p.status==="termine"?"Terminé":p.status==="archive"?"Archivé":"En cours"}</span>${dueHTML(p.deadline,p.status==="termine")}</div>
+      <h3>${esc(p.title)}</h3>
+      ${p.description?`<div class="pdesc">${esc(p.description)}</div>`:""}
+      <div class="prog"><div class="track"><div class="fill" style="width:${pr}%"></div></div><span>${pr} %</span></div>
+      <div class="pmeta"><span>${done}/${ts.length} tâche${ts.length>1?"s":""} terminée${done>1?"s":""}</span>${avatarsHTML(p,p.memberIds||[])}</div>
+    </button>`;}).join("")
+    :`<div class="card"><div class="empty">${adminUI()?"📁 Aucun projet ici. Créez-en un avec « Nouveau projet ».":"📁 Vous ne faites encore partie d'aucun projet."}</div></div>`;
+  document.querySelectorAll("[data-openp]").forEach(el=>{const go=()=>openProject(el.dataset.openp);el.onclick=go;el.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();go();}};});
+}
+function openProject(pid){projOpen=pid;mode="project";watchFilesFor(pid);render();window.scrollTo(0,0);}
+
+function renderProjectDetail(p){
+  const admin=adminUI();const ts=tasksOf(p.id);const pr=projProgress(p.id);
+  const files=Object.values(pfiles[p.id]||{}).sort((a,b)=>b.at-a.at);
+  const filesOf=tid=>files.filter(f=>f.taskId===tid);
+  const fileHTML=f=>`<div class="file"><span class="fic">${fileIcon(f.type)}</span>
+     <button class="fname" data-fopen="${esc(f.id)}">${esc(f.name)}</button>
+     <span class="fsub">${fmtSize(f.size||0)} · ${esc(f.byName||pname(p,f.by))} · ${esc(dayLabel(f.at))}${f.taskId&&ptasks[p.id]&&ptasks[p.id][f.taskId]?"":""}</span>
+     ${admin||f.by===myId?`<button class="btn ghost danger" data-fdel="${esc(f.id)}">${pendingDelete==="f"+f.id?"Confirmer":"Retirer"}</button>`:""}</div>`;
+  $("projDetail").innerHTML=`
+    <div class="phead" style="--c:${hashColor(p.id)}">
+      <div class="row"><button class="btn" id="projBack">‹ Tous les projets</button>
+        ${admin?`<div class="row"><button class="btn" id="projEdit">Modifier le projet</button><button class="btn ghost danger" id="projDel">${pendingProjDel===p.id?"Confirmer la suppression du projet":"Supprimer"}</button></div>`:""}</div>
+      <div class="card" style="border-top:5px solid var(--c)">
+        <div class="pmeta" style="margin-bottom:6px"><span>${p.status==="termine"?"Terminé":p.status==="archive"?"Archivé":"En cours"}</span>${dueHTML(p.deadline,p.status==="termine")}</div>
+        <h2>${esc(p.title)}</h2>
+        ${p.description?`<p class="tdesc" style="color:var(--muted);white-space:pre-wrap;margin:8px 0 0">${esc(p.description)}</p>`:""}
+        <div class="prog" style="margin-top:14px"><div class="track"><div class="fill" style="width:${pr}%"></div></div><span>${pr} %</span></div>
+        <div class="pmeta" style="margin-top:10px"><span>${(p.memberIds||[]).length} membre${(p.memberIds||[]).length>1?"s":""}</span>${avatarsHTML(p,p.memberIds||[],10)}</div>
+      </div>
+    </div>
+    <section>
+      <div class="sechead"><h2>Tâches</h2>${admin?`<button class="btn in" id="newTask" style="border:none">Nouvelle tâche</button>`:""}</div>
+      <div class="tasks">${ts.length?ts.map(t=>taskHTML(p,t,filesOf(t.id),fileHTML)).join(""):`<div class="card"><div class="empty">📝 Aucune tâche pour l'instant.</div></div>`}</div>
+    </section>
+    <section>
+      <div class="sechead"><h2>Fichiers du projet</h2><span class="since">${files.length} fichier${files.length>1?"s":""}</span></div>
+      <div class="card"><div class="files">${files.length?files.map(f=>{const t=ptasks[p.id]&&ptasks[p.id][f.taskId];return fileHTML(f).replace('<span class="fsub">',`<span class="fsub">${t?esc(t.title)+" · ":""}`);}).join(""):`<div class="empty">📂 Les preuves déposées dans les tâches apparaîtront ici.</div>`}</div></div>
+    </section>`;
+  bindProjectDetail(p);
+}
+function taskHTML(p,t,files,fileHTML){
+  const admin=adminUI();const mine=(t.assigneeIds||[]).includes(myId);
+  const prog=t.status==="terminee"?100:(t.progress||0);
+  const col={a_faire:"var(--line)",en_cours:"#2F6FB5",a_verifier:"#D98A1C",terminee:"var(--go)"}[t.status]||"var(--line)";
+  const canUp=(admin||mine)&&t.status!=="terminee";
+  let acts="";
+  if(mine&&t.status==="a_faire") acts+=`<button class="btn" data-tst="en_cours" data-t="${t.id}">Commencer</button>`;
+  if(mine&&(t.status==="a_faire"||t.status==="en_cours")) acts+=`<button class="btn in" style="border:none" data-tst="a_verifier" data-t="${t.id}">Soumettre pour vérification</button>`;
+  if(admin&&t.status!=="terminee") acts+=`<button class="btn in" style="border:none" data-tst="terminee" data-t="${t.id}">Valider la tâche</button>`;
+  if(admin&&t.status==="a_verifier") acts+=`<button class="btn" data-tst="en_cours" data-t="${t.id}">Renvoyer à la personne</button>`;
+  if(admin&&t.status==="terminee") acts+=`<button class="btn" data-tst="en_cours" data-t="${t.id}">Rouvrir</button>`;
+  if(admin) acts+=`<button class="btn ghost" data-tedit="${t.id}">Modifier</button><button class="btn ghost danger" data-tdel="${t.id}">${pendingDelete==="t"+t.id?"Confirmer":"Supprimer"}</button>`;
+  const log=(t.log||[]).slice(-3).reverse();
+  return `<div class="task ${t.status}" style="--tc:${col}">
+    <div class="thead">
+      <div class="ttitle"><b>${esc(t.title)}</b><span class="kind">${t.kind==="collective"?"Collective":"Individuelle"}</span><span class="tst ${t.status}">${TASK_ST[t.status]||""}</span></div>
+      ${dueHTML(t.deadline,t.status==="terminee")}
+    </div>
+    ${t.description?`<div class="tdesc">${esc(t.description)}</div>`:""}
+    <div class="who">${avatarsHTML(p,t.assigneeIds||[])}<span>${(t.assigneeIds||[]).map(id=>esc(pname(p,id))).join(", ")||"Personne n'est assigné"}</span></div>
+    <div class="prog" style="--c:${col==="var(--line)"?"var(--muted)":col}"><div class="track"><div class="fill" style="width:${prog}%"></div></div><span>${prog} %</span></div>
+    ${mine&&(t.status==="a_faire"||t.status==="en_cours")?`<div class="row"><label for="rg_${t.id}" class="since" style="margin:0">Avancement</label><input type="range" min="0" max="100" step="10" value="${prog}" id="rg_${t.id}" data-tprog="${t.id}" aria-label="Avancement de la tâche"></div>`:""}
+    ${files.length?`<div class="files">${files.map(fileHTML).join("")}</div>`:""}
+    <div class="tacts">
+      ${canUp?`<span class="btn upl">📎 Ajouter une preuve<input type="file" multiple data-tup="${t.id}" ${PA.accept?`accept="${PA.accept}"`:""} aria-label="Ajouter une preuve"></span>`:""}
+      ${acts}
+    </div>
+    ${log.length?`<div class="tlog">${log.map(l=>`<span>${esc(dayLabel(l.at))} ${fmtTime(l.at)} · ${esc(l.byName||"")} ${esc(l.text)}</span>`).join("")}</div>`:""}
+  </div>`;
+}
+function bindProjectDetail(p){
+  $("projBack").onclick=()=>{mode="projects";projOpen=null;pendingProjDel=null;render();};
+  if($("projEdit")) $("projEdit").onclick=()=>openProjDlg(p.id);
+  if($("projDel")) $("projDel").onclick=async()=>{
+    if(pendingProjDel!==p.id){pendingProjDel=p.id;renderProjects();setTimeout(()=>{if(pendingProjDel===p.id){pendingProjDel=null;renderProjects();}},4000);return;}
+    pendingProjDel=null;
+    try{await PA.deleteProject(p.id,Object.values(pfiles[p.id]||{}),Object.keys(ptasks[p.id]||{}));toast("Projet supprimé");mode="projects";projOpen=null;render();}
+    catch(e){toast("Suppression impossible");}
+  };
+  if($("newTask")) $("newTask").onclick=()=>openTaskDlg(p.id,null);
+  const T=id=>ptasks[p.id][id];
+  document.querySelectorAll("[data-tst]").forEach(b=>b.onclick=()=>setTaskStatus(p,T(b.dataset.t),b.dataset.tst));
+  document.querySelectorAll("[data-tprog]").forEach(r=>r.onchange=()=>{
+    const t=T(r.dataset.tprog);const v=Number(r.value);
+    PA.updateTask(p.id,t.id,{progress:v,status:t.status==="a_faire"&&v>0?"en_cours":t.status,updatedAt:Date.now(),log:addLog(t,"a mis l'avancement à "+v+" %")}).catch(()=>toast("Modification refusée"));
+  });
+  document.querySelectorAll("[data-tedit]").forEach(b=>b.onclick=()=>openTaskDlg(p.id,b.dataset.tedit));
+  document.querySelectorAll("[data-tdel]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.tdel;
+    if(pendingDelete!=="t"+id){pendingDelete="t"+id;renderProjects();setTimeout(()=>{if(pendingDelete==="t"+id){pendingDelete=null;renderProjects();}},4000);return;}
+    pendingDelete=null;PA.deleteTask(p.id,id).then(()=>toast("Tâche supprimée")).catch(()=>toast("Suppression refusée"));
+  });
+  document.querySelectorAll("[data-tup]").forEach(inp=>inp.onchange=async()=>{
+    const t=T(inp.dataset.tup);const list=[...inp.files];inp.value="";
+    for(const f of list){
+      if(f.size>PA.maxSize){toast("« "+f.name+" » dépasse "+fmtSize(PA.maxSize));continue;}
+      toast("Envoi de « "+f.name+" »…");
+      try{
+        await PA.upload(p.id,t.id,f,{name:f.name,size:f.size,type:f.type||"",taskId:t.id,by:myId,byName:nameOf(myId),at:Date.now()});
+        toast("Preuve ajoutée");
+        if(!adminUI()) PA.updateTask(p.id,t.id,{updatedAt:Date.now(),status:t.status==="a_faire"?"en_cours":t.status,progress:t.progress||0,log:addLog(t,"a ajouté « "+f.name+" »")}).catch(()=>{});
+      }catch(e){toast(uploadErr(e));}
+    }
+  });
+  document.querySelectorAll("[data-fopen]").forEach(b=>b.onclick=()=>{const f=pfiles[p.id][b.dataset.fopen];PA.open(p.id,f).catch(()=>toast("Impossible d'ouvrir ce fichier"));});
+  document.querySelectorAll("[data-fdel]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.fdel;
+    if(pendingDelete!=="f"+id){pendingDelete="f"+id;renderProjects();setTimeout(()=>{if(pendingDelete==="f"+id){pendingDelete=null;renderProjects();}},4000);return;}
+    pendingDelete=null;PA.deleteFile(p.id,pfiles[p.id][id]).then(()=>toast("Fichier retiré")).catch(()=>toast("Suppression refusée"));
+  });
+}
+function addLog(t,text){return (t.log||[]).concat([{at:Date.now(),by:myId,byName:nameOf(myId),text}]).slice(-20);}
+function setTaskStatus(p,t,st){
+  const labels={en_cours:t.status==="terminee"?"a rouvert la tâche":t.status==="a_verifier"?"a renvoyé la tâche":"a commencé la tâche",a_verifier:"a soumis la tâche pour vérification",terminee:"a validé la tâche"};
+  const part={status:st,updatedAt:Date.now(),log:addLog(t,labels[st]||"a changé l'état")};
+  if(st==="a_verifier"||st==="terminee") part.progress=100;
+  if(st==="en_cours"&&t.status==="terminee") part.progress=Math.min(t.progress||0,90);
+  PA.updateTask(p.id,t.id,part).then(()=>toast(TASK_ST[st])).catch(()=>toast("Modification refusée"));
+}
+
+/* Fenêtres : projet */
+function peopleForPick(){
+  const ids=new Set(Object.keys(team));if(myId) ids.add(myId);
+  return [...ids].sort((a,b)=>nameOf(a).localeCompare(nameOf(b),"fr"));
+}
+async function openProjDlg(pid){
+  editingProj=pid;const p=pid?projects[pid]:null;
+  $("projDlgTitle").textContent=p?"Modifier le projet":"Nouveau projet";
+  $("pTitle").value=p?p.title:"";$("pDesc").value=p?p.description||"":"";
+  $("pDeadline").value=p?p.deadline||"":"";$("pStatus").value=p?p.status||"actif":"actif";$("pErr").textContent="";
+  const people=peopleForPick();await resolveNames(people);
+  const sel=new Set(p?p.memberIds||[]:[myId]);
+  $("pMembers").innerHTML=people.length?people.map(id=>`<label><input type="checkbox" value="${esc(id)}" ${sel.has(id)?"checked":""}>${esc(nameOf(id))}${id===myId?" (vous)":""}</label>`).join(""):`<span class="since">Aucun membre inscrit pour l'instant.</span>`;
+  $("projDlg").showModal();
+}
+$("pCancel").onclick=()=>$("projDlg").close();
+$("pSave").onclick=async()=>{
+  const title=$("pTitle").value.trim();if(!title){$("pErr").textContent="Donnez un nom au projet.";return;}
+  const picked=[...$("pMembers").querySelectorAll("input:checked")].map(i=>i.value);
+  const pid=editingProj||("p_"+uid());const old=editingProj?projects[editingProj]:null;
+  const assignees=Object.values(ptasks[pid]||{}).flatMap(t=>t.assigneeIds||[]);
+  const memberIds=[...new Set([...picked,...assignees])];
+  const memberNames={};memberIds.forEach(id=>{memberNames[id]=nameOf(id);});
+  const data={title,description:$("pDesc").value.trim(),deadline:$("pDeadline").value||"",status:$("pStatus").value,memberIds,memberNames,
+    createdBy:old?old.createdBy||myId:myId,createdAt:old?old.createdAt||Date.now():Date.now(),updatedAt:Date.now()};
+  try{await PA.saveProject(pid,data);$("projDlg").close();toast(old?"Projet modifié":"Projet créé");if(!old)openProject(pid);}
+  catch(e){$("pErr").textContent="Enregistrement refusé : accès administrateur requis.";}
+};
+$("newProject").onclick=()=>openProjDlg(null);
+document.querySelectorAll("#projFilter button").forEach(b=>b.onclick=()=>{projFilter=b.dataset.f;renderProjects();});
+
+/* Fenêtres : tâche */
+async function openTaskDlg(pid,tid){
+  editingTask={pid,tid};const p=projects[pid];const t=tid?ptasks[pid][tid]:null;
+  $("taskDlgTitle").textContent=t?"Modifier la tâche":"Nouvelle tâche";
+  $("tTitle").value=t?t.title:"";$("tDesc").value=t?t.description||"":"";$("tDeadline").value=t?t.deadline||"":(p.deadline||"");
+  const kind=t?t.kind||"individuelle":"individuelle";
+  document.querySelectorAll('input[name="tKind"]').forEach(r=>{r.checked=r.value===kind;});
+  $("tErr").textContent="";
+  const ids=[...new Set([...(p.memberIds||[]),...(t?t.assigneeIds||[]:[])])];
+  await resolveNames(ids);
+  const sel=new Set(t?t.assigneeIds||[]:[]);
+  $("tAssignees").innerHTML=ids.length?ids.map(id=>`<label><input type="checkbox" value="${esc(id)}" ${sel.has(id)?"checked":""}>${esc(pname(p,id))}</label>`).join(""):`<span class="since">Ajoutez d'abord des membres au projet.</span>`;
+  $("tAssignees").querySelectorAll("input").forEach(c=>c.onchange=()=>{
+    const k=document.querySelector('input[name="tKind"]:checked').value;
+    if(k==="individuelle"&&c.checked) $("tAssignees").querySelectorAll("input").forEach(o=>{if(o!==c)o.checked=false;});
+  });
+  $("taskDlg").showModal();
+}
+document.querySelectorAll('input[name="tKind"]').forEach(r=>r.onchange=()=>{
+  if(r.value==="individuelle"&&r.checked){const on=[...$("tAssignees").querySelectorAll("input:checked")];on.slice(1).forEach(o=>{o.checked=false;});}
+});
+$("tCancel").onclick=()=>$("taskDlg").close();
+$("tSave").onclick=async()=>{
+  const {pid,tid}=editingTask;const p=projects[pid];const old=tid?ptasks[pid][tid]:null;
+  const title=$("tTitle").value.trim();if(!title){$("tErr").textContent="Donnez un titre à la tâche.";return;}
+  const kind=document.querySelector('input[name="tKind"]:checked').value;
+  const assigneeIds=[...$("tAssignees").querySelectorAll("input:checked")].map(i=>i.value);
+  if(!assigneeIds.length){$("tErr").textContent="Assignez la tâche à au moins une personne.";return;}
+  if(kind==="individuelle"&&assigneeIds.length>1){$("tErr").textContent="Une tâche individuelle n'a qu'une seule personne.";return;}
+  const id=tid||("t_"+uid());
+  const data=Object.assign({},old||{status:"a_faire",progress:0,createdAt:Date.now(),log:[]},{title,description:$("tDesc").value.trim(),deadline:$("tDeadline").value||"",kind,assigneeIds,updatedAt:Date.now()});
+  data.log=addLog(old||{log:[]},old?"a modifié la tâche":"a créé la tâche");
+  try{
+    await PA.saveTask(pid,id,data);
+    const missing=assigneeIds.filter(a=>!(p.memberIds||[]).includes(a));
+    if(missing.length||assigneeIds.some(a=>!(p.memberNames||{})[a])){
+      const memberIds=[...new Set([...(p.memberIds||[]),...assigneeIds])];const memberNames=Object.assign({},p.memberNames||{});
+      memberIds.forEach(m=>{if(!memberNames[m])memberNames[m]=nameOf(m);});
+      await PA.saveProject(pid,Object.assign({},p,{memberIds,memberNames,updatedAt:Date.now()},{id:undefined}));
+    }
+    $("taskDlg").close();toast(old?"Tâche modifiée":"Tâche créée");
+  }catch(e){$("tErr").textContent="Enregistrement refusé : accès administrateur requis.";}
+};
+
 /* ---------- Navigation / rendu ---------- */
-document.querySelectorAll("#period button").forEach(b=>b.onclick=()=>{period=b.dataset.p;renderSummary();});
+document.querySelectorAll("#period button").forEach(b=>b.onclick=()=>{period=b.dataset.p;renderSummary();const bs=$("bars");bs.classList.remove("anim");void bs.offsetWidth;bs.classList.add("anim");});
 document.querySelectorAll("#teamPeriod button").forEach(b=>b.onclick=()=>{teamPeriod=b.dataset.p;renderTeam();});
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{mode=b.dataset.tab;viewingId=null;journalLimit=14;render();});
 function render(){
-  $("today").textContent=cap(new Date().toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long",year:"numeric"}));
-  const tabSel=mode==="person"?"team":mode;
+  const hr=new Date().getHours();const nm=myId?nameOf(myId):"";
+  const first=nm&&nm!=="Moi"&&nm!=="Personne sans nom"?" "+nm.split(/\s+/)[0]:"";
+  $("today").textContent=(hr>=18||hr<5?"Bonsoir":"Bonjour")+first+" · "+new Date().toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const tabSel=mode==="person"?"team":mode==="project"?"projects":mode;
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tabSel));
   renderAccess();
   $("teamView").hidden=mode!=="team";
   $("rolesView").hidden=mode!=="roles";
-  $("personalView").hidden=mode==="team"||mode==="roles";
+  const inProj=mode==="projects"||mode==="project";
+  $("projectsView").hidden=!inProj;
+  $("personalView").hidden=mode==="team"||mode==="roles"||inProj;
+  if(inProj){renderProjects();return;}
   if(mode==="team"){renderTeam();renderTeamDay();return;}
   if(mode==="roles"){renderRoles();return;}
   renderWho();renderClock();renderDay();renderSummary();renderJournal();renderTypes();
