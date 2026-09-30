@@ -314,6 +314,105 @@ dialog[open]{animation:pop .18s ease-out}
 .radios label{display:flex;align-items:center;gap:6px}
 textarea{background:var(--soft);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font:inherit;color:inherit;min-height:80px;resize:vertical;width:100%}
 dialog .field input,dialog .field select{width:100%}
+
+/* ===== Navigation latérale et mise en page compacte ===== */
+:root{--rail:64px;--rail-wide:232px}
+h1::before{display:none}
+.wrap.main{max-width:none;margin:0 0 0 var(--rail);padding:14px 24px 40px;transition:margin-left .22s ease}
+.wrap.main>*:not(.side):not(.scrim){max-width:1120px;margin-left:auto;margin-right:auto}
+body.nav-wide .wrap.main{margin-left:var(--rail-wide)}
+.side{position:fixed;left:0;top:0;bottom:0;width:var(--rail);background:var(--panel);box-shadow:var(--shadow);z-index:40;display:flex;flex-direction:column;gap:6px;padding:calc(10px + env(safe-area-inset-top,0px)) 10px calc(10px + env(safe-area-inset-bottom,0px));transition:width .22s ease,transform .25s ease;overflow:hidden}
+body.nav-wide .side{width:var(--rail-wide)}
+.side-top{display:flex;align-items:center;gap:8px;height:44px;margin-bottom:6px}
+.side-toggle,.mmenu{width:44px;height:44px;flex:none;border:none;background:none;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;color:var(--ink);padding:0}
+.side-toggle:hover,.mmenu:hover{background:var(--soft)}
+.side-toggle .ico,.mmenu .ico{width:24px;height:24px}
+.side-brand{font-family:var(--display);font-weight:700;font-size:1.35rem;display:flex;align-items:center;gap:8px}
+.side-brand::before{content:"";width:.5em;height:.5em;border-radius:50%;background:var(--go);box-shadow:0 0 0 .14em color-mix(in srgb,var(--go) 25%,transparent)}
+.side .lbl{white-space:nowrap;opacity:0;transition:opacity .15s ease;pointer-events:none}
+body.nav-wide .side .lbl,.side.open .lbl{opacity:1}
+#tabs{display:flex;flex-direction:column;gap:4px;background:none;box-shadow:none;padding:0;border-radius:0;margin:0}
+#tabs button,.navbtn{display:flex;align-items:center;gap:12px;height:44px;padding:0 10px;margin:0;border:none;border-radius:12px;background:none;color:var(--muted);font-weight:600;text-align:left;position:relative;width:100%;flex:none;transition:background .15s,color .15s}
+#tabs button[hidden]{display:none}
+#tabs .ico,.navbtn .ico{width:24px;height:24px;flex:none}
+#tabs button:hover,.navbtn:hover{background:var(--soft);color:var(--ink)}
+#tabs button[aria-selected="true"]{background:color-mix(in srgb,var(--go) 15%,var(--panel));color:var(--go)}
+.cnt{margin-left:auto;background:var(--punch);color:#fff;border-radius:999px;font-size:.72rem;line-height:1.5;padding:0 7px;font-weight:700}
+.cnt.muted{background:var(--soft);color:var(--muted)}
+.cnt:empty{display:none}
+body:not(.nav-wide) .side:not(.open) .cnt{position:absolute;top:5px;left:27px;margin:0;padding:0 5px;font-size:.62rem;box-shadow:0 0 0 2px var(--panel)}
+body:not(.nav-wide) .side:not(.open) .cnt.muted{display:none}
+.side-foot{margin-top:auto;display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--line);padding-top:8px}
+.side-me{display:flex;align-items:center;gap:12px;height:44px;padding:0 8px;font-weight:600;overflow:hidden}
+.side-me img,.avatar-fallback{width:28px;height:28px;border-radius:50%;flex:none}
+.avatar-fallback{display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:.72rem;font-weight:700}
+.avatar-fallback[hidden]{display:none}
+.scrim{position:fixed;inset:0;background:rgba(10,15,20,.45);z-index:35;animation:fadein .2s ease-out}
+.mmenu{display:none}
+header.top{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;margin-bottom:14px}
+header.top .ttl{flex:1;min-width:0}
+header.top .sync{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:38%;font-size:.8rem}
+.today{font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Compact */
+h1{font-size:1.6rem;line-height:1.15}
+h2{font-size:1.25rem}
+section{margin-top:18px}
+.sechead{margin-bottom:8px;gap:8px}
+.card{padding:14px 16px}
+.clock{gap:10px}
+.timer{font-size:clamp(2.6rem,10vw,5rem)}
+.btn{padding:7px 12px}
+.btn.big{font-size:1.15rem;padding:10px 20px}
+.chip{padding:5px 12px}
+input[type=text],input[type=email],input[type=password],input[type=date],input[type=time],select{padding:7px 10px}
+.daytitle{margin-bottom:8px}
+.daytitle b{font-size:1.15rem}
+.total{margin-bottom:10px}
+.total b{font-size:2rem}
+.bars{gap:8px}
+.entry{padding:6px 10px}
+.day{margin-top:12px}
+.phead h2{font-size:1.5rem}
+.pcard{padding:14px;gap:8px}
+.pcard h3{font-size:1.15rem}
+.task{padding:12px 14px;gap:8px}
+.pgrid{gap:12px}
+.seg button{padding:6px 11px}
+@media (min-width:900px){
+  .clock{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);align-items:center;column-gap:24px}
+  .clock>.status{grid-column:1/-1}
+  .clock>:nth-child(2){grid-row:2/4}
+}
+@media (min-width:1180px){
+  #personalView{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:18px;align-items:start}
+  #personalView>*{grid-column:1/-1}
+  #personalView>.col2{grid-column:auto}
+}
+@media (max-width:760px){
+  .side{transform:translateX(-105%);width:min(280px,84vw)}
+  .side.open{transform:none}
+  body.nav-wide .side{width:min(280px,84vw)}
+  .wrap.main,body.nav-wide .wrap.main{margin-left:0;padding:0 12px 28px}
+  .mmenu{display:inline-flex;margin-left:-6px}
+  header.top{position:sticky;top:0;z-index:30;margin:0 -12px 10px;padding:8px 12px;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+  h1{font-size:1.3rem}
+  .today{font-size:.8rem}
+  h2{font-size:1.15rem}
+  .card{padding:12px}
+  section{margin-top:14px}
+  .seg{max-width:100%;overflow-x:auto}
+  .daynav{width:100%}
+  .daynav input{flex:1;min-width:0}
+  .sechead>.row{width:100%}
+  .btn.big{width:100%}
+  .row .note{flex-basis:100%}
+  .bar{grid-template-columns:minmax(90px,120px) 1fr auto;gap:8px}
+  .bar .val{min-width:0}
+  header.top .sync{display:none}
+}
+body.noscroll{overflow:hidden}
+.total{flex-wrap:wrap;row-gap:2px}
+.total b{white-space:nowrap}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -344,27 +443,35 @@ dialog .field input,dialog .field select{width:100%}
   <div class="card" style="margin-top:20px"><h2>Configuration manquante</h2>
   <p>Le fichier <b>firebase-config.js</b> ne contient pas encore la configuration de votre projet Firebase. Suivez l'étape 4 du guide d'installation.</p></div>
 </div>
-<div class="wrap" id="app" hidden>
+<div class="wrap main" id="app" hidden>
+  <aside class="side" id="side" aria-label="Navigation">
+    <div class="side-top">
+      <button class="side-toggle" id="sideToggle" aria-label="Afficher ou réduire le menu" aria-expanded="false"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <span class="side-brand lbl">Pointeuse</span>
+    </div>
+    <nav class="tabs" id="tabs" role="tablist" aria-orientation="vertical">
+      <button role="tab" data-tab="mine" aria-selected="true" title="Mon espace"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span class="lbl">Mon espace</span></button>
+      <button role="tab" data-tab="projects" aria-selected="false" id="projTab" title="Projets"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M9.5 4v16M15 4v9"/></svg><span class="lbl">Projets</span><span class="cnt" id="projCnt"></span></button>
+      <button role="tab" data-tab="team" aria-selected="false" id="teamTab" title="Équipe" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.7-3.2 3.1-5 6-5s5.3 1.8 6 5"/><path d="M15.5 5.3a3.2 3.2 0 0 1 0 6.4M17.5 14.8c1.7.7 2.9 2.3 3.4 4.7"/></svg><span class="lbl">Équipe</span><span class="cnt muted" id="teamCnt"></span></button>
+      <button role="tab" data-tab="roles" aria-selected="false" id="rolesTab" title="Rôles" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l7 2.8v5c0 4.3-2.9 7.8-7 9.2-4.1-1.4-7-4.9-7-9.2v-5z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg><span class="lbl">Rôles</span></button>
+    </nav>
+  <div class="side-foot">
+    <div class="side-me"><img alt="" id="meAvatar" hidden><span class="avatar-fallback" id="meInitial"></span><span class="lbl" id="meName"></span></div>
+    <button class="navbtn" id="editName" title="Modifier mon nom"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4.2L19 9.2 14.8 5 4 15.8z"/><path d="M13 6.8l4.2 4.2"/></svg><span class="lbl">Modifier mon nom</span></button>
+    <button class="navbtn" id="signOut" title="Se déconnecter"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4.5h4.5v15H14"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg><span class="lbl">Se déconnecter</span></button>
+  </div>
+  </aside>
+  <div class="scrim" id="scrim" hidden></div>
+
   <header class="top">
-    <div>
-      <h1>Pointeuse<span class="badge" id="roleBadge" hidden></span></h1>
+    <button class="mmenu" id="mMenu" aria-label="Ouvrir le menu"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <div class="ttl">
+      <h1><span id="pageTitle">Mon espace</span><span class="badge" id="roleBadge" hidden></span></h1>
       <div class="today" id="today"></div>
     </div>
-    <div class="account">
-      <img alt="" id="meAvatar" hidden>
-      <span id="meName"></span>
-      <button class="btn ghost" id="editName">Modifier mon nom</button>
-      <button class="btn ghost" id="signOut">Se déconnecter</button>
-      <span class="sync" id="sync" style="flex-basis:100%;text-align:right">Chargement…</span>
-    </div>
+    <div class="sync" id="sync">Chargement…</div>
   </header>
 
-  <nav class="tabs" id="tabs" role="tablist" hidden>
-    <button role="tab" data-tab="mine" aria-selected="true">Mon espace</button>
-    <button role="tab" data-tab="projects" aria-selected="false" id="projTab">Projets</button>
-    <button role="tab" data-tab="team" aria-selected="false" id="teamTab">Équipe</button>
-    <button role="tab" data-tab="roles" aria-selected="false" id="rolesTab">Rôles</button>
-  </nav>
 
   <div id="teamView" hidden>
     <div class="sechead">
@@ -443,7 +550,7 @@ dialog .field input,dialog .field select{width:100%}
     <div class="who" id="who" hidden></div>
     <div class="card clock" id="clock"></div>
 
-    <section>
+    <section class="col2">
       <div class="sechead">
         <h2>Vue par jour</h2>
         <div class="daynav" role="group" aria-label="Choisir le jour">
@@ -456,7 +563,7 @@ dialog .field input,dialog .field select{width:100%}
       <div class="card" id="dayCard"></div>
     </section>
 
-    <section>
+    <section class="col2">
       <div class="sechead">
         <h2>Heures par activité</h2>
         <div class="seg" id="period" role="group" aria-label="Période">
@@ -717,7 +824,7 @@ function onAccessChange(){
       const next={};
       snap.docs.forEach(d=>{const raw=d.data();const v=sanitize(raw);if(v){Object.assign(v,{updatedAt:raw.updatedAt||0,displayName:raw.displayName||"",email:raw.email||"",photoURL:raw.photoURL||""});next[d.id]=v;}});
       team=next;
-      $("teamTab").textContent="Équipe ("+Object.keys(team).length+")";
+      $("teamCnt").textContent=Object.keys(team).length;
       if(mode!=="mine") render();
     },()=>{teamSub=null;});
   }
@@ -1075,6 +1182,7 @@ function renderAccess(){
   const b=$("roleBadge");
   if(myId){b.hidden=false;b.textContent=isOwnerNow()?"Propriétaire":roleOf(myId).name;}
   $("meName").textContent=nameOf(myId);
+  $("meInitial").textContent=initials(nameOf(myId));$("meInitial").style.background=hashColor(myId||"x");$("meInitial").hidden=!!myProfile.photoURL;
   if(myProfile.photoURL){$("meAvatar").src=myProfile.photoURL;$("meAvatar").hidden=false;}
   const n=$("roleNotice");
   const needShare=false;
@@ -1410,7 +1518,7 @@ function watchFilesFor(pid){
 }
 function projRerender(){
   const n=myOpenTasks().length;
-  const tab=$("projTab");if(tab) tab.textContent="Projets"+(n?" ("+n+")":"");
+  $("projCnt").textContent=n||"";
   if(mode==="projects"||mode==="project") renderProjects();
 }
 
@@ -1631,6 +1739,21 @@ $("tSave").onclick=async()=>{
   }catch(e){$("tErr").textContent="Enregistrement refusé : accès administrateur requis.";}
 };
 
+
+/* ---------- Menu latéral ---------- */
+(function(){
+  const side=$("side"),scrim=$("scrim"),mq=window.matchMedia("(max-width: 760px)");
+  let wide=false;try{wide=localStorage.getItem("pointeuse-nav")==="1";}catch(e){}
+  const drawer=o=>{side.classList.toggle("open",o);scrim.hidden=!o;document.body.classList.toggle("noscroll",o);$("sideToggle").setAttribute("aria-expanded",String(o));};
+  const apply=()=>{if(mq.matches){document.body.classList.remove("nav-wide");}else{drawer(false);document.body.classList.toggle("nav-wide",wide);$("sideToggle").setAttribute("aria-expanded",String(wide));}};
+  $("sideToggle").onclick=()=>{if(mq.matches){drawer(false);return;}wide=!wide;try{localStorage.setItem("pointeuse-nav",wide?"1":"0");}catch(e){}apply();};
+  $("mMenu").onclick=()=>drawer(true);
+  scrim.onclick=()=>drawer(false);
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&side.classList.contains("open"))drawer(false);});
+  side.querySelectorAll("#tabs button, .navbtn").forEach(b=>b.addEventListener("click",()=>{if(mq.matches)drawer(false);}));
+  (mq.addEventListener?mq.addEventListener("change",apply):mq.addListener(apply));
+  apply();
+})();
 /* ---------- Navigation / rendu ---------- */
 document.querySelectorAll("#period button").forEach(b=>b.onclick=()=>{period=b.dataset.p;renderSummary();const bs=$("bars");bs.classList.remove("anim");void bs.offsetWidth;bs.classList.add("anim");});
 document.querySelectorAll("#teamPeriod button").forEach(b=>b.onclick=()=>{teamPeriod=b.dataset.p;renderTeam();});
@@ -1640,6 +1763,7 @@ function render(){
   const first=nm&&nm!=="Moi"&&nm!=="Personne sans nom"?" "+nm.split(/\s+/)[0]:"";
   $("today").textContent=(hr>=18||hr<5?"Bonsoir":"Bonjour")+first+" · "+new Date().toLocaleDateString("fr-CA",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   const tabSel=mode==="person"?"team":mode==="project"?"projects":mode;
+  $("pageTitle").textContent={mine:"Mon espace",projects:"Projets",project:"Projets",team:"Équipe",person:"Équipe",roles:"Rôles"}[mode]||"Pointeuse";
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tabSel));
   renderAccess();
   $("teamView").hidden=mode!=="team";
