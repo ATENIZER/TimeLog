@@ -756,6 +756,31 @@ body.nomotion .timerbtn.on::after,body.nomotion .dot.on::after{display:none}
 .stars button{border:none;background:none;font-size:1.35rem;line-height:1;cursor:pointer;color:var(--line);padding:0 1px}
 .stars button.on{color:#E3A008}
 @media (max-width:760px){.ev-vis{margin:-22px -22px 12px}.up-thumb{width:60px;height:60px}}
+.autolink{color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+.autolink:hover{filter:brightness(1.1)}
+.com.orgz .autolink,.tdesc .autolink{color:inherit}
+
+/* ===== Squelette de chargement et retour ===== */
+.skel{display:none}
+body.booting .skel{display:block}
+body.booting #personalView,body.booting #projectsView,body.booting #teamView,body.booting #rolesView,body.booting #settingsView,body.booting #calView{display:none!important}
+body.booting #timerBtn{visibility:hidden}
+.sk{background:linear-gradient(90deg,color-mix(in srgb,var(--line) 55%,transparent) 25%,color-mix(in srgb,var(--line) 25%,transparent) 50%,color-mix(in srgb,var(--line) 55%,transparent) 75%);background-size:200% 100%;animation:shimmer 1.3s linear infinite;border-radius:var(--radius)}
+@keyframes shimmer{from{background-position:100% 0}to{background-position:-100% 0}}
+.sk-body{display:grid;gap:14px}
+.sk-h{height:22px;width:190px;border-radius:8px}
+.sk-row{display:flex;gap:12px}
+.sk-org{height:120px;flex:0 1 260px}
+.sk-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:12px}
+.sk-kpi{height:100px}
+.sk-panel{height:190px}
+.sk-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+body.bootfail .sk-body{display:none}
+.sk-err{display:grid;gap:8px;justify-items:start;max-width:520px}
+.sk-err p{margin:0}
+.backbtn{flex:none}
+@media (max-width:760px){.sk-two{grid-template-columns:1fr}.sk-kpis{grid-template-columns:1fr 1fr}.sk-org{flex:1}.backbtn{width:34px;height:34px}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -764,7 +789,7 @@ body.nomotion .timerbtn.on::after,body.nomotion .dot.on::after{display:none}
 <script src="firebase-config.js"></script>
 <script>(function(){try{var t=localStorage.getItem("pointeuse-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);var a=localStorage.getItem("pointeuse-accent");if(a&&/^#[0-9a-fA-F]{6}$/.test(a))document.documentElement.style.setProperty("--accent",a);var u=JSON.parse(localStorage.getItem("pointeuse-ui")||"{}");if(u&&u.font==="s")document.documentElement.style.fontSize="14.5px";if(u&&u.font==="l")document.documentElement.style.fontSize="17.5px";}catch(e){}})();</script>
 </head>
-<body>
+<body class="booting">
 <div class="wrap" id="authView" hidden>
   <div style="text-align:center;margin-top:24px"><svg class="auth-logo" width="72" height="72" viewBox="0 0 200 200" role="img" aria-label="Logo de la pointeuse"><rect width="200" height="200" rx="47" fill="#14213D"/><g transform="translate(100 100) scale(.75) translate(-100 -100)"><circle cx="100" cy="100" r="70" fill="none" stroke="#EEF1F5" stroke-width="20"/><line x1="100" y1="100" x2="160" y2="24" stroke="#14213D" stroke-width="46" stroke-linecap="round"/><polyline points="74,76 100,108 160,24" fill="none" style="stroke:var(--accent)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/></g></svg></div>
   <div class="card auth">
@@ -810,6 +835,7 @@ body.nomotion .timerbtn.on::after,body.nomotion .dot.on::after{display:none}
 
   <header class="top">
     <button class="mmenu" id="mMenu" aria-label="Ouvrir le menu"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+    <button class="hbtn backbtn" id="navBack" aria-label="Retour en arrière" title="Retour" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
     <div class="ttl">
       <h1><span id="pageTitle">Accueil</span><span class="badge" id="roleBadge" hidden></span></h1>
       <div class="today" id="today"></div>
@@ -818,6 +844,22 @@ body.nomotion .timerbtn.on::after,body.nomotion .dot.on::after{display:none}
     <button class="timerbtn" id="timerBtn" aria-label="Ouvrir le chronomètre" aria-expanded="false"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 1.5M9.5 2.5h5M12 2.5V5"/></svg><span class="tb-time" id="tbTime" hidden></span></button>
     <button class="hbtn" id="themeQuick" aria-label="Changer de mode"><svg class="ico" id="themeQuickIco" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
   </header>
+
+  <div class="skel" id="skel" aria-busy="true" aria-label="Chargement">
+    <div class="sk-err card" id="skErr" hidden>
+      <b>Impossible de charger vos informations.</b>
+      <p class="since">La connexion est peut-être lente ou interrompue. Vos données ne sont pas perdues.</p>
+      <button class="btn in" id="skRetry" style="border:none">Réessayer</button>
+    </div>
+    <div class="sk-body">
+      <div class="sk sk-h"></div>
+      <div class="sk-row"><div class="sk sk-org"></div><div class="sk sk-org"></div></div>
+      <div class="sk-kpis"><div class="sk sk-kpi"></div><div class="sk sk-kpi"></div><div class="sk sk-kpi"></div><div class="sk sk-kpi"></div><div class="sk sk-kpi"></div><div class="sk sk-kpi"></div></div>
+      <div class="sk sk-h"></div>
+      <div class="sk sk-panel"></div>
+      <div class="sk-two"><div class="sk sk-panel"></div><div class="sk sk-panel"></div></div>
+    </div>
+  </div>
 
 
   <div id="teamView" hidden>
@@ -1132,7 +1174,7 @@ body.nomotion .timerbtn.on::after,body.nomotion .dot.on::after{display:none}
     <div class="field"><label for="eEnd">Fin</label><input type="time" id="eEnd" value="19:00"></div>
   </div>
   <div class="field"><label for="eLoc">Lieu</label><input type="text" id="eLoc" placeholder="Adresse, salle ou lien de visioconférence"></div>
-  <div class="field"><label for="eDesc">Description</label><textarea id="eDesc" placeholder="Ordre du jour, consignes…"></textarea></div>
+  <div class="field"><label for="eDesc">Description</label><textarea id="eDesc" placeholder="Ordre du jour, consignes…"></textarea><span class="since">Les liens, courriels et numéros de téléphone du lieu et de la description deviennent cliquables.</span></div>
   <div class="field"><label>Icône</label><div class="emo-row" id="eIcons"></div></div>
   <div class="field"><label>Affiche ou bannière</label>
     <div class="ev-vis-prev" id="eVisPrev" hidden><img id="eVisImg" alt="Aperçu du visuel"></div>
@@ -1346,25 +1388,25 @@ async function startSession(u){
   myProfile={displayName:pendingName||u.displayName||"",email:u.email||"",photoURL:u.photoURL||""};
   render();
   try{
-    const ix=await L.idx().get();
+    const ix=await withRetry(()=>L.idx().get());
     if(ix.exists){const d=ix.data();myOrgIds=Array.isArray(d.orgIds)?d.orgIds.slice():[];if(d.displayName&&!pendingName)myProfile.displayName=d.displayName;}
     await loadOrgList();
-  }catch(e){console.error(e);setSync("Erreur de chargement : "+(e.code||e.message));}
+  }catch(e){console.error(e);bootFail();return;}
   pendingName="";
   saveIndex().catch(()=>{});
   const saved=lsGetOrg();
   curOrg=myOrgIds.includes(saved)?saved:(myOrgIds[0]||null);
   orgsLoaded=true;
-  if(!curOrg){setSync("");render();return;}
-  await openOrg();
+  if(!curOrg){setSync("");render();bootDone();return;}
+  try{await openOrg();bootDone();}catch(e){console.error(e);bootFail();}
 }
 function saveIndex(){return L.idx().set({orgIds:myOrgIds,displayName:myProfile.displayName||"",email:myProfile.email||""});}
 async function loadOrgList(){
   const out={};
   await Promise.all(myOrgIds.map(async id=>{
     try{
-      const o=await L.org(id).get();if(!o.exists)return;const d=o.data();
-      const m=await L.members(id).doc(myId).get();if(!m.exists)return;
+      const o=await withRetry(()=>L.org(id).get());if(!o.exists)return;const d=o.data();
+      const m=await withRetry(()=>L.members(id).doc(myId).get());if(!m.exists)return;
       const r=(d.roles||[]).find(x=>x.id===m.data().roleId);
       out[id]={id,name:d.name||"Association",role:d.ownerUid===myId?"Propriétaire":(r&&r.level==="admin"?r.name:"Membre"),owner:d.ownerUid===myId,admin:d.ownerUid===myId||(!!r&&r.level==="admin"),banner:d.banner||null,code:d.code||""};
     }catch(e){}
@@ -1374,7 +1416,7 @@ async function loadOrgList(){
   if(ok.length!==myOrgIds.length){myOrgIds=ok;saveIndex().catch(()=>{});}
 }
 async function openOrg(){
-  const ref=L.me();const snap=await ref.get();
+  const ref=L.me();const snap=await withRetry(()=>ref.get());
   if(snap.exists){const r=sanitize(snap.data());if(r)state=r;}else state=JSON.parse(JSON.stringify(DEFAULT));
   backend={save:o=>ref.set(Object.assign(JSON.parse(JSON.stringify(o)),{updatedAt:Date.now(),displayName:myProfile.displayName,email:myProfile.email,photoURL:myProfile.photoURL}))};
   if(!snap.exists||snap.data().displayName!==myProfile.displayName) persist();
@@ -2222,7 +2264,7 @@ function taskHTML(p,t,files,fileHTML){
       <div class="ttitle"><b>${esc(t.title)}</b><span class="kind">${t.kind==="collective"?"Collective":"Individuelle"}</span><span class="tst ${t.status}">${TASK_ST[t.status]||""}</span></div>
       ${dueHTML(t.deadline,t.status==="terminee")}
     </div>
-    ${t.description?`<div class="tdesc">${esc(t.description)}</div>`:""}
+    ${t.description?`<div class="tdesc">${linkify(t.description)}</div>`:""}
     <div class="who">${avatarsHTML(p,t.assigneeIds||[])}<span>${(t.assigneeIds||[]).map(id=>esc(pname(p,id))).join(", ")||"Personne n'est assigné"}</span></div>
     <div class="prog" style="--c:${col==="var(--line)"?"var(--muted)":col}"><div class="track"><div class="fill" style="width:${prog}%"></div></div><span>${prog} %</span></div>
     ${mine&&(t.status==="a_faire"||t.status==="en_cours")?`<div class="row"><label for="rg_${t.id}" class="since" style="margin:0">Avancement</label><input type="range" min="0" max="100" step="10" value="${prog}" id="rg_${t.id}" data-tprog="${t.id}" aria-label="Avancement de la tâche"></div>`:""}
@@ -2840,9 +2882,9 @@ function openEvView(id){
   $("evvLocRow").hidden=!e.location;
   if(e.location){
     const href=isUrl(e.location)?e.location:"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(e.location);
-    $("evvLoc").innerHTML=`${esc(e.location)}<span class="up-maps" style="margin-top:6px">${mapLinksHTML(e.location)}</span>`;
+    $("evvLoc").innerHTML=`${linkify(e.location)}<span class="up-maps" style="margin-top:6px">${mapLinksHTML(e.location)}</span>`;
   }
-  $("evvDesc").textContent=e.description||"";$("evvDesc").hidden=!e.description;
+  $("evvDesc").innerHTML=linkify(e.description||"");$("evvDesc").hidden=!e.description;
   $("evvGoogle").href=googleUrl(e);$("evvOutlook").href=outlookUrl(e,"outlook.live.com");$("evvO365").href=outlookUrl(e,"outlook.office.com");
   const admin=adminUI();$("evvEdit").hidden=!admin;$("evvDel").hidden=!admin;$("evvDel").textContent="Supprimer";
   $("evView").showModal();
@@ -2952,7 +2994,7 @@ function upRowHTML(it){
     <div class="up-main">
       <button class="up-title" ${attr}><span class="up-type">${esc(type)}</span>${ev&&ev.icon?esc(ev.icon)+" ":""}${esc(ev?ev.title:it.title.replace(/^Échéance : /,""))}</button>
       <span class="up-when">${esc(when)}</span>
-      ${ev&&ev.location?`<span class="up-loc">📍 ${esc(ev.location)}</span><span class="up-maps">${mapLinksHTML(ev.location)}</span>`:""}
+      ${ev&&ev.location?`<span class="up-loc">📍 ${linkify(ev.location)}</span><span class="up-maps">${mapLinksHTML(ev.location)}</span>`:""}
     </div>
     ${ev&&ev.image?`<button class="up-thumb" ${attr} aria-label="Voir le visuel de ${esc(ev.title)}" style="background-image:url('${ev.image}')"></button>`:""}
   </div>`;
@@ -3079,7 +3121,7 @@ function renderComments(){
     const org_=c.by===ev.createdBy;
     return `<div class="com ${org_?"orgz":""}"><span class="av" style="background:${hashColor(c.by)}">${esc(initials(c.byName||"?"))}</span>
       <div class="com-body"><div class="com-meta"><b>${esc(c.byName||"Membre")}</b>${org_?'<span class="com-badge">Organisateur</span>':""}<span>${esc(relTime(c.at))}</span>${c.rating?starsHTML(c.rating):""}</div>
-      <div class="com-text">${esc(c.text)}</div>
+      <div class="com-text">${linkify(c.text)}</div>
       ${c.by===myId||adminUI()?`<button class="btn ghost danger com-del" data-cdel="${esc(c.id)}">${pendingDelete==="c"+c.id?"Confirmer":"Supprimer"}</button>`:""}</div></div>`;}).join("")
     :`<div class="empty" style="padding:12px">💬 Aucun commentaire pour l'instant. Lancez la discussion !</div>`;
   $("evcList").querySelectorAll("[data-cdel]").forEach(b=>b.onclick=()=>{
@@ -3107,6 +3149,63 @@ $("evcSend").onclick=async()=>{
   btn.disabled=false;
 };
 $("evcText").onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();$("evcSend").click();}};
+/* ---------- Liens détectés automatiquement (sites, courriels, téléphones) ---------- */
+const LINK_RE=/(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+\.[^\s<>"]+|[\w.+-]+@[\w-]+(?:\.[\w-]+)+|(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}(?:\s*(?:poste|ext\.?|#)\s*\d{1,6})?)/gi;
+function linkify(text){
+  const t=String(text||"");let out="",last=0;
+  for(const m of t.matchAll(LINK_RE)){
+    let raw=m[0],start=m.index;
+    // ponctuation finale qui ne fait pas partie du lien
+    let trail="";while(/[.,;:!?)\]»']$/.test(raw)&&!(raw.endsWith(")")&&raw.includes("("))){trail=raw.slice(-1)+trail;raw=raw.slice(0,-1);}
+    let href;
+    if(/^https?:\/\//i.test(raw)) href=raw;
+    else if(/^www\./i.test(raw)) href="https://"+raw;
+    else if(raw.includes("@")) href="mailto:"+raw;
+    else href="tel:"+raw.replace(/(?:poste|ext\.?|#)\s*(\d+)/i,",$1").replace(/[^\d+,]/g,"");
+    out+=esc(t.slice(last,start))+`<a class="autolink" href="${esc(href)}" ${href.startsWith("http")?'target="_blank" rel="noopener noreferrer"':""}>${esc(raw)}</a>`+esc(trail);
+    last=start+m[0].length;
+  }
+  return out+esc(t.slice(last));
+}
+
+/* ---------- Chargement (squelette), reprise sur erreur ---------- */
+const RETRY_CODES=/unavailable|resource[_-]exhausted|deadline|aborted|internal|network/i;
+async function withRetry(fn,tries=4){
+  let wait=400;
+  for(let i=0;;i++){
+    try{return await fn();}
+    catch(e){if(i>=tries-1||!RETRY_CODES.test((e&&(e.code||e.message))||""))throw e;await new Promise(r=>setTimeout(r,wait+Math.random()*250));wait*=2;}
+  }
+}
+let booted=false;
+function bootDone(){booted=true;document.body.classList.remove("booting","bootfail");}
+function bootFail(){if(booted)return;document.body.classList.add("bootfail");$("skErr").hidden=false;}
+$("skRetry").onclick=()=>location.reload();
+setTimeout(()=>{if(!booted&&document.body.classList.contains("booting"))bootFail();},25000);
+
+/* ---------- Retour en arrière (bouton et bouton « précédent » du navigateur) ---------- */
+let lastNavKey=null,navRestoring=false,navDepth=0,histOK=true;
+const navKey=()=>mode+"|"+(mode==="project"?projOpen||"":"")+"|"+(mode==="person"?viewingId||"":"");
+function recordNav(){
+  const k=navKey();if(k===lastNavKey)return;
+  const st={nav:{mode,projOpen,viewingId}};
+  try{
+    if(lastNavKey===null){navDepth=(history.state&&history.state.depth)||0;st.depth=navDepth;history.replaceState(st,"");}
+    else if(!navRestoring){navDepth++;st.depth=navDepth;history.pushState(st,"");}
+  }catch(e){histOK=false;}
+  lastNavKey=k;$("navBack").hidden=!(histOK&&navDepth>0);
+}
+window.addEventListener("popstate",e=>{
+  const n=e.state&&e.state.nav;if(!n)return;
+  navRestoring=true;navDepth=e.state.depth||0;
+  document.querySelectorAll("dialog[open]").forEach(d=>d.close());
+  if(!$("timerPanel").hidden)openTimer(false);
+  mode=n.mode||"mine";projOpen=n.projOpen||null;viewingId=n.viewingId||null;
+  if(mode==="project"&&projOpen)watchFilesFor(projOpen);
+  if(mode==="person"&&!viewingId)mode="team";
+  renderNow();navRestoring=false;window.scrollTo(0,0);
+});
+$("navBack").onclick=()=>history.back();
 /* ---------- Navigation / rendu ---------- */
 document.querySelectorAll("#period button").forEach(b=>b.onclick=()=>{period=b.dataset.p;renderSummary();const bs=$("bars");bs.classList.remove("anim");void bs.offsetWidth;bs.classList.add("anim");});
 document.querySelectorAll("#teamPeriod button").forEach(b=>b.onclick=()=>{teamPeriod=b.dataset.p;renderTeam();});
@@ -3125,6 +3224,7 @@ function renderNow(){
   const tabSel=mode==="person"?"team":mode==="project"?"projects":mode;
   $("pageTitle").textContent={settings:"Paramètres",calendar:"Calendrier",mine:"Accueil",projects:"Projets",project:"Projets",team:"Équipe",person:"Équipe",roles:"Rôles"}[mode]||"";
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tabSel));
+  recordNav();
   renderAccess();
   $("teamView").hidden=mode!=="team";
   $("rolesView").hidden=mode!=="roles";
