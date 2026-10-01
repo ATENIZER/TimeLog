@@ -723,6 +723,39 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;ba
 @media (max-width:760px){header.top{-webkit-backdrop-filter:none!important;backdrop-filter:none!important;background:color-mix(in srgb,var(--bg) 97%,transparent)!important}}
 @media (prefers-reduced-motion:reduce){.timerbtn.on::after,.dot.on::after{animation:none!important;display:none}}
 body.nomotion .timerbtn.on::after,body.nomotion .dot.on::after{display:none}
+
+/* ===== Visuels et commentaires des événements ===== */
+#evView{width:min(600px,calc(100vw - 24px));max-height:92vh;overflow:auto}
+.ev-vis{margin:-22px -22px 14px;background:var(--soft);display:flex;justify-content:center;max-height:340px;overflow:hidden;border-radius:var(--radius) var(--radius) 0 0}
+.ev-vis img{max-width:100%;max-height:340px;object-fit:contain;display:block}
+.ev-vis-prev{border-radius:10px;overflow:hidden;background:var(--soft);display:flex;justify-content:center;margin-bottom:8px;max-height:200px}
+.ev-vis-prev img{max-height:200px;max-width:100%;object-fit:contain}
+.emo-row{display:flex;flex-wrap:wrap;gap:6px}
+.emo-row button{width:36px;height:36px;border-radius:10px;border:2px solid transparent;background:var(--soft);font-size:1.15rem;cursor:pointer;color:var(--muted)}
+.emo-row button[aria-pressed="true"]{border-color:var(--accent);background:var(--panel)}
+.up-row.has-img{grid-template-columns:auto 1fr auto}
+.up-thumb{all:unset;cursor:pointer;width:84px;height:84px;border-radius:12px;background-size:cover;background-position:center;box-shadow:var(--shadow)}
+.up-thumb:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.ev-com{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}
+.ev-com-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.ev-com-list{display:grid;gap:10px;max-height:300px;overflow:auto;padding-right:4px}
+.com{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start}
+.com .av{margin:0;width:32px;height:32px}
+.com-body{background:var(--soft);border-radius:4px 14px 14px 14px;padding:8px 12px;min-width:0}
+.com.orgz .com-body{background:color-mix(in srgb,var(--accent) 14%,var(--panel));border:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}
+.com-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.84rem;color:var(--muted)}
+.com-meta b{color:var(--ink);font-size:.9rem}
+.com-badge{font-size:.7rem;font-weight:700;border-radius:999px;padding:0 8px;background:var(--accent);color:var(--accent-ink)}
+.com-text{white-space:pre-wrap;overflow-wrap:anywhere;margin-top:2px}
+.com-del{padding:2px 6px;font-size:.8rem;margin-top:2px}
+.st-show{color:#E3A008;letter-spacing:1px}
+.ev-com-new{display:grid;gap:8px;margin-top:10px}
+.ev-com-new textarea{min-height:64px}
+.stars{display:flex;align-items:center;gap:2px}
+.stars .since{margin-right:6px}
+.stars button{border:none;background:none;font-size:1.35rem;line-height:1;cursor:pointer;color:var(--line);padding:0 1px}
+.stars button.on{color:#E3A008}
+@media (max-width:760px){.ev-vis{margin:-22px -22px 12px}.up-thumb{width:60px;height:60px}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1100,17 +1133,35 @@ body.nomotion .timerbtn.on::after,body.nomotion .dot.on::after{display:none}
   </div>
   <div class="field"><label for="eLoc">Lieu</label><input type="text" id="eLoc" placeholder="Adresse, salle ou lien de visioconférence"></div>
   <div class="field"><label for="eDesc">Description</label><textarea id="eDesc" placeholder="Ordre du jour, consignes…"></textarea></div>
+  <div class="field"><label>Icône</label><div class="emo-row" id="eIcons"></div></div>
+  <div class="field"><label>Affiche ou bannière</label>
+    <div class="ev-vis-prev" id="eVisPrev" hidden><img id="eVisImg" alt="Aperçu du visuel"></div>
+    <div class="row"><span class="btn upl">🖼️ Choisir une image<input type="file" id="eVis" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Choisir une affiche ou une bannière"></span><button class="btn ghost danger" id="eVisDel" hidden>Retirer l'image</button></div>
+    <span class="since">Affiche (verticale) ou bannière (horizontale) : l'image est allégée automatiquement.</span>
+  </div>
   <div class="err" id="eErr"></div>
   <div class="dlgacts"><button class="btn ghost" id="eCancel">Annuler</button><button class="btn in" id="eSave" style="border:none">Enregistrer</button></div>
 </dialog>
 
 <dialog id="evView">
+  <div class="ev-vis" id="evvVis" hidden><img id="evvImg" alt=""></div>
   <div class="ev-head" id="evvHead"><span class="ev-type" id="evvType"></span><h3 id="evvTitle"></h3></div>
   <div class="ev-line">📅 <span id="evvWhen"></span></div>
   <div class="ev-line" id="evvLocRow">📍 <span id="evvLoc"></span></div>
   <div class="ev-desc" id="evvDesc"></div>
   <div class="ev-add"><span class="since">Ajouter à mon calendrier :</span>
     <div class="row"><a class="btn" id="evvGoogle" target="_blank" rel="noopener">Google</a><a class="btn" id="evvOutlook" target="_blank" rel="noopener">Outlook.com</a><a class="btn" id="evvO365" target="_blank" rel="noopener">Outlook (école/travail)</a><button class="btn" id="evvIcs">Apple / autre (.ics)</button></div>
+  </div>
+  <div class="ev-com">
+    <div class="ev-com-head"><b>Commentaires et avis</b><span class="since" id="evcStats"></span></div>
+    <div class="ev-com-list" id="evcList"></div>
+    <div class="ev-com-new">
+      <textarea id="evcText" maxlength="2000" placeholder="Votre commentaire, votre avis ou une question…" aria-label="Écrire un commentaire"></textarea>
+      <div class="row" style="justify-content:space-between">
+        <div class="stars" id="evcStars" role="radiogroup" aria-label="Votre note (facultatif)"></div>
+        <button class="btn in" id="evcSend" style="border:none">Publier</button>
+      </div>
+    </div>
   </div>
   <div class="dlgacts"><button class="btn ghost danger" id="evvDel" hidden>Supprimer</button><button class="btn ghost" id="evvEdit" hidden>Modifier</button><button class="btn in" id="evvClose" style="border:none">Fermer</button></div>
 </dialog>
@@ -2640,7 +2691,7 @@ $("bSave").onclick=async()=>{
   $("bSave").disabled=false;
 };
 /* ---------- Stockage du calendrier (Firebase) ---------- */
-const EV={ready:()=>!!fdb&&!!myId&&!!curOrg,col:()=>fdb.collection("orgs").doc(curOrg).collection("events")};
+const EV={ready:()=>!!fdb&&!!myId&&!!curOrg,col:()=>fdb.collection("orgs").doc(curOrg).collection("events"),comments:eid=>fdb.collection("orgs").doc(curOrg).collection("events").doc(eid).collection("comments")};
 function saveIcs(filename,text){
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"text/calendar;charset=utf-8"}));a.download=filename;
   document.body.appendChild(a);a.click();a.remove();toast("Calendrier téléchargé");
@@ -2670,7 +2721,7 @@ function calItems(from,to){
 const monthLabel=t=>cap(new Date(t).toLocaleDateString("fr-CA",{month:"long",year:"numeric"}));
 function itemChip(it){
   const time=it.kind==="event"&&!it.allDay?fmtTime(it.start)+" ":"";
-  const ico=it.kind==="event"?"":"⚑ ";
+  const ico=it.kind==="event"?(it.e.icon?it.e.icon+" ":""):"⚑ ";
   return `<button class="cal-chip ${it.kind!=="event"?"dl":""}" style="--c:${it.color}" ${it.kind==="event"?`data-ev="${esc(it.e.id)}"`:`data-pj="${esc(it.pid)}"`} title="${esc(it.title)}">${ico}${esc(time+it.title)}</button>`;
 }
 function renderCalendar(){
@@ -2713,7 +2764,7 @@ function rowHTML(it){
   const when=it.kind==="event"?(it.allDay?"Toute la journée":fmtTime(it.e.start)+" – "+fmtTime(it.e.end)):(it.kind==="deadline"?"Échéance du projet":"Échéance de tâche"+(it.mine?" · vous":""));
   const loc=it.kind==="event"&&it.e.location?` · 📍 ${esc(it.e.location)}`:"";
   return `<button class="cal-row" style="--c:${it.color}" ${it.kind==="event"?`data-ev="${esc(it.e.id)}"`:`data-pj="${esc(it.pid)}"`}>
-    <span class="cal-bar"></span><span class="cal-rmain"><b>${it.kind!=="event"?"⚑ ":""}${esc(it.title)}</b><span>${esc(when)}${it.sub?" · "+esc(it.sub):""}${loc}</span></span></button>`;
+    <span class="cal-bar"></span><span class="cal-rmain"><b>${it.kind!=="event"?"⚑ ":(it.e.icon?esc(it.e.icon)+" ":"")}${esc(it.title)}</b><span>${esc(when)}${it.sub?" · "+esc(it.sub):""}${loc}</span></span></button>`;
 }
 function renderCalDay(){
   const d=calSel,its=calItems(d,addDays(d,1));
@@ -2740,6 +2791,7 @@ function openEvDlg(id,day){
   $("eAllDay").checked=e?!!e.allDay:false;
   $("eStart").value=e&&!e.allDay?fmtTime(e.start):"18:00";$("eEnd").value=e&&!e.allDay?fmtTime(e.end):"19:00";
   $("eLoc").value=e?e.location||"":"";$("eDesc").value=e?e.description||"":"";$("eErr").textContent="";
+  evDraft={icon:e?e.icon||"":"",image:e?e.image||"":""};renderEvDraft();
   $("eTimes").hidden=$("eAllDay").checked;
   $("evDlg").showModal();
 }
@@ -2755,7 +2807,7 @@ $("eSave").onclick=async()=>{
     if(isNaN(ah)||isNaN(bh)){$("eErr").textContent="Indiquez les heures de début et de fin.";return;}
     const d=new Date(day);start=new Date(d.getFullYear(),d.getMonth(),d.getDate(),ah,am).getTime();end=new Date(d.getFullYear(),d.getMonth(),d.getDate(),bh,bm).getTime();if(end<=start)end+=DAY;}
   const old=editingEv?events[editingEv]:null,id=editingEv||("e_"+uid());
-  const data={title,type:$("eType").value,allDay,start,end,location:$("eLoc").value.trim(),description:$("eDesc").value.trim(),
+  const data={title,type:$("eType").value,allDay,start,end,location:$("eLoc").value.trim(),description:$("eDesc").value.trim(),icon:evDraft.icon||"",image:evDraft.image||"",
     createdBy:old?old.createdBy:myId,createdByName:old?old.createdByName:nameOf(myId),createdAt:old?old.createdAt:Date.now(),updatedAt:Date.now()};
   if(old&&old.icsUid) data.icsUid=old.icsUid;
   try{await EV.col().doc(id).set(data);$("evDlg").close();toast(old?"Événement modifié":"Événement ajouté");calSel=startOfDay(start);}
@@ -2783,7 +2835,8 @@ function outlookUrl(e,host){
 }
 function openEvView(id){
   const e=events[id];if(!e)return;viewingEv=id;const [tl,tc]=EV_TYPES[e.type]||EV_TYPES.autre;
-  $("evvHead").style.setProperty("--c",tc);$("evvType").textContent=tl;$("evvTitle").textContent=e.title;$("evvWhen").textContent=evWhen(e);
+  $("evvHead").style.setProperty("--c",tc);$("evvType").textContent=tl;$("evvTitle").textContent=(e.icon?e.icon+" ":"")+e.title;
+  $("evvVis").hidden=!e.image;if(e.image)$("evvImg").src=e.image;$("evvWhen").textContent=evWhen(e);
   $("evvLocRow").hidden=!e.location;
   if(e.location){
     const href=isUrl(e.location)?e.location:"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(e.location);
@@ -2793,8 +2846,10 @@ function openEvView(id){
   $("evvGoogle").href=googleUrl(e);$("evvOutlook").href=outlookUrl(e,"outlook.live.com");$("evvO365").href=outlookUrl(e,"outlook.office.com");
   const admin=adminUI();$("evvEdit").hidden=!admin;$("evvDel").hidden=!admin;$("evvDel").textContent="Supprimer";
   $("evView").showModal();
+  openComments(e);
 }
 $("evvClose").onclick=()=>$("evView").close();
+$("evView").addEventListener("close",()=>{if(comUnsub){comUnsub();comUnsub=null;}});
 $("evvEdit").onclick=()=>{$("evView").close();openEvDlg(viewingEv);};
 $("evvDel").onclick=async()=>{
   if($("evvDel").textContent!=="Confirmer la suppression"){$("evvDel").textContent="Confirmer la suppression";return;}
@@ -2892,13 +2947,14 @@ function upRowHTML(it){
   const when=ev?(ev.allDay?dayLabel(ev.start)+" · toute la journée":dayLabel(ev.start)+" · "+fmtTime(ev.start)+" – "+fmtTime(ev.end)):dayLabel(it.start)+(it.kind==="task"?" · échéance de tâche"+(it.sub?" ("+it.sub+")":""):" · échéance du projet");
   const type=ev?(EV_TYPES[ev.type]||EV_TYPES.autre)[0]:"Échéance";
   const attr=ev?`data-ev="${esc(ev.id)}"`:`data-pj="${esc(it.pid)}"`;
-  return `<div class="up-row" style="--c:${it.color}">
+  return `<div class="up-row ${ev&&ev.image?"has-img":""}" style="--c:${it.color}">
     <button class="up-date" ${attr} aria-label="Ouvrir ${esc(it.title)}"><b>${d.getDate()}</b><span>${esc(d.toLocaleDateString("fr-CA",{month:"short"}).replace(".",""))}</span></button>
     <div class="up-main">
-      <button class="up-title" ${attr}><span class="up-type">${esc(type)}</span>${esc(ev?ev.title:it.title.replace(/^Échéance : /,""))}</button>
+      <button class="up-title" ${attr}><span class="up-type">${esc(type)}</span>${ev&&ev.icon?esc(ev.icon)+" ":""}${esc(ev?ev.title:it.title.replace(/^Échéance : /,""))}</button>
       <span class="up-when">${esc(when)}</span>
       ${ev&&ev.location?`<span class="up-loc">📍 ${esc(ev.location)}</span><span class="up-maps">${mapLinksHTML(ev.location)}</span>`:""}
     </div>
+    ${ev&&ev.image?`<button class="up-thumb" ${attr} aria-label="Voir le visuel de ${esc(ev.title)}" style="background-image:url('${ev.image}')"></button>`:""}
   </div>`;
 }
 function renderMini(){
@@ -2969,6 +3025,88 @@ function saveTypes(){
       set(v){v=String(v);if(v===last)return;last=v;desc.set.call(this,v);}});
   });
 })();
+
+/* ---------- Visuels et commentaires des événements ---------- */
+const EV_ICONS=["","📣","🎉","🎓","🤝","💼","📚","🎤","🎨","⚽","🍕","🎵","🏆","🌍","❤️"];
+let evDraft={icon:"",image:""},comUnsub=null,comEv=null,comStars=0,comData=[];
+function renderEvDraft(){
+  $("eIcons").innerHTML=EV_ICONS.map(x=>`<button type="button" data-ic="${x}" aria-pressed="${x===evDraft.icon}" aria-label="${x?"Icône "+x:"Sans icône"}">${x||"∅"}</button>`).join("");
+  $("eIcons").querySelectorAll("[data-ic]").forEach(b=>b.onclick=()=>{evDraft.icon=b.dataset.ic;renderEvDraft();});
+  $("eVisPrev").hidden=!evDraft.image;$("eVisDel").hidden=!evDraft.image;if(evDraft.image)$("eVisImg").src=evDraft.image;
+}
+function shrinkPoster(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{
+      const w=img.naturalWidth||img.width,h=img.naturalHeight||img.height;let max=1000,d="";
+      for(let k=0;k<6;k++){
+        const r=Math.min(1,max/Math.max(w,h)),c=document.createElement("canvas");c.width=Math.round(w*r);c.height=Math.round(h*r);
+        const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);
+        let q=.82;d=c.toDataURL("image/jpeg",q);while(d.length>160000&&q>.45){q-=.1;d=c.toDataURL("image/jpeg",q);}
+        if(d.length<=160000)break;max=Math.round(max*.8);
+      }
+      URL.revokeObjectURL(url);res(d);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("image"));};
+    img.src=url;
+  });
+}
+$("eVis").onchange=async()=>{
+  const f=$("eVis").files[0];$("eVis").value="";if(!f)return;$("eErr").textContent="";
+  try{evDraft.image=await shrinkPoster(f);renderEvDraft();}catch(e){$("eErr").textContent="Cette image n'a pas pu être lue. Essayez un fichier JPG ou PNG.";}
+};
+$("eVisDel").onclick=()=>{evDraft.image="";renderEvDraft();};
+
+function relTime(t){
+  const m=Math.round((Date.now()-t)/60000);
+  if(m<1)return "à l'instant";if(m<60)return "il y a "+m+" min";
+  const h=Math.round(m/60);if(h<24)return "il y a "+h+" h";
+  return dayLabel(t)+" à "+fmtTime(t);
+}
+function starsHTML(n,cls){return `<span class="${cls||"st-show"}" aria-label="${n} sur 5">${"★".repeat(n)}${"☆".repeat(5-n)}</span>`;}
+function renderStars(){
+  const ev=events[comEv];const started=ev&&ev.start<=Date.now();
+  $("evcStars").hidden=!started;
+  $("evcStars").innerHTML=started?`<span class="since">Votre note :</span>`+[1,2,3,4,5].map(i=>`<button type="button" role="radio" aria-checked="${i===comStars}" aria-label="${i} étoile${i>1?"s":""}" data-star="${i}" class="${i<=comStars?"on":""}">★</button>`).join(""):"";
+  $("evcStars").querySelectorAll("[data-star]").forEach(b=>b.onclick=()=>{const v=Number(b.dataset.star);comStars=comStars===v?0:v;renderStars();});
+}
+function renderComments(){
+  const ev=events[comEv];if(!ev)return;
+  const list=comData.slice().sort((a,b)=>a.at-b.at);
+  const rated=list.filter(c=>c.rating>0),avg=rated.length?rated.reduce((m,c)=>m+c.rating,0)/rated.length:0;
+  $("evcStats").textContent=(list.length?list.length+" message"+(list.length>1?"s":""):"")+(rated.length?" · "+avg.toFixed(1).replace(".",",")+" ★ ("+rated.length+" avis)":"");
+  $("evcList").innerHTML=list.length?list.map(c=>{
+    const org_=c.by===ev.createdBy;
+    return `<div class="com ${org_?"orgz":""}"><span class="av" style="background:${hashColor(c.by)}">${esc(initials(c.byName||"?"))}</span>
+      <div class="com-body"><div class="com-meta"><b>${esc(c.byName||"Membre")}</b>${org_?'<span class="com-badge">Organisateur</span>':""}<span>${esc(relTime(c.at))}</span>${c.rating?starsHTML(c.rating):""}</div>
+      <div class="com-text">${esc(c.text)}</div>
+      ${c.by===myId||adminUI()?`<button class="btn ghost danger com-del" data-cdel="${esc(c.id)}">${pendingDelete==="c"+c.id?"Confirmer":"Supprimer"}</button>`:""}</div></div>`;}).join("")
+    :`<div class="empty" style="padding:12px">💬 Aucun commentaire pour l'instant. Lancez la discussion !</div>`;
+  $("evcList").querySelectorAll("[data-cdel]").forEach(b=>b.onclick=()=>{
+    const id=b.dataset.cdel;
+    if(pendingDelete!=="c"+id){pendingDelete="c"+id;renderComments();setTimeout(()=>{if(pendingDelete==="c"+id){pendingDelete=null;renderComments();}},4000);return;}
+    pendingDelete=null;EV.comments(comEv).doc(id).delete().catch(()=>toast("Suppression refusée"));
+  });
+  const box=$("evcList");box.scrollTop=box.scrollHeight;
+}
+function openComments(e){
+  if(comUnsub){comUnsub();comUnsub=null;}
+  comEv=e.id;comStars=0;comData=[];$("evcText").value="";
+  $("evcText").placeholder=e.start<=Date.now()?"Votre avis, un retour sur la réunion…":"Votre commentaire ou une question avant la réunion…";
+  renderStars();renderComments();
+  comUnsub=EV.comments(e.id).onSnapshot(sn=>{comData=sn.docs.map(d=>Object.assign({},d.data(),{id:d.id}));renderComments();},()=>{});
+}
+$("evcSend").onclick=async()=>{
+  const text=$("evcText").value.trim();
+  if(!text&&!comStars){$("evcText").focus();return;}
+  const btn=$("evcSend");btn.disabled=true;
+  try{
+    await EV.comments(comEv).doc("c_"+uid()).set({by:myId,byName:nameOf(myId),text,rating:comStars||0,at:Date.now()});
+    $("evcText").value="";comStars=0;renderStars();
+  }catch(e){toast("Impossible de publier le commentaire");}
+  btn.disabled=false;
+};
+$("evcText").onkeydown=e=>{if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){e.preventDefault();$("evcSend").click();}};
 /* ---------- Navigation / rendu ---------- */
 document.querySelectorAll("#period button").forEach(b=>b.onclick=()=>{period=b.dataset.p;renderSummary();const bs=$("bars");bs.classList.remove("anim");void bs.offsetWidth;bs.classList.add("anim");});
 document.querySelectorAll("#teamPeriod button").forEach(b=>b.onclick=()=>{teamPeriod=b.dataset.p;renderTeam();});
