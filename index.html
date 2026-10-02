@@ -272,6 +272,21 @@ dialog[open]{animation:pop .18s ease-out}
 .prog .track{flex:1;height:10px;background:var(--soft);border-radius:999px;overflow:hidden}
 .prog .fill{height:100%;border-radius:999px;background:var(--c,var(--go));transition:width .4s ease}
 .prog span{font-variant-numeric:tabular-nums;font-weight:600;min-width:44px;text-align:right}
+.pvdlg{width:min(980px,calc(100vw - 24px));max-height:92vh;overflow:auto}
+.pvhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:6px}.pvhead h3{margin:2px 0}
+.pvstate{min-height:1.2em;margin-bottom:8px}
+.pvgrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:18px;align-items:start}
+.pvgrid textarea{width:100%;resize:vertical}
+.pvlist{display:grid;gap:6px;margin-bottom:8px}
+.pvitem{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--soft);border-radius:10px;padding:8px 10px}
+.pvtxt{flex:1;min-width:160px;display:grid;gap:2px}.pvtxt small{color:var(--muted)}.pvnum{font-weight:700;color:var(--muted)}
+.pvnew{flex-wrap:wrap}.pvnew input[type=text]{flex:1;min-width:160px}
+.pvside .checks{max-height:320px;overflow:auto}
+@media (max-width:760px){.pvgrid{grid-template-columns:1fr}}
+.ev-video{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+@keyframes pulseJoin{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--go) 45%,transparent)}50%{box-shadow:0 0 0 6px transparent}}
+.btn.pulse{animation:pulseJoin 1.6s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.btn.pulse{animation:none}}
 .gantt{padding:14px}.gscroll{overflow-x:auto}
 .grow{display:grid;grid-template-columns:180px 1fr;align-items:center;min-height:38px;border-bottom:1px solid var(--line)}
 .grow:last-child{border-bottom:none}.ghead{min-height:28px}
@@ -1033,6 +1048,7 @@ body.layedit #personalView{padding-bottom:110px}
       <span><i style="background:#4F7CFF"></i>Réunion</span><span><i style="background:var(--accent)"></i>Événement</span><span><i style="background:#2FB7A0"></i>Formation</span><span><i style="background:#8B5CF6"></i>Autre</span><span><i class="dl"></i>Échéance</span>
     </div>
     <div class="card cal-card" id="calGrid"></div>
+    <div class="hint" id="calTz"></div>
     <section id="calDaySec">
       <div class="sechead"><h2 id="calDayTitle"></h2><button class="btn ghost" id="calDayAdd" hidden>+ Ajouter ce jour-là</button></div>
       <div class="card" id="calDay"></div>
@@ -1274,6 +1290,8 @@ body.layedit #personalView{padding-bottom:110px}
     <div class="field"><label for="eStart">Début</label><input type="time" id="eStart" value="18:00"></div>
     <div class="field"><label for="eEnd">Fin</label><input type="time" id="eEnd" value="19:00"></div>
   </div>
+  <div class="since tzhint" id="eTzHint" style="margin:-4px 0 10px"></div>
+  <label class="row" style="gap:8px;margin-bottom:10px"><input type="checkbox" id="eVideo" style="width:18px;height:18px;accent-color:var(--accent)"> 🎥 Ajouter une salle vidéo (Jitsi Meet)</label>
   <div class="field"><label for="eLoc">Lieu</label><input type="text" id="eLoc" placeholder="Adresse, salle ou lien de visioconférence"></div>
   <div class="field"><label for="eDesc">Description</label><textarea id="eDesc" placeholder="Ordre du jour, consignes…"></textarea><span class="since">Les liens, courriels et numéros de téléphone du lieu et de la description deviennent cliquables.</span></div>
   <div class="field"><label>Icône</label><div class="emo-row" id="eIcons"></div></div>
@@ -1286,10 +1304,33 @@ body.layedit #personalView{padding-bottom:110px}
   <div class="dlgacts"><button class="btn ghost" id="eCancel">Annuler</button><button class="btn in" id="eSave" style="border:none">Enregistrer</button></div>
 </dialog>
 
+<dialog id="pvDlg" class="pvdlg" aria-labelledby="pvTitle">
+  <div class="pvhead"><div><div class="since">Notes de réunion</div><h3 id="pvTitle"></h3><div class="since" id="pvWhen"></div></div>
+    <div class="row"><a class="btn" id="pvJoin" target="_blank" rel="noopener" hidden>🎥 Rejoindre</a><button class="btn" id="pvPdf">Exporter en PDF</button><button class="btn in" id="pvClose" style="border:none">Fermer</button></div></div>
+  <div class="since pvstate" id="pvState" aria-live="polite"></div>
+  <div class="pvgrid">
+    <div class="pvmain">
+      <div class="field"><label for="pvAgenda">Ordre du jour</label><textarea id="pvAgenda" data-pvf="agenda" rows="4"></textarea></div>
+      <div class="field"><label for="pvNotes">Notes</label><textarea id="pvNotes" data-pvf="notes" rows="12" placeholder="Discussions, points soulevés…"></textarea></div>
+      <div class="field"><label for="pvDecNew">Décisions</label><div id="pvDecisions" class="pvlist"></div>
+        <div class="row pvnew"><input type="text" id="pvDecNew" placeholder="Ex. Le budget du gala est adopté"><button class="btn" id="pvDecAdd">Ajouter</button></div></div>
+      <div class="field"><label for="pvActNew">Actions à faire</label><div id="pvActions" class="pvlist"></div>
+        <div class="row pvnew"><input type="text" id="pvActNew" placeholder="Ex. Réserver la salle"><select id="pvActWho" aria-label="Responsable"></select><input type="date" id="pvActDue" aria-label="Échéance"><button class="btn" id="pvActAdd">Ajouter</button></div></div>
+    </div>
+    <div class="pvside">
+      <div class="field"><label>Présences</label><div id="pvPresent" class="checks"></div></div>
+      <div class="field"><label for="pvGuests">Invités et absents excusés</label><textarea id="pvGuests" data-pvf="guests" rows="3"></textarea></div>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="evView">
   <div class="ev-vis" id="evvVis" hidden><img id="evvImg" alt=""></div>
   <div class="ev-head" id="evvHead"><span class="ev-type" id="evvType"></span><h3 id="evvTitle"></h3></div>
   <div class="ev-line">📅 <span id="evvWhen"></span></div>
+  <div class="ev-line since" id="evvTz"></div>
+  <div class="ev-line"><button class="btn" id="evvNotes">📝 Notes de réunion</button></div>
+  <div class="ev-line ev-video" id="evvVideoRow" hidden>🎥 <a class="btn in" id="evvJoin" target="_blank" rel="noopener" style="border:none">Rejoindre la salle vidéo</a><button class="btn ghost" id="evvCopyRoom">Copier le lien</button><span class="since" id="evvLive"></span></div>
   <div class="ev-line" id="evvLocRow">📍 <span id="evvLoc"></span></div>
   <div class="ev-desc" id="evvDesc"></div>
   <div class="ev-add"><span class="since">Ajouter à mon calendrier :</span>
@@ -1553,7 +1594,17 @@ en:{_name:"English",_locale:"en-CA",
 "Semaine du {} : {} (dont {} validées)":"Week of {}: {} ({} approved)","Heures par semaine : {} au total":"Hours per week: {} in total","Affichage des projets":"Project view","Grille":"Grid","Chronologie":"Timeline","Date de début":"Start date","Sans date limite":"No deadline","Jalons":"Milestones",
 "🏁 Aucun jalon pour l'instant.":"🏁 No milestones yet.","Ex. Envoi des invitations":"E.g. Send invitations","Nom du jalon":"Milestone name","Date du jalon":"Milestone date","Ajouter le jalon":"Add milestone",
 "Indiquez le nom et la date du jalon.":"Enter the milestone name and date.","Jalon ajouté":"Milestone added","Jalon atteint":"Milestone reached","Jalon retiré":"Milestone removed",
-"Durée et avancement":"Duration and progress","Jalon":"Milestone","Bonjour":"Hello","Bonsoir":"Good evening",
+"Durée et avancement":"Duration and progress","Jalon":"Milestone","🎥 Ajouter une salle vidéo (Jitsi Meet)":"🎥 Add a video room (Jitsi Meet)","Rejoindre la salle vidéo":"Join the video room","Copier le lien":"Copy link","Lien copié":"Link copied",
+"Commence bientôt":"Starting soon","Réunion en cours : {}":"Meeting in progress: {}","Réunion bientôt : {}":"Meeting soon: {}","{} – {} · Rejoindre la salle vidéo":"{} – {} · Join the video room",
+"Heures dans votre fuseau horaire : {}":"Times in your time zone: {}","Heures affichées dans votre fuseau horaire : {}":"Times shown in your time zone: {}","Heure de votre fuseau : {}":"Your time zone: {}",
+"^Heure de votre fuseau : (.+?) · Heure de l'organisateur : (.+)$":"Your time zone: {} · Organizer's time: {}","Heure de l'organisateur : {} ({})":"Organizer's time: {} ({})","Salle vidéo : {}":"Video room: {}","📝 Notes de réunion":"📝 Meeting notes","Notes de réunion":"Meeting notes","🎥 Rejoindre":"🎥 Join","Exporter en PDF":"Export to PDF","Ordre du jour":"Agenda","Notes":"Notes",
+"Discussions, points soulevés…":"Discussions, points raised…","Décisions":"Decisions","Ex. Le budget du gala est adopté":"E.g. The gala budget is adopted","Ajouter":"Add",
+"Actions à faire":"Action items","Ex. Réserver la salle":"E.g. Book the room","Responsable":"Owner","Responsable…":"Owner…","Présences":"Attendance","Invités et absents excusés":"Guests and excused absences",
+"Aucune décision notée.":"No decisions recorded.","Aucune action notée.":"No action items recorded.","Sans responsable":"No owner","✓ Tâche créée":"✓ Task created","^✓ Tâche créée · (.+)$":"✓ Task created · {}",
+"Créer la tâche":"Create task","✍️ {} écrit aussi en ce moment.":"✍️ {} is also writing right now.","Dernière modification : {}, {} à {}.":"Last edited: {}, {} at {}.",
+"^✍️ (.+) écrit aussi en ce moment\. Dernière modification : (.+), (.+) à (\d{1,2}:\d{2})\.$":"✍️ {} is also writing right now. Last edited: {}, {} at {}.",
+"Ces notes ne peuvent pas être chargées (accès refusé).":"These notes cannot be loaded (access denied).","Enregistrement refusé":"Save denied","Procès-verbal":"Minutes","proces-verbal":"minutes",
+"Issue de la réunion « {} » du {}.":"From the meeting “{}” on {}.","Bonjour":"Hello","Bonsoir":"Good evening",
 "^(.+) à (\\d{1,2}:\\d{2})$":"{} at {}"
 }};
 
@@ -3121,6 +3172,8 @@ function notifItems(){
     else if(late) out.push({k:"late:"+t.id+":"+t.deadline,ico:"⏰",txt:"Tâche en retard : "+t.title,sub:p.title,go:()=>openProject(p.id)});
     else if(t.status==="a_faire") out.push({k:"new:"+t.id,ico:"📝",txt:"Nouvelle tâche : "+t.title,sub:p.title,go:()=>openProject(p.id)});
   });
+  Object.values(typeof events==="object"&&events?events:{}).forEach(e=>{if(!hasVideo(e))return;const st=liveState(e);if(!st)return;
+    out.push({k:"live:"+e.id+":"+st,ico:"🎥",txt:(st==="live"?"Réunion en cours : ":"Réunion bientôt : ")+e.title,sub:fmtTime(e.start)+" – "+fmtTime(e.end)+" · Rejoindre la salle vidéo",go:()=>window.open(roomUrl(e),"_blank","noopener")});});
   const days=Number(prefs().nudge||0);
   if(days&&!state.active&&state.types.some(x=>!x.archived)){
     const lastEnd=state.sessions.reduce((m,x)=>Math.max(m,x.end),0);
@@ -3377,7 +3430,7 @@ function calSync(){
   if(!EV.ready()||calOrg===curOrg) return;
   if(calUnsub) calUnsub();
   calOrg=curOrg;
-  calUnsub=EV.col().onSnapshot(sn=>{events={};sn.docs.forEach(d=>{events[d.id]=Object.assign({},d.data(),{id:d.id});});if(mode==="calendar")renderCalendar();if(mode==="mine")renderDash();},()=>{});
+  calUnsub=EV.col().onSnapshot(sn=>{events={};sn.docs.forEach(d=>{events[d.id]=normEvent(Object.assign({},d.data(),{id:d.id}));});if(mode==="calendar")renderCalendar();if(mode==="mine")renderDash();},()=>{});
 }
 const weekStart=()=>state.prefs&&state.prefs.week===0?0:1;
 function calItems(from,to){
@@ -3397,6 +3450,7 @@ function itemChip(it){
   return `<button class="cal-chip ${it.kind!=="event"?"dl":""}" style="--c:${it.color}" ${it.kind==="event"?`data-ev="${esc(it.e.id)}"`:`data-pj="${esc(it.pid)}"`} title="${esc(it.title)}">${ico}${esc(time+it.title)}</button>`;
 }
 function renderCalendar(){
+  $("calTz").textContent="Heures affichées dans votre fuseau horaire : "+tzLabel();
   if(calMonth===null){const n=new Date();calMonth=new Date(n.getFullYear(),n.getMonth(),1).getTime();calSel=startOfDay(Date.now());}
   if(calMode===null) calMode=window.matchMedia("(max-width: 760px)").matches?"list":"month";
   const admin=adminUI();
@@ -3458,7 +3512,7 @@ document.querySelectorAll("#calMode button").forEach(b=>b.onclick=()=>{calMode=b
 function openEvDlg(id,day){
   editingEv=id||null;const e=id?events[id]:null;
   $("evDlgTitle").textContent=e?"Modifier l'événement":"Nouvel événement";
-  $("eTitle").value=e?e.title:"";$("eType").value=e?e.type||"reunion":"reunion";
+  $("eTitle").value=e?e.title:"";$("eVideo").checked=e?hasVideo(e):true;$("eTzHint").textContent="Heures dans votre fuseau horaire : "+tzLabel();$("eType").value=e?e.type||"reunion":"reunion";
   $("eDate").value=dayKey(e?e.start:(day||calSel||Date.now()));
   $("eAllDay").checked=e?!!e.allDay:false;
   $("eStart").value=e&&!e.allDay?fmtTime(e.start):"18:00";$("eEnd").value=e&&!e.allDay?fmtTime(e.end):"19:00";
@@ -3479,7 +3533,9 @@ $("eSave").onclick=async()=>{
     if(isNaN(ah)||isNaN(bh)){$("eErr").textContent="Indiquez les heures de début et de fin.";return;}
     const d=new Date(day);start=new Date(d.getFullYear(),d.getMonth(),d.getDate(),ah,am).getTime();end=new Date(d.getFullYear(),d.getMonth(),d.getDate(),bh,bm).getTime();if(end<=start)end+=DAY;}
   const old=editingEv?events[editingEv]:null,id=editingEv||("e_"+uid());
-  const data={title,type:$("eType").value,allDay,start,end,location:$("eLoc").value.trim(),description:$("eDesc").value.trim(),icon:evDraft.icon||"",image:evDraft.image||"",
+  const [yy,mm,dd]=date.split("-").map(Number);
+  const sStart=allDay?Date.UTC(yy,mm-1,dd):start,sEnd=allDay?sStart+DAY:end;
+  const data={title,type:$("eType").value,allDay,start:sStart,end:sEnd,date:allDay?date:"",tz:allDay?"":userTZ(),video:$("eVideo").checked,location:$("eLoc").value.trim(),description:$("eDesc").value.trim(),icon:evDraft.icon||"",image:evDraft.image||"",
     createdBy:old?old.createdBy:myId,createdByName:old?old.createdByName:nameOf(myId),createdAt:old?old.createdAt:Date.now(),updatedAt:Date.now()};
   if(old&&old.icsUid) data.icsUid=old.icsUid;
   try{await EV.col().doc(id).set(data);$("evDlg").close();toast(old?"Événement modifié":"Événement ajouté");calSel=startOfDay(start);}
@@ -3491,11 +3547,31 @@ const pad2=n=>String(n).padStart(2,"0");
 const utcStamp=t=>{const d=new Date(t);return d.getUTCFullYear()+pad2(d.getUTCMonth()+1)+pad2(d.getUTCDate())+"T"+pad2(d.getUTCHours())+pad2(d.getUTCMinutes())+"00Z";};
 const dateStamp=t=>{const d=new Date(t);return d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate());};
 const isUrl=s=>/^https?:\/\//i.test(s||"");
+/* ---------- Fuseaux horaires (stockage en UTC, affichage local) ---------- */
+const userTZ=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||"";}catch(e){return "";}};
+function tzOffsetMin(t,tz){try{const p=new Intl.DateTimeFormat("en-US",{timeZone:tz,hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit"}).formatToParts(new Date(t));
+  const g=k=>+p.find(x=>x.type===k).value;return (Date.UTC(g("year"),g("month")-1,g("day"),g("hour")%24,g("minute"),g("second"))-Math.floor(t/1000)*1000)/60000;}catch(e){return null;}}
+function zonedToUtc(Y,Mo,D,h,mi,sec,tz){const g=Date.UTC(Y,Mo-1,D,h,mi,sec);const o1=tzOffsetMin(g,tz);if(o1==null)return null;let t=g-o1*60000;const o2=tzOffsetMin(t,tz);if(o2!=null&&o2!==o1)t=g-o2*60000;return t;}
+function utcLabel(t){const o=-new Date(t).getTimezoneOffset(),a=Math.abs(o);return "UTC"+(o>=0?"+":"−")+Math.floor(a/60)+(a%60?":"+pad(a%60):"");}
+const tzLabel=()=>(userTZ()?userTZ().replace(/_/g," ")+", ":"")+utcLabel(Date.now());
+function fmtInTZ(t,tz){try{return new Date(t).toLocaleTimeString("fr-CA",{timeZone:tz,hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).replace(/\s*h\s*/,":");}catch(e){return "";}}
+function normEvent(e){
+  if(e.allDay&&e.start!=null){
+    let k=e.date;if(!k){const r=new Date(Math.round(e.start/DAY)*DAY);k=r.getUTCFullYear()+"-"+pad(r.getUTCMonth()+1)+"-"+pad(r.getUTCDate());}
+    const n=Math.max(1,Math.round(((e.end||e.start+DAY)-e.start)/DAY));e.start=parseDay(k);e.end=addDays(e.start,n);e.date=k;
+  }
+  return e;
+}
+/* ---------- Salle vidéo (Jitsi Meet, nouvel onglet) ---------- */
+const hasVideo=e=>!!e&&!e.allDay&&(e.video===true||(e.video===undefined&&e.type==="reunion"));
+function roomUrl(e){let h=2166136261>>>0,h2=5381;for(const c of (curOrg||"")+":"+e.id){const x=c.charCodeAt(0);h=Math.imul(h^x,16777619)>>>0;h2=(Math.imul(h2,33)+x)>>>0;}
+  return "https://meet.jit.si/Pointeuse-"+h.toString(36)+h2.toString(36);}
+function liveState(e){const n=Date.now();return n>=e.start&&n<e.end?"live":n>=e.start-15*60000&&n<e.start?"soon":"";}
 function evWhen(e){
   if(e.allDay) return dayLabel(e.start)+" · toute la journée";
   return dayLabel(e.start)+" · "+fmtTime(e.start)+" – "+fmtTime(e.end)+(dayKey(e.end)!==dayKey(e.start)?" (lendemain)":"");
 }
-function evDetails(e){return [e.description||"",(org.orgName?"Association : "+org.orgName:"")].filter(Boolean).join("\n\n");}
+function evDetails(e){return [e.description||"",hasVideo(e)?"Salle vidéo : "+roomUrl(e):"",(org.orgName?"Association : "+org.orgName:"")].filter(Boolean).join("\n\n");}
 function googleUrl(e){
   const dates=e.allDay?dateStamp(e.start)+"/"+dateStamp(e.end||addDays(e.start,1)):utcStamp(e.start)+"/"+utcStamp(e.end);
   return "https://calendar.google.com/calendar/render?action=TEMPLATE&text="+encodeURIComponent(e.title)+"&dates="+dates+"&details="+encodeURIComponent(evDetails(e))+"&location="+encodeURIComponent(e.location||"");
@@ -3509,6 +3585,12 @@ function openEvView(id){
   const e=events[id];if(!e)return;viewingEv=id;const [tl,tc]=EV_TYPES[e.type]||EV_TYPES.autre;
   $("evvHead").style.setProperty("--c",tc);$("evvType").textContent=tl;$("evvTitle").textContent=(e.icon?e.icon+" ":"")+e.title;
   $("evvVis").hidden=!e.image;if(e.image)$("evvImg").src=e.image;$("evvWhen").textContent=evWhen(e);
+  {const tz=e.allDay?"":userTZ();let txt="";
+    if(!e.allDay){txt="Heure de votre fuseau : "+tzLabel();if(e.tz&&e.tz!==tz){const o=fmtInTZ(e.start,e.tz);if(o&&o!==fmtTime(e.start))txt+=" · Heure de l'organisateur : "+o+" ("+e.tz.replace(/_/g," ")+")";}}
+    $("evvTz").textContent=txt;$("evvTz").hidden=!txt;}
+  {const v=hasVideo(e);$("evvVideoRow").hidden=!v;if(v){const u=roomUrl(e);$("evvJoin").href=u;const st=liveState(e);
+    $("evvLive").textContent=st==="live"?"En cours":st==="soon"?"Commence bientôt":"";$("evvJoin").classList.toggle("pulse",st==="live"||st==="soon");
+    $("evvCopyRoom").onclick=async()=>{try{await navigator.clipboard.writeText(u);toast("Lien copié");}catch(_){toast(u,6000);}};}}
   $("evvLocRow").hidden=!e.location;
   if(e.location){
     const href=isUrl(e.location)?e.location:"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(e.location);
@@ -3521,6 +3603,105 @@ function openEvView(id){
   openComments(e);
 }
 $("evvClose").onclick=()=>$("evView").close();
+/* ---------- Notes de réunion (procès-verbal) ---------- */
+let pvEv=null,pvData={},pvUnsub=null,pvTimers={},pvBeat=0;
+const pvRef=eid=>EV.col().doc(eid).collection("minutes").doc("main");
+const pvPeople=()=>{const ids=new Set([...Object.keys(members||{}),...Object.keys(team||{})]);if(myId)ids.add(myId);return [...ids].sort((a,b)=>nameOf(a).localeCompare(nameOf(b)));};
+function pvWrite(part,quiet){
+  if(!pvEv) return;
+  const meta={updatedAt:Date.now(),updatedBy:myId,updatedByName:nameOf(myId)};
+  setSync("Enregistrement…");
+  pvRef(pvEv.id).set(Object.assign({},part,meta),{merge:true}).then(()=>setSync("Enregistré")).catch(()=>{setSync("Échec de l'enregistrement. Vérifiez votre connexion.");if(!quiet)toast("Enregistrement refusé");});
+}
+function pvTyping(f){const now=Date.now();if(now-pvBeat<10000)return;pvBeat=now;pvWrite({editing:{[myId]:{name:nameOf(myId),at:now,f}}},true);}
+function pvStateText(){
+  const now=Date.now(),ed=pvData.editing||{};
+  const others=Object.entries(ed).filter(([id,v])=>id!==myId&&v&&now-v.at<30000).map(([,v])=>v.name);
+  let t=others.length?"✍️ "+others.join(", ")+" écrit aussi en ce moment.":"";
+  if(pvData.updatedAt) t+=(t?" ":"")+"Dernière modification : "+pvData.updatedByName+", "+dayLabel(pvData.updatedAt)+" à "+fmtTime(pvData.updatedAt)+".";
+  $("pvState").textContent=t;
+}
+function pvRender(){
+  const e=pvEv;if(!e) return;const d=pvData,admin=adminUI();
+  document.querySelectorAll("#pvDlg [data-pvf]").forEach(el=>{if(document.activeElement!==el){const v=d[el.dataset.pvf];el.value=v!=null?v:(el.dataset.pvf==="agenda"?(e.description||""):"");}});
+  const present=new Set(d.present||[]);
+  $("pvPresent").innerHTML=pvPeople().map(id=>`<label><input type="checkbox" value="${esc(id)}" ${present.has(id)?"checked":""}>${esc(nameOf(id))}</label>`).join("");
+  $("pvPresent").querySelectorAll("input").forEach(c=>c.onchange=()=>pvWrite({present:[...$("pvPresent").querySelectorAll("input:checked")].map(i=>i.value)}));
+  const dec=d.decisions||[];
+  $("pvDecisions").innerHTML=dec.length?dec.map((x,i)=>`<div class="pvitem"><span class="pvnum">${i+1}.</span><span class="pvtxt">${esc(x.text)}</span><button class="btn ghost danger" data-pvdec="${esc(x.id)}" aria-label="Retirer">✕</button></div>`).join(""):`<div class="since">Aucune décision notée.</div>`;
+  $("pvDecisions").querySelectorAll("[data-pvdec]").forEach(b=>b.onclick=()=>pvWrite({decisions:(pvData.decisions||[]).filter(x=>x.id!==b.dataset.pvdec)}));
+  const acts=d.actions||[],projOpts=visibleProjects().filter(p=>(p.status||"actif")==="actif");
+  $("pvActions").innerHTML=acts.length?acts.map(a=>`<div class="pvitem"><span class="pvtxt"><b>${esc(a.text)}</b><small>${a.who?esc(nameOf(a.who)):"Sans responsable"}${a.due?" · "+esc(shortDate(a.due)):""}</small></span>
+    ${a.taskId?`<span class="since">✓ Tâche créée${a.pid&&projects[a.pid]?" · "+esc(projects[a.pid].title):""}</span>`
+      :admin&&projOpts.length&&a.who?`<select data-pvproj="${esc(a.id)}" aria-label="Projet">${projOpts.map(p=>`<option value="${esc(p.id)}">${esc(p.title)}</option>`).join("")}</select><button class="btn" data-pvtask="${esc(a.id)}">Créer la tâche</button>`:""}
+    <button class="btn ghost danger" data-pvact="${esc(a.id)}" aria-label="Retirer">✕</button></div>`).join(""):`<div class="since">Aucune action notée.</div>`;
+  $("pvActions").querySelectorAll("[data-pvact]").forEach(b=>b.onclick=()=>pvWrite({actions:(pvData.actions||[]).filter(x=>x.id!==b.dataset.pvact)}));
+  $("pvActions").querySelectorAll("[data-pvtask]").forEach(b=>b.onclick=()=>pvMakeTask(b.dataset.pvtask,$("pvActions").querySelector(`[data-pvproj="${b.dataset.pvtask}"]`).value));
+  if(document.activeElement!==$("pvActWho")){const cur=$("pvActWho").value;$("pvActWho").innerHTML=`<option value="">Responsable…</option>`+pvPeople().map(id=>`<option value="${esc(id)}">${esc(nameOf(id))}</option>`).join("");$("pvActWho").value=cur;}
+  pvStateText();
+}
+async function pvMakeTask(aid,pid){
+  const a=(pvData.actions||[]).find(x=>x.id===aid),p=projects[pid];if(!a||!p) return;
+  const id="t_"+uid(),e=pvEv;
+  const data={status:"a_faire",progress:0,createdAt:Date.now(),log:[],title:a.text,description:"Issue de la réunion « "+e.title+" » du "+dayLabel(e.start)+".",deadline:a.due||"",kind:"individuelle",assigneeIds:[a.who],updatedAt:Date.now()};
+  data.log=addLog({log:[]},"a créé la tâche");
+  try{
+    await PA.saveTask(pid,id,data);
+    if(!(p.memberIds||[]).includes(a.who)){const memberIds=[...(p.memberIds||[]),a.who];const memberNames=Object.assign({},p.memberNames||{},{[a.who]:nameOf(a.who)});
+      await PA.saveProject(pid,Object.assign({},p,{memberIds,memberNames,updatedAt:Date.now()}));}
+    pvWrite({actions:(pvData.actions||[]).map(x=>x.id===aid?Object.assign({},x,{taskId:id,pid}):x)});toast("Tâche créée");
+  }catch(err){toast("Enregistrement refusé : accès administrateur requis.");}
+}
+function openMinutes(eid){
+  const e=events[eid];if(!e) return;pvEv=e;pvData={};
+  $("pvTitle").textContent=(e.icon?e.icon+" ":"")+e.title;$("pvWhen").textContent=evWhen(e)+(e.location?" · "+e.location:"");
+  $("pvJoin").hidden=!hasVideo(e);if(hasVideo(e))$("pvJoin").href=roomUrl(e);
+  if(pvUnsub)pvUnsub();
+  pvUnsub=pvRef(eid).onSnapshot(sn=>{pvData=sn.exists?sn.data():{};pvRender();},()=>{$("pvState").textContent="Ces notes ne peuvent pas être chargées (accès refusé).";});
+  pvRender();
+  if($("evView").open)$("evView").close();
+  $("pvDlg").showModal();
+}
+function closeMinutes(){
+  document.querySelectorAll("#pvDlg [data-pvf]").forEach(el=>{if(pvTimers[el.dataset.pvf]){clearTimeout(pvTimers[el.dataset.pvf]);pvTimers[el.dataset.pvf]=0;pvWrite({[el.dataset.pvf]:el.value},true);}});
+  if(pvEv&&myId){try{pvRef(pvEv.id).set({editing:{[myId]:firebase.firestore.FieldValue.delete()}},{merge:true}).catch(()=>{});}catch(e){}}
+  if(pvUnsub){pvUnsub();pvUnsub=null;}pvEv=null;
+}
+document.querySelectorAll("#pvDlg [data-pvf]").forEach(el=>{
+  el.addEventListener("input",()=>{const f=el.dataset.pvf;pvTyping(f);clearTimeout(pvTimers[f]);pvTimers[f]=setTimeout(()=>{pvTimers[f]=0;pvWrite({[f]:el.value},true);},800);});
+  el.addEventListener("blur",()=>{const f=el.dataset.pvf;if(pvTimers[f]){clearTimeout(pvTimers[f]);pvTimers[f]=0;pvWrite({[f]:el.value},true);}});
+});
+$("pvDecAdd").onclick=()=>{const v=$("pvDecNew").value.trim();if(!v)return;pvWrite({decisions:(pvData.decisions||[]).concat([{id:"d_"+uid(),text:v}])});$("pvDecNew").value="";};
+$("pvDecNew").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("pvDecAdd").click();}};
+$("pvActAdd").onclick=()=>{const v=$("pvActNew").value.trim();if(!v)return;pvWrite({actions:(pvData.actions||[]).concat([{id:"a_"+uid(),text:v,who:$("pvActWho").value||"",due:$("pvActDue").value||""}])});$("pvActNew").value="";$("pvActDue").value="";};
+$("pvActNew").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("pvActAdd").click();}};
+$("pvClose").onclick=()=>$("pvDlg").close();
+$("pvDlg").addEventListener("close",closeMinutes);
+$("evvNotes").onclick=()=>{if(viewingEv)openMinutes(viewingEv);};
+setInterval(()=>{if(pvEv&&$("pvDlg").open)pvStateText();},10000);
+$("pvPdf").onclick=()=>{
+  if(!window.jspdf){toast("Le générateur de PDF n'a pas pu se charger. Rechargez la page.");return;}
+  const e=pvEv;if(!e) return;const d=Object.assign({},pvData);
+  document.querySelectorAll("#pvDlg [data-pvf]").forEach(el=>{d[el.dataset.pvf]=el.value;});
+  const doc=new window.jspdf.jsPDF({unit:"mm",format:"letter"});const W=215.9,M=20;let y=22;
+  const need=h=>{if(y+h>262){doc.addPage();y=22;}};
+  const para=(t,size)=>{doc.setFont("helvetica","normal");doc.setFontSize(size||11);doc.splitTextToSize(String(t||""),W-2*M).forEach(l=>{need(6);doc.text(l,M,y);y+=5.4;});};
+  const head=t=>{y+=4;need(12);doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.text(t,M,y);y+=2;doc.setDrawColor(200);doc.line(M,y,W-M,y);y+=6;};
+  doc.setFont("helvetica","bold");doc.setFontSize(19);doc.text(tx("Procès-verbal"),M,y);y+=8;
+  doc.setFontSize(13);doc.text(doc.splitTextToSize(e.title,W-2*M)[0],M,y);y+=6;
+  doc.setFont("helvetica","normal");doc.setFontSize(10.5);doc.setTextColor(90);
+  [org.orgName||"",tr(evWhen(e)),e.location||""].filter(Boolean).forEach(l=>{doc.text(doc.splitTextToSize(l,W-2*M)[0],M,y);y+=5;});doc.setTextColor(0);
+  head(tx("Présences"));para((d.present||[]).map(nameOf).join(", ")||"—");
+  if(d.guests){y+=2;para(tx("Invités et absents excusés")+" : "+d.guests,10.5);}
+  head(tx("Ordre du jour"));para(d.agenda!=null?d.agenda:(e.description||"—"));
+  head(tx("Notes"));para(d.notes||"—");
+  head(tx("Décisions"));(d.decisions||[]).length?(d.decisions||[]).forEach((x,i)=>para((i+1)+". "+x.text)):para("—");
+  head(tx("Actions à faire"));(d.actions||[]).length?(d.actions||[]).forEach(a=>para("• "+a.text+(a.who?" — "+nameOf(a.who):"")+(a.due?" ("+shortDate(a.due)+")":""))):para("—");
+  y+=8;need(10);doc.setFontSize(9);doc.setTextColor(120);doc.text(tx("Document émis le {}",new Date().toLocaleDateString(LOC(),{day:"numeric",month:"long",year:"numeric"})),M,y);
+  const buf=doc.output("arraybuffer");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([buf],{type:"application/pdf"}));
+  a.download=(tx("proces-verbal")+"-"+dayKey(e.start)+"-"+e.title).replace(/[^\p{L}\p{N}]+/gu,"-").toLowerCase()+".pdf";a.click();
+};
+
 $("evView").addEventListener("close",()=>{if(comUnsub){comUnsub();comUnsub=null;}});
 $("evvEdit").onclick=()=>{$("evView").close();openEvDlg(viewingEv);};
 $("evvDel").onclick=async()=>{
@@ -3568,6 +3749,8 @@ function parseIcs(text){
     const [_,Y,Mo,D,h,mi,s,z]=m;
     if(h===undefined) return {t:new Date(+Y,+Mo-1,+D).getTime(),allDay:true};
     if(z) return {t:Date.UTC(+Y,+Mo-1,+D,+h,+mi,+(s||0)),allDay:false};
+    const tzm=String(params||"").match(/TZID=([^;:]+)/);
+    if(tzm){const u=zonedToUtc(+Y,+Mo,+D,+h,+mi,+(s||0),tzm[1].replace(/"/g,""));if(u!=null)return {t:u,allDay:false};}
     return {t:new Date(+Y,+Mo-1,+D,+h,+mi,+(s||0)).getTime(),allDay:false};
   };
   lines.forEach(l=>{
