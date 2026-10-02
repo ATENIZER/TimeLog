@@ -957,6 +957,7 @@ body.layedit #personalView{padding-bottom:110px}
           <button data-p="week">Semaine</button>
           <button data-p="month">Mois</button>
         </div>
+        <button class="btn" id="openReportTeam">Rapport d'activités</button>
         <button class="btn" id="exportTeam">Exporter l'équipe en CSV</button>
       </div>
     </div>
@@ -1174,6 +1175,7 @@ body.layedit #personalView{padding-bottom:110px}
         <div class="row">
           <button class="btn in" id="validateAll" style="border:none" hidden></button>
           <button class="btn" id="addManual">Ajouter une entrée</button>
+          <button class="btn" id="openReport">Rapport d'activités</button>
           <button class="btn" id="openAttest">Générer une attestation</button>
           <button class="btn" id="exportCsv">Exporter en CSV</button>
         </div>
@@ -1302,6 +1304,19 @@ body.layedit #personalView{padding-bottom:110px}
   </div>
   <div class="err" id="eErr"></div>
   <div class="dlgacts"><button class="btn ghost" id="eCancel">Annuler</button><button class="btn in" id="eSave" style="border:none">Enregistrer</button></div>
+</dialog>
+
+<dialog id="repDlg" aria-labelledby="repTitle">
+  <h3 id="repTitle">Rapport d'activités</h3>
+  <div class="field"><label>Format</label><div class="seg" id="rFormat" role="group" aria-label="Format du rapport"><button data-v="condense">Condensé</button><button data-v="detaille">Détaillé</button></div>
+    <span class="since" id="rFmtHelp"></span></div>
+  <div class="field" id="rWhoRow"><label for="rWho">Personnes</label><select id="rWho"></select></div>
+  <div class="field"><label>Période</label><div class="seg" id="rPreset" role="group" aria-label="Période"><button data-v="month">Ce mois-ci</button><button data-v="last">Mois dernier</button><button data-v="quarter">Trimestre</button><button data-v="year">Année</button></div></div>
+  <div class="grid2"><div class="field"><label for="rFrom">Du</label><input type="date" id="rFrom"></div><div class="field"><label for="rTo">Au</label><input type="date" id="rTo"></div></div>
+  <div class="grid2"><div class="field"><label for="rProj">Projet</label><select id="rProj"></select></div>
+    <div class="field"><label for="rHours">Heures</label><select id="rHours"><option value="all">Toutes les heures</option><option value="valid">Heures validées seulement</option></select></div></div>
+  <div class="since" id="rPreview"></div><div class="err" id="rErr"></div>
+  <div class="dlgacts"><button class="btn ghost" id="rCancel">Annuler</button><button class="btn" id="rCsv">Exporter en CSV</button><button class="btn in" id="rMake" style="border:none">Télécharger le PDF</button></div>
 </dialog>
 
 <dialog id="pvDlg" class="pvdlg" aria-labelledby="pvTitle">
@@ -1607,7 +1622,14 @@ en:{_name:"English",_locale:"en-CA",
 "^✍️ (.+) écrit aussi en ce moment\. Dernière modification : (.+), (.+) à (\d{1,2}:\d{2})\.$":"✍️ {} is also writing right now. Last edited: {}, {} at {}.",
 "Ces notes ne peuvent pas être chargées (accès refusé).":"These notes cannot be loaded (access denied).","Enregistrement refusé":"Save denied","Procès-verbal":"Minutes","proces-verbal":"minutes",
 "Issue de la réunion « {} » du {}.":"From the meeting “{}” on {}.","Après la réunion, chaque personne cochée reçoit une proposition d'entrée dans ses notifications, à valider ensuite.":"After the meeting, each checked person gets a suggested entry in their notifications, to be approved afterwards.",
-"Ajouter mes heures":"Add my hours","Ajoutez vos heures de réunion : {}":"Add your meeting hours: {}","Réunion : {}":"Meeting: {}","Bonjour":"Hello","Bonsoir":"Good evening",
+"Ajouter mes heures":"Add my hours","Ajoutez vos heures de réunion : {}":"Add your meeting hours: {}","Réunion : {}":"Meeting: {}","Rapport d'activités":"Activity report","Format du rapport":"Report format","Condensé":"Condensed","Détaillé":"Detailed","Personnes":"People","Mois dernier":"Last month","Trimestre":"Quarter","Année":"Year",
+"Tous les projets":"All projects","Heures":"Hours","Toutes les heures":"All hours","Heures validées seulement":"Approved hours only","Télécharger le PDF":"Download PDF","Toute l'équipe":"Whole team",
+"Une page de synthèse : totaux, graphique, répartition par activité, projet et personne.":"A one-page summary: totals, chart, breakdown by activity, project and person.",
+"La synthèse, puis toutes les entrées par personne, les tâches terminées, les jalons atteints et les réunions.":"The summary, then every entry per person, completed tasks, milestones reached and meetings.",
+"Aucune heure sur cette période.":"No hours in this period.","Choisissez une période valide.":"Choose a valid period.","{} entrée{} · {} · {} personne{}":(n,s,d,p,s2)=>`${n} entr${s?"ies":"y"} · ${d} · ${p} ${s2?"people":"person"}`,
+"Rapport d'activités détaillé":"Detailed activity report","Rapport d'activités condensé":"Condensed activity report","Du {} au {}":"From {} to {}","Personnes : {}":"People: {}","Projet : {}":"Project: {}",
+"Entrées":"Entries","Valeur estimée":"Estimated value","Heures par mois":"Hours per month","Par activité":"By activity","Faits marquants":"Highlights","Tâches terminées":"Completed tasks","Jalons atteints":"Milestones reached","Réunions tenues":"Meetings held",
+"Page {} sur {}":"Page {} of {}","rapport":"report","detaille":"detailed","condense":"condensed","Rapport téléchargé":"Report downloaded","Bonjour":"Hello","Bonsoir":"Good evening",
 "^(.+) à (\\d{1,2}:\\d{2})$":"{} at {}"
 }};
 
@@ -3633,6 +3655,141 @@ function openEvView(id){
   openComments(e);
 }
 $("evvClose").onclick=()=>$("evView").close();
+/* ---------- Rapports d'activités (condensé / détaillé) ---------- */
+let repFmt="condense";
+const RFMT_HELP={condense:"Une page de synthèse : totaux, graphique, répartition par activité, projet et personne.",detaille:"La synthèse, puis toutes les entrées par personne, les tâches terminées, les jalons atteints et les réunions."};
+function repSources(){const w=$("rWho").value;
+  if(w==="__all") {const src=Object.keys(team).map(id=>[id,id===myId?state:team[id]]);if(!team[myId])src.push([myId,state]);return src;}
+  return [[w,w===myId?state:team[w]]].filter(x=>x[1]);}
+function repRange(){const f=$("rFrom").value,t=$("rTo").value;if(!f||!t)return null;const a=parseDay(f),b=addDays(parseDay(t),1);return b>a?[a,b]:null;}
+function repCollect(){
+  const r=repRange();if(!r) return null;const [from,to]=r,pj=$("rProj").value,onlyValid=$("rHours").value==="valid";const rows=[];
+  repSources().forEach(([pid,d])=>{if(!d||!d.sessions)return;d.sessions.forEach(s=>{
+    if(s.start<from||s.start>=to) return;
+    if(pj==="__none"?!!(s.projectId&&projects[s.projectId]):pj&&s.projectId!==pj) return;
+    const st=statusOf(pid,s);if(onlyValid&&st!=="ok") return;
+    rows.push({pid,s,ms:s.end-s.start,st,type:typeIn(d,s.typeId).name,proj:s.projectId&&projects[s.projectId]?projects[s.projectId].title:""});});});
+  rows.sort((a,b)=>a.s.start-b.s.start);
+  return {rows,from,to};
+}
+function repGroup(rows,key){const m={};rows.forEach(r=>{const k=key(r);m[k]=(m[k]||0)+r.ms;});return Object.entries(m).sort((a,b)=>b[1]-a[1]);}
+function repPreview(){
+  const c=repCollect();$("rErr").textContent="";
+  if(!c){$("rPreview").textContent="";return;}
+  const tot=c.rows.reduce((m,r)=>m+r.ms,0),ppl=new Set(c.rows.map(r=>r.pid)).size;
+  $("rPreview").textContent=c.rows.length?`${c.rows.length} entrée${c.rows.length>1?"s":""} · ${fmtDur(tot)} · ${ppl} personne${ppl>1?"s":""}`:"Aucune heure sur cette période.";
+}
+function repPreset(v){
+  const n=new Date(),y=n.getFullYear(),m=n.getMonth();let a,b;
+  if(v==="month"){a=new Date(y,m,1);b=new Date(y,m+1,0);}
+  else if(v==="last"){a=new Date(y,m-1,1);b=new Date(y,m,0);}
+  else if(v==="quarter"){const q=Math.floor(m/3)*3;a=new Date(y,q,1);b=new Date(y,q+3,0);}
+  else {a=new Date(y,0,1);b=new Date(y,11,31);}
+  $("rFrom").value=dayKey(a.getTime());$("rTo").value=dayKey(b.getTime());
+  document.querySelectorAll("#rPreset button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.v===v)));repPreview();
+}
+function openReport(team_){
+  const admin=adminUI();
+  const opts=[[myId,"Moi"]];
+  if(admin){opts.push(["__all","Toute l'équipe"]);peopleForPick().filter(id=>id!==myId).forEach(id=>opts.push([id,nameOf(id)]));}
+  $("rWho").innerHTML=opts.map(([v,l])=>`<option value="${esc(v)}">${esc(l)}</option>`).join("");
+  $("rWho").value=team_&&admin?"__all":(mode==="person"&&viewingId&&admin?viewingId:myId);
+  $("rWhoRow").hidden=!admin;
+  $("rProj").innerHTML=`<option value="">Tous les projets</option><option value="__none">Sans projet</option>`+visibleProjects().map(p=>`<option value="${esc(p.id)}">${esc(p.title)}</option>`).join("");
+  repSetFmt(repFmt);repPreset("month");$("repDlg").showModal();
+}
+function repSetFmt(v){repFmt=v;document.querySelectorAll("#rFormat button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.v===v)));$("rFmtHelp").textContent=RFMT_HELP[v];}
+document.querySelectorAll("#rFormat button").forEach(b=>b.onclick=()=>repSetFmt(b.dataset.v));
+document.querySelectorAll("#rPreset button").forEach(b=>b.onclick=()=>repPreset(b.dataset.v));
+["rFrom","rTo","rWho","rProj","rHours"].forEach(id=>$(id).onchange=()=>{if(id==="rFrom"||id==="rTo")document.querySelectorAll("#rPreset button").forEach(x=>x.setAttribute("aria-pressed","false"));repPreview();});
+$("openReport").onclick=()=>openReport(false);
+$("openReportTeam").onclick=()=>openReport(true);
+$("rCancel").onclick=()=>$("repDlg").close();
+const ST_TXT=st=>ST_LABEL[st]||"";
+$("rCsv").onclick=()=>{
+  const c=repCollect();if(!c){$("rErr").textContent="Choisissez une période valide.";return;}
+  if(!c.rows.length){$("rErr").textContent="Aucune heure sur cette période.";return;}
+  const head=["Personne","Date","Entrée","Sortie","Activité","Projet","Note","Durée (h)","Statut"].map(x=>q(tx(x))).join(";");
+  const lines=[head].concat(c.rows.map(r=>[nameOf(r.pid),dayKey(r.s.start),fmtTime(r.s.start),fmtTime(r.s.end),tr(r.type),r.proj,r.s.note||"",(r.ms/3600000).toFixed(2).replace(".",DEC()),tr(ST_TXT(r.st))].map(q).join(";")));
+  offerCsv(tx("rapport")+"-"+$("rFrom").value+"-"+$("rTo").value+".csv",lines);
+};
+$("rMake").onclick=()=>{
+  if(!window.jspdf){$("rErr").textContent="Le générateur de PDF n'a pas pu se charger. Rechargez la page.";return;}
+  const c=repCollect();if(!c){$("rErr").textContent="Choisissez une période valide.";return;}
+  if(!c.rows.length){$("rErr").textContent="Aucune heure sur cette période.";return;}
+  const detailed=repFmt==="detaille",{rows,from,to}=c;
+  const P=x=>String(x==null?"":x).replace(/[\u202F\u2009\u2007]/g," ").replace(/\u2212/g,"-");
+  const doc=new window.jspdf.jsPDF({unit:"mm",format:"letter"});const W=215.9,M=18;let y=20;
+  const need=h=>{if(y+h>265){doc.addPage();y=20;}};
+  const txt=(t,x,yy,o)=>doc.text(P(t),x,yy,o);
+  const head=t=>{y+=5;need(14);doc.setFont("helvetica","bold");doc.setFontSize(12.5);doc.setTextColor(0);txt(t,M,y);y+=2;doc.setDrawColor(200);doc.line(M,y,W-M,y);y+=6;};
+  const hrs=ms=>(ms/3600000).toFixed(2).replace(".",DEC())+" h";
+  const total=rows.reduce((m,r)=>m+r.ms,0),valid=rows.filter(r=>r.st==="ok").reduce((m,r)=>m+r.ms,0);
+  const ppl=[...new Set(rows.map(r=>r.pid))],value=rows.filter(r=>r.st==="ok").reduce((m,r)=>m+moneyOf(r.ms,r.pid),0);
+  const fmtD=t=>new Date(t).toLocaleDateString(LOC(),{day:"numeric",month:"long",year:"numeric"});
+  // En-tête
+  doc.setFont("helvetica","bold");doc.setFontSize(19);txt(tx(detailed?"Rapport d'activités détaillé":"Rapport d'activités condensé"),M,y);y+=7;
+  doc.setFont("helvetica","normal");doc.setFontSize(10.5);doc.setTextColor(90);
+  const who=$("rWho").selectedOptions[0]?$("rWho").selectedOptions[0].textContent:"";
+  [org.orgName||"",tx("Du {} au {}",fmtD(from),fmtD(to-DAY)),tx("Personnes : {}",who)+($("rProj").value?" · "+tx("Projet : {}",$("rProj").selectedOptions[0].textContent):"")+($("rHours").value==="valid"?" · "+tx("Heures validées seulement"):"")]
+    .filter(Boolean).forEach(l=>{txt(l,M,y);y+=5;});doc.setTextColor(0);y+=3;
+  // Indicateurs
+  const kpis=[[tx("Heures"),hrs(total)],[tx("Validées"),hrs(valid)],[tx("En attente"),hrs(total-valid)],[tx("Entrées"),String(rows.length)],[tx("Personnes"),String(ppl.length)]];
+  if(value>0) kpis.push([tx("Valeur estimée"),fmtMoney(value)]);
+  const kw=(W-2*M-(kpis.length-1)*3)/kpis.length;
+  kpis.forEach(([l,v],i)=>{const x=M+i*(kw+3);doc.setFillColor(243,245,249);doc.roundedRect(x,y,kw,16,2,2,"F");doc.setFontSize(8.5);doc.setTextColor(90);txt(l,x+3,y+5.5);doc.setTextColor(0);doc.setFont("helvetica","bold");doc.setFontSize(11.5);txt(v,x+3,y+12.5);doc.setFont("helvetica","normal");});
+  y+=24;
+  // Graphique : par semaine (≤ 120 jours) ou par mois
+  {const byMonth=(to-from)/DAY>120,buckets=[];
+    if(byMonth){for(let d=new Date(from);d.getTime()<to;d=new Date(d.getFullYear(),d.getMonth()+1,1))buckets.push({a:d.getTime(),b:Math.min(to,new Date(d.getFullYear(),d.getMonth()+1,1).getTime()),l:d.toLocaleDateString(LOC(),{month:"short"})});}
+    else{let a=weekStartOf(from);while(a<to){const b=addDays(a,7);buckets.push({a:Math.max(a,from),b:Math.min(b,to),l:new Date(Math.max(a,from)).toLocaleDateString(LOC(),{day:"numeric",month:"short"})});a=b;}}
+    buckets.forEach(k=>{k.t=0;k.v=0;rows.forEach(r=>{if(r.s.start>=k.a&&r.s.start<k.b){k.t+=r.ms;if(r.st==="ok")k.v+=r.ms;}});});
+    head(tx(byMonth?"Heures par mois":"Heures par semaine"));need(48);
+    const ch=36,max=Math.max(1,...buckets.map(k=>k.t)),slot=(W-2*M-10)/buckets.length,bw=Math.min(14,slot*.62),base=y+ch;
+    doc.setFontSize(7.5);doc.setTextColor(120);txt(hrs(max).replace(/[,.]00/,""),M,y+2);doc.setDrawColor(220);doc.line(M+10,base,W-M,base);
+    buckets.forEach((k,i)=>{const x=M+10+slot*i+(slot-bw)/2,ht=k.t/max*ch,hv=k.v/max*ch;
+      if(ht>0){doc.setFillColor(190,222,212);doc.rect(x,base-ht,bw,ht,"F");}
+      if(hv>0){doc.setFillColor(31,111,92);doc.rect(x,base-hv,bw,hv,"F");}
+      if(buckets.length<=14||i%2===0) txt(k.l,x+bw/2,base+4,{align:"center"});});
+    doc.setTextColor(0);y=base+9;doc.setFontSize(8);doc.setFillColor(31,111,92);doc.rect(M,y-2.5,3,3,"F");txt(tx("Validées"),M+4.5,y);doc.setFillColor(190,222,212);doc.rect(M+28,y-2.5,3,3,"F");txt(tx("En attente"),M+32.5,y);y+=4;}
+  // Tableaux de répartition
+  const table=(title,list,label)=>{head(title);doc.setFontSize(10);
+    list.forEach(([k,ms])=>{need(7);const pct=total?Math.round(ms/total*100):0;doc.setFont("helvetica","normal");txt(doc.splitTextToSize(P(label(k)),90)[0],M,y);
+      doc.setFillColor(230,233,238);doc.rect(M+95,y-3,50,3.5,"F");doc.setFillColor(31,111,92);doc.rect(M+95,y-3,50*ms/(list[0][1]||1),3.5,"F");
+      txt(pct+" %",M+150,y);txt(hrs(ms),W-M,y,{align:"right"});y+=6.5;});};
+  table(tx("Par activité"),repGroup(rows,r=>r.type),k=>tr(k));
+  table(tx("Par projet"),repGroup(rows,r=>r.proj||""),k=>k||tx("Sans projet"));
+  if(ppl.length>1) table(tx("Par personne"),repGroup(rows,r=>r.pid),k=>nameOf(k));
+  // Faits marquants
+  const inR=t=>t>=from&&t<to;
+  const doneTasks=[],msDone=[],meetings=Object.values(typeof events==="object"?events:{}).filter(e=>e.type==="reunion"&&inR(e.start)).sort((a,b)=>a.start-b.start);
+  visibleProjects().forEach(p=>{tasksOf(p.id).forEach(t=>{if(t.status==="terminee"&&inR(t.updatedAt||0))doneTasks.push([p,t]);});msOf(p).forEach(m=>{if(m.done&&m.date&&inR(parseDay(m.date)))msDone.push([p,m]);});});
+  head(tx("Faits marquants"));doc.setFont("helvetica","normal");doc.setFontSize(10.5);
+  [[tx("Tâches terminées"),doneTasks.length],[tx("Jalons atteints"),msDone.length],[tx("Réunions tenues"),meetings.length]].forEach(([l,n])=>{need(6);txt(l,M,y);txt(String(n),W-M,y,{align:"right"});y+=6;});
+  if(detailed){
+    const sub=t=>{y+=3;need(10);doc.setFont("helvetica","bold");doc.setFontSize(10.5);txt(t,M,y);y+=5.5;doc.setFont("helvetica","normal");doc.setFontSize(9);};
+    if(doneTasks.length){sub(tx("Tâches terminées"));doneTasks.forEach(([p,t])=>{need(5);txt("• "+doc.splitTextToSize(P(t.title+" — "+p.title),W-2*M-30)[0],M,y);txt(dayKey(t.updatedAt),W-M,y,{align:"right"});y+=4.8;});}
+    if(msDone.length){sub(tx("Jalons atteints"));msDone.forEach(([p,m])=>{need(5);txt("• "+doc.splitTextToSize(P(m.title+" — "+p.title),W-2*M-30)[0],M,y);txt(m.date,W-M,y,{align:"right"});y+=4.8;});}
+    if(meetings.length){sub(tx("Réunions tenues"));meetings.forEach(e=>{need(5);txt("• "+doc.splitTextToSize(P(e.title),W-2*M-40)[0],M,y);txt(dayKey(e.start)+" "+fmtTime(e.start),W-M,y,{align:"right"});y+=4.8;});}
+    // Entrées par personne
+    const cols=[M,M+20,M+40,M+75,M+110,W-M-38];
+    ppl.sort((a,b)=>nameOf(a).localeCompare(nameOf(b))).forEach(pid=>{
+      const list=rows.filter(r=>r.pid===pid),sum=list.reduce((m,r)=>m+r.ms,0);
+      head(nameOf(pid)+" — "+hrs(sum));
+      doc.setFontSize(8.5);doc.setTextColor(90);[tx("Date"),tx("Horaire"),tx("Activité"),tx("Projet"),tx("Note"),tx("Statut")].forEach((h,i)=>txt(h,cols[i],y));txt(tx("Durée"),W-M,y,{align:"right"});doc.setTextColor(0);y+=5;
+      list.forEach(r=>{need(5.5);doc.setFontSize(8.5);
+        txt(dayKey(r.s.start),cols[0],y);txt(fmtTime(r.s.start)+"–"+fmtTime(r.s.end),cols[1],y);
+        txt(doc.splitTextToSize(P(tr(r.type)),36)[0],cols[2],y);txt(doc.splitTextToSize(P(r.proj),38)[0]||"",cols[3],y);
+        txt(doc.splitTextToSize(P(r.s.note||""),cols[5]-cols[4]-3)[0]||"",cols[4],y);txt(doc.splitTextToSize(P(tr(ST_TXT(r.st))),23)[0],cols[5],y);txt(hrs(r.ms),W-M,y,{align:"right"});y+=5;});
+    });
+  }
+  // Pied de page
+  const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(140);
+    txt(tx("Document émis le {}",fmtD(Date.now())),M,272);txt(tx("Page {} sur {}",String(i),String(n)),W-M,272,{align:"right"});}
+  const buf=doc.output("arraybuffer");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([buf],{type:"application/pdf"}));
+  a.download=(tx("rapport")+"-"+(detailed?tx("detaille"):tx("condense"))+"-"+$("rFrom").value+"-"+$("rTo").value).replace(/[^\p{L}\p{N}]+/gu,"-").toLowerCase()+".pdf";a.click();
+  $("repDlg").close();toast("Rapport téléchargé");
+};
 /* ---------- Notes de réunion (procès-verbal) ---------- */
 let pvEv=null,pvData={},pvUnsub=null,pvTimers={},pvBeat=0;
 const pvRef=eid=>EV.col().doc(eid).collection("minutes").doc("main");
