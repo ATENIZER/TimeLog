@@ -1318,7 +1318,9 @@ body.layedit #personalView{padding-bottom:110px}
         <div class="row pvnew"><input type="text" id="pvActNew" placeholder="Ex. Réserver la salle"><select id="pvActWho" aria-label="Responsable"></select><input type="date" id="pvActDue" aria-label="Échéance"><button class="btn" id="pvActAdd">Ajouter</button></div></div>
     </div>
     <div class="pvside">
-      <div class="field"><label>Présences</label><div id="pvPresent" class="checks"></div></div>
+      <div class="field"><label>Présences</label><div id="pvPresent" class="checks"></div>
+        <span class="since">Après la réunion, chaque personne cochée reçoit une proposition d'entrée dans ses notifications, à valider ensuite.</span>
+        <button class="btn in" id="pvMine" style="border:none;margin-top:8px" hidden>Ajouter mes heures</button></div>
       <div class="field"><label for="pvGuests">Invités et absents excusés</label><textarea id="pvGuests" data-pvf="guests" rows="3"></textarea></div>
     </div>
   </div>
@@ -1604,7 +1606,8 @@ en:{_name:"English",_locale:"en-CA",
 "Créer la tâche":"Create task","✍️ {} écrit aussi en ce moment.":"✍️ {} is also writing right now.","Dernière modification : {}, {} à {}.":"Last edited: {}, {} at {}.",
 "^✍️ (.+) écrit aussi en ce moment\. Dernière modification : (.+), (.+) à (\d{1,2}:\d{2})\.$":"✍️ {} is also writing right now. Last edited: {}, {} at {}.",
 "Ces notes ne peuvent pas être chargées (accès refusé).":"These notes cannot be loaded (access denied).","Enregistrement refusé":"Save denied","Procès-verbal":"Minutes","proces-verbal":"minutes",
-"Issue de la réunion « {} » du {}.":"From the meeting “{}” on {}.","Bonjour":"Hello","Bonsoir":"Good evening",
+"Issue de la réunion « {} » du {}.":"From the meeting “{}” on {}.","Après la réunion, chaque personne cochée reçoit une proposition d'entrée dans ses notifications, à valider ensuite.":"After the meeting, each checked person gets a suggested entry in their notifications, to be approved afterwards.",
+"Ajouter mes heures":"Add my hours","Ajoutez vos heures de réunion : {}":"Add your meeting hours: {}","Réunion : {}":"Meeting: {}","Bonjour":"Hello","Bonsoir":"Good evening",
 "^(.+) à (\\d{1,2}:\\d{2})$":"{} at {}"
 }};
 
@@ -2164,7 +2167,7 @@ function renderJournal(){
 /* ---------- Fenêtre d'édition ---------- */
 let editingId=null;
 function openDialog(id){
-  editingId=id||null;
+  editingId=id||null;pendingMeeting=null;
   const s=id?state.sessions.find(x=>x.id===id):null;
   $("dlgTitle").textContent=s?"Modifier l'entrée":"Ajouter une entrée";
   const opts=state.types.filter(t=>!t.archived||(s&&t.id===s.typeId));
@@ -2187,7 +2190,8 @@ $("fSave").onclick=()=>{
   const note=$("fNote").value.trim();
   const projectId=$("fProj").value||"";
   if(editingId){const x=state.sessions.find(x=>x.id===editingId);Object.assign(x,{typeId,start,end,note});if(projectId)x.projectId=projectId;else delete x.projectId;}
-  else state.sessions.push(Object.assign({id:uid(),typeId,start,end,note},projectId?{projectId}:{}));
+  else state.sessions.push(Object.assign({id:uid(),typeId,start,end,note},projectId?{projectId}:{},pendingMeeting?{meetingId:pendingMeeting}:{}));
+  pendingMeeting=null;
   $("dlg").close();persist();render();toast(editingId?"Entrée modifiée":"Entrée ajoutée");
 };
 $("addManual").onclick=()=>{if(!state.types.some(t=>!t.archived)){toast("Ajoutez d'abord un type d'activité");return;}openDialog(null);};
@@ -3145,6 +3149,31 @@ function prefs(){if(!state.prefs)state.prefs={};return state.prefs;}
 function setPref(k,v){prefs()[k]=v;persist();render();}
 function applyDefaultType(){const d=state.prefs&&state.prefs.defType;if(d&&state.types.some(t=>t.id===d&&!t.archived))selectedType=d;}
 let remindedFor=null;
+/* ---------- Pointage des présences aux réunions ---------- */
+let pendingMeeting=null;const mtgCache={};
+function mtgRefresh(){
+  if(!EV.ready()||typeof events!=="object") return;const now=Date.now();
+  Object.values(events).forEach(e=>{
+    if(e.allDay||e.end>now||e.end<now-14*DAY) return;
+    const c=mtgCache[e.id];if(c&&now-c.at<10*60000) return;
+    mtgCache[e.id]={present:c?c.present:[],at:now};
+    pvRef(e.id).get().then(sn=>{mtgCache[e.id]={present:sn.exists?(sn.data().present||[]):[],at:Date.now()};renderNotifSoon();}).catch(()=>{});
+  });
+}
+function meetingEntry(e){
+  if(!state.types.some(t=>!t.archived)){toast("Ajoutez d'abord un type d'activité");return;}
+  mode="mine";viewingId=null;render();openDialog(null);
+  const t=state.types.find(x=>!x.archived&&/r[ée]union/i.test(x.name));if(t)$("fType").value=t.id;
+  $("fDate").value=dayKey(e.start);$("fStart").value=fmtTime(e.start);$("fEnd").value=fmtTime(e.end);
+  $("fNote").value="Réunion : "+e.title;pendingMeeting=e.id;
+}
+function mtgItems(){
+  const out=[];if(typeof events!=="object") return out;
+  Object.entries(mtgCache).forEach(([eid,c])=>{const e=events[eid];
+    if(!e||!c.present.includes(myId)||state.sessions.some(x=>x.meetingId===eid)) return;
+    out.push({k:"mtg:"+eid,ico:"🗓️",txt:"Ajoutez vos heures de réunion : "+e.title,sub:dayLabel(e.start)+" · "+fmtTime(e.start)+" – "+fmtTime(e.end),go:()=>meetingEntry(e)});});
+  return out;
+}
 /* ---------- Notifications ---------- */
 const notifKey=()=>"pointeuse-notifs:"+(myId||"")+":"+(curOrg||"");
 function notifStore(){try{const v=JSON.parse(localStorage.getItem(notifKey())||"null");if(v&&Array.isArray(v.seen))return{seen:v.seen,sys:Array.isArray(v.sys)?v.sys:[]};}catch(e){}return{seen:[],sys:[]};}
@@ -3174,6 +3203,7 @@ function notifItems(){
   });
   Object.values(typeof events==="object"&&events?events:{}).forEach(e=>{if(!hasVideo(e))return;const st=liveState(e);if(!st)return;
     out.push({k:"live:"+e.id+":"+st,ico:"🎥",txt:(st==="live"?"Réunion en cours : ":"Réunion bientôt : ")+e.title,sub:fmtTime(e.start)+" – "+fmtTime(e.end)+" · Rejoindre la salle vidéo",go:()=>window.open(roomUrl(e),"_blank","noopener")});});
+  mtgRefresh();out.push(...mtgItems());
   const days=Number(prefs().nudge||0);
   if(days&&!state.active&&state.types.some(x=>!x.archived)){
     const lastEnd=state.sessions.reduce((m,x)=>Math.max(m,x.end),0);
@@ -3638,6 +3668,9 @@ function pvRender(){
   $("pvActions").querySelectorAll("[data-pvact]").forEach(b=>b.onclick=()=>pvWrite({actions:(pvData.actions||[]).filter(x=>x.id!==b.dataset.pvact)}));
   $("pvActions").querySelectorAll("[data-pvtask]").forEach(b=>b.onclick=()=>pvMakeTask(b.dataset.pvtask,$("pvActions").querySelector(`[data-pvproj="${b.dataset.pvtask}"]`).value));
   if(document.activeElement!==$("pvActWho")){const cur=$("pvActWho").value;$("pvActWho").innerHTML=`<option value="">Responsable…</option>`+pvPeople().map(id=>`<option value="${esc(id)}">${esc(nameOf(id))}</option>`).join("");$("pvActWho").value=cur;}
+  {const e2=pvEv,mine=(d.present||[]).includes(myId)&&e2.end<=Date.now()&&!state.sessions.some(x=>x.meetingId===e2.id);
+    $("pvMine").hidden=!mine;$("pvMine").onclick=()=>{$("pvDlg").close();meetingEntry(e2);};}
+  if(pvEv) mtgCache[pvEv.id]={present:d.present||[],at:Date.now()};
   pvStateText();
 }
 async function pvMakeTask(aid,pid){
