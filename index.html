@@ -781,6 +781,30 @@ body.bootfail .sk-body{display:none}
 .backbtn{flex:none}
 @media (max-width:760px){.sk-two{grid-template-columns:1fr}.sk-kpis{grid-template-columns:1fr 1fr}.sk-org{flex:1}.backbtn{width:34px;height:34px}}
 @media (prefers-reduced-motion:reduce){.sk{animation:none}}
+/* Accueil personnalisable */
+.homebar{display:flex;justify-content:flex-end;margin:-6px 0 4px}
+.homebar .btn .ico{width:16px;height:16px;margin-right:6px;vertical-align:-3px}
+body.layedit .homebar{display:none}
+#personalView>.col2.solo{grid-column:1/-1}
+#kpiSec{margin-top:16px}
+#orgSec+#kpiSec{margin-top:0}
+#personalView>[data-blk].lay-off{display:none!important}
+.blkbar{display:none}
+body.layedit #personalView>[data-blk]{position:relative;outline:2px dashed var(--line);outline-offset:6px;border-radius:var(--radius,6px);margin-bottom:22px}
+body.layedit #personalView>[data-blk].lay-off:not([hidden]){display:block!important;opacity:.5}
+body.layedit #personalView>[data-blk]>:not(.blkbar){pointer-events:none;user-select:none;-webkit-user-select:none}
+body.layedit .blkbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:6px 8px;background:var(--soft);border-radius:10px}
+.blkbar .bb-grip{touch-action:none;cursor:grab;border:none;background:var(--panel);color:var(--ink);border-radius:8px;width:36px;height:36px;font-size:18px;line-height:1;flex:none}
+.blkbar .bb-grip:focus-visible,.blkbar .bb-vis:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.blkbar .bb-name{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blkbar .bb-vis{padding:6px 12px}
+body.layedit #personalView>[data-blk].dragging{outline:2px solid var(--accent);box-shadow:0 12px 30px rgba(16,24,40,.18);z-index:5}
+body.layedit #personalView>[data-blk].dragging .bb-grip{cursor:grabbing}
+.homeedit{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:45;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;background:var(--panel);box-shadow:0 8px 30px rgba(16,24,40,.22);border-radius:14px;padding:10px 12px;width:max-content;max-width:calc(100vw - 24px)}
+.homeedit[hidden]{display:none}
+.he-hint{color:var(--muted);font-size:.9em;padding:0 4px}
+body.layedit #personalView{padding-bottom:110px}
+@media (max-width:760px){.he-hint{flex-basis:100%;text-align:center}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -1009,22 +1033,28 @@ body.bootfail .sk-body{display:none}
   </div>
 
   <div id="personalView">
+    <div class="homebar" id="homeBar"><button class="btn ghost" id="homeEdit"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="4" rx="1.5"/><rect x="13" y="10" width="7" height="10" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/></svg>Modifier l'accueil</button></div>
+    <div class="homeedit" id="homeEditBar" role="toolbar" aria-label="Modifier l'accueil" hidden>
+      <span class="he-hint">Glissez les blocs par la poignée ⠿, ou utilisez les flèches du clavier.</span>
+      <button class="btn ghost" id="homeReset">Rétablir la disposition par défaut</button>
+      <button class="btn in" id="homeDone" style="border:none">Terminer</button>
+    </div>
     <div class="notice" id="roleNotice" hidden></div>
     <div class="who" id="who" hidden></div>
-    <section id="orgSec" style="margin-top:0">
+    <section id="orgSec" style="margin-top:0" data-blk="orgs" data-lbl="Mes associations">
       <div class="sechead"><h2>Mes associations</h2>
         <div class="row"><button class="btn" id="joinOrgBtn">Rejoindre avec un code</button><button class="btn in" id="newOrgBtn" style="border:none">Créer une association</button></div>
       </div>
       <div class="orgs" id="orgList"></div>
     </section>
-    <div class="kpis" id="kpis"></div>
+    <section id="kpiSec" data-blk="kpis" data-lbl="Indicateurs"><div class="kpis" id="kpis"></div></section>
 
-    <section id="upSec">
+    <section id="upSec" data-blk="upcoming" data-lbl="À venir">
       <div class="sechead"><h2>À venir</h2><button class="btn ghost" id="upAll">Ouvrir le calendrier ›</button></div>
       <div class="card up-card"><div class="mini" id="miniCal"></div><div class="up-list" id="upList"></div></div>
     </section>
 
-    <section class="col2">
+    <section class="col2" id="daySec" data-blk="day" data-lbl="Vue par jour">
       <div class="sechead">
         <h2>Vue par jour</h2>
         <div class="daynav" role="group" aria-label="Choisir le jour">
@@ -1037,7 +1067,7 @@ body.bootfail .sk-body{display:none}
       <div class="card" id="dayCard"></div>
     </section>
 
-    <section class="col2">
+    <section class="col2" id="hoursSec" data-blk="hours" data-lbl="Heures par activité">
       <div class="sechead">
         <h2>Heures par activité</h2>
         <div class="seg" id="period" role="group" aria-label="Période">
@@ -1053,7 +1083,7 @@ body.bootfail .sk-body{display:none}
       </div>
     </section>
 
-    <section id="journalSec">
+    <section id="journalSec" data-blk="journal" data-lbl="Journal">
       <div class="sechead">
         <h2>Journal</h2>
         <div class="row">
@@ -1066,7 +1096,7 @@ body.bootfail .sk-body{display:none}
       <div class="card" id="journal"></div>
     </section>
 
-    <section id="typesSection">
+    <section id="typesSection" data-blk="types" data-lbl="Types d'activités">
       <details class="card manage">
         <summary>Gérer les types d'activités de l'association</summary>
         <div class="types" id="types"></div>
@@ -3233,13 +3263,94 @@ function renderNow(){
   $("settingsView").hidden=mode!=="settings";
   $("calView").hidden=mode!=="calendar";
   $("personalView").hidden=mode==="team"||mode==="roles"||inProj||mode==="settings"||mode==="calendar";
+  if(mode!=="mine"&&mode!=="person"&&layEdit) laySetEdit(false);
   if(mode==="settings"){renderSettings();return;}
   if(mode==="calendar"){renderCalendar();return;}
   if(inProj){renderProjects();return;}
   if(mode==="team"){renderTeam();renderTeamDay();return;}
   if(mode==="roles"){renderRoles();return;}
   renderWho();renderOrgs();renderDash();renderDay();renderSummary();renderJournal();renderTypes();
+  $("homeBar").hidden=mode!=="mine";
+  if(mode!=="mine"&&layEdit) laySetEdit(false);
+  layApply();
 }
+/* ---- Accueil personnalisable ---- */
+let layEdit=false,layDrag=null;
+const layBlocks=()=>[...$("personalView").querySelectorAll(":scope>[data-blk]")];
+const LAY_DEF=layBlocks().map(b=>b.dataset.blk);
+const layKey=()=>"pointeuse-accueil:"+(myId||"anon");
+function layLoad(){try{const v=JSON.parse(localStorage.getItem(layKey())||"null");if(v&&Array.isArray(v.order))return{order:v.order,hidden:Array.isArray(v.hidden)?v.hidden:[]};}catch(e){}return{order:LAY_DEF.slice(),hidden:[]};}
+function laySave(o){try{localStorage.setItem(layKey(),JSON.stringify(o));}catch(e){}}
+function layOrder(o){
+  const out=o.order.filter(k=>LAY_DEF.includes(k));
+  LAY_DEF.forEach((k,i)=>{if(out.includes(k))return;const prev=LAY_DEF.slice(0,i).reverse().find(x=>out.includes(x));out.splice(prev?out.indexOf(prev)+1:0,0,k);});
+  return out;
+}
+function layApply(){
+  if(layDrag) return;
+  const o=layLoad(),order=layOrder(o),pv=$("personalView");
+  const cur=layBlocks().map(b=>b.dataset.blk);
+  if(cur.join()!==order.join()) order.forEach(k=>pv.appendChild(pv.querySelector(`:scope>[data-blk="${k}"]`)));
+  layBlocks().forEach(b=>{const off=o.hidden.includes(b.dataset.blk);b.classList.toggle("lay-off",off);
+    const v=b.querySelector(":scope>.blkbar .bb-vis");if(v){v.textContent=off?"Afficher":"Masquer";v.setAttribute("aria-pressed",off?"true":"false");}});
+  layPair();
+}
+function layPair(){
+  const vis=layBlocks().filter(b=>!b.hidden&&(layEdit||!b.classList.contains("lay-off")));
+  for(let i=0;i<vis.length;i++){const b=vis[i];if(!b.classList.contains("col2"))continue;
+    const n=vis[i+1];if(n&&n.classList.contains("col2")){b.classList.remove("solo");n.classList.remove("solo");i++;}else b.classList.add("solo");}
+}
+function layCurrent(){return{order:layBlocks().map(b=>b.dataset.blk),hidden:layBlocks().filter(b=>b.classList.contains("lay-off")).map(b=>b.dataset.blk)};}
+function layBars(on){
+  layBlocks().forEach(b=>{let bar=b.querySelector(":scope>.blkbar");
+    if(on&&!bar){bar=document.createElement("div");bar.className="blkbar";
+      bar.innerHTML=`<button class="bb-grip" aria-label="Déplacer le bloc ${esc(b.dataset.lbl)} (flèches haut et bas)" title="Glisser pour déplacer">⠿</button><span class="bb-name">${esc(b.dataset.lbl)}</span><button class="btn bb-vis"></button>`;
+      b.prepend(bar);
+      bar.querySelector(".bb-vis").onclick=()=>{b.classList.toggle("lay-off");laySave(layCurrent());layApply();};
+      const g=bar.querySelector(".bb-grip");
+      g.addEventListener("pointerdown",e=>layStart(e,b,g));
+      g.addEventListener("keydown",e=>{const pv=$("personalView");
+        if(e.key==="ArrowUp"){const p=b.previousElementSibling;if(p&&p.dataset.blk){pv.insertBefore(b,p);}else return;}
+        else if(e.key==="ArrowDown"){const n=b.nextElementSibling;if(n&&n.dataset.blk){pv.insertBefore(n,b);}else return;}
+        else return;
+        e.preventDefault();laySave(layCurrent());layPair();g.focus();b.scrollIntoView({block:"nearest",behavior:"smooth"});});
+    }
+    if(!on&&bar) bar.remove();
+  });
+}
+function laySetEdit(on){
+  if(on===layEdit) return;layEdit=on;
+  document.body.classList.toggle("layedit",on);
+  $("homeEditBar").hidden=!on;
+  layBars(on);layApply();
+  if(on){const g=$("personalView").querySelector(".bb-grip");if(g)g.focus({preventScroll:true});}
+  else $("homeEdit").focus({preventScroll:true});
+}
+function layStart(e,b,g){
+  if(e.button>0) return;e.preventDefault();
+  try{g.setPointerCapture(e.pointerId);}catch(_){}
+  layDrag={b,id:e.pointerId,y:e.clientY,x:e.clientX,t:0};b.classList.add("dragging");
+  const move=ev=>{if(!layDrag||ev.pointerId!==layDrag.id)return;layDrag.x=ev.clientX;layDrag.y=ev.clientY;layMove();
+    if(!layDrag.t&&(ev.clientY<70||ev.clientY>innerHeight-70))layDrag.t=setInterval(()=>{if(!layDrag)return;
+      const d=layDrag.y<70?-14:layDrag.y>innerHeight-70?14:0;if(d){scrollBy(0,d);layMove();}},16);};
+  const end=ev=>{if(!layDrag||ev.pointerId!==layDrag.id)return;clearInterval(layDrag.t);
+    g.removeEventListener("pointermove",move);g.removeEventListener("pointerup",end);g.removeEventListener("pointercancel",end);
+    b.classList.remove("dragging");layDrag=null;laySave(layCurrent());layApply();};
+  g.addEventListener("pointermove",move);g.addEventListener("pointerup",end);g.addEventListener("pointercancel",end);
+}
+function layMove(){
+  const {b,x,y}=layDrag,pv=$("personalView");
+  const t=layBlocks().find(o=>{if(o===b||o.hidden)return false;const r=o.getBoundingClientRect();return y>=r.top-11&&y<=r.bottom+11&&x>=r.left-11&&x<=r.right+11;});
+  if(!t) return;
+  const r=t.getBoundingClientRect(),br=b.getBoundingClientRect();
+  const side=Math.abs(r.top-br.top)<20&&t.classList.contains("col2")&&b.classList.contains("col2");
+  const after=side?x>r.left+r.width/2:y>r.top+r.height/2;
+  pv.insertBefore(b,after?t.nextElementSibling:t);layPair();
+}
+$("homeEdit").onclick=()=>laySetEdit(true);
+$("homeDone").onclick=()=>laySetEdit(false);
+$("homeReset").onclick=()=>{laySave({order:LAY_DEF.slice(),hidden:[]});layApply();};
+document.addEventListener("keydown",e=>{if(layEdit&&e.key==="Escape"&&!layDrag)laySetEdit(false);});
 let lastMinute=-1;
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)render();});
 setInterval(()=>{
