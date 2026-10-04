@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261004c">
+<link rel="stylesheet" href="css/style.css?v=20261004d">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -250,6 +250,7 @@
         <div class="set-row" id="sCodeRow"><div class="set-lbl"><b>Code d'invitation</b><span>À transmettre aux personnes qui veulent rejoindre l'association.</span></div><div class="set-ctl"><span class="invite" id="sCode"></span><button class="btn" id="sCopyCode">Copier</button><button class="btn ghost" id="sNewCode">Nouveau code</button></div></div>
         <div class="set-row" id="sRolesRow"><div class="set-lbl"><b>Rôles et accès</b></div><div class="set-ctl"><button class="btn" id="sToRoles">Gérer les rôles ›</button></div></div>
         <div class="set-row" id="sLeaveRow"><div class="set-lbl"><b>Quitter l'association</b><span>Vos heures restent enregistrées, mais vous n'y aurez plus accès.</span></div><div class="set-ctl"><button class="btn danger" id="sLeave">Quitter</button></div></div>
+        <div class="set-row" id="sDelOrgRow" hidden><div class="set-lbl"><b>Supprimer l'association</b><span>Efface définitivement l'association et toutes ses données, pour tous les membres.</span></div><div class="set-ctl"><button class="btn danger" id="sDelOrg">Supprimer l'association</button></div></div>
       </section>
 
       <section class="card set-card" data-blk="data" data-lbl="Données">
@@ -564,6 +565,16 @@
   <div class="nlist" id="notifList"></div>
 </dialog>
 
+<dialog id="delOrgDlg" aria-labelledby="doTitle">
+  <button class="dlgx" id="doX" aria-label="Fermer" title="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="doTitle" style="padding-right:44px">Supprimer l'association</h3>
+  <p class="since" style="margin-top:0">Cette action est définitive et touche tous les membres de <b id="doName"></b> : heures pointées, validations, projets, tâches, fichiers, événements, notes de réunion et commentaires seront effacés. Le code d'invitation cessera de fonctionner.</p>
+  <p class="since">Pensez à exporter ce dont vous avez besoin avant : rapports d'activités, journal en CSV, calendrier en .ics.</p>
+  <div class="field"><label for="doConfirm">Écrivez le nom de l'association pour confirmer</label><input type="text" id="doConfirm" autocomplete="off" spellcheck="false"></div>
+  <div class="err" id="doErr"></div>
+  <div class="dlgacts"><button class="btn ghost" id="doCancel">Annuler</button><button class="btn danger" id="doOk">Supprimer définitivement</button></div>
+</dialog>
+
 <dialog id="delDlg" aria-labelledby="delTitle">
   <h3 id="delTitle">Supprimer mon compte</h3>
   <p class="since" style="margin-top:0">Cette action est définitive. Votre compte, votre journal d'heures et vos préférences seront effacés, et vous quitterez toutes vos associations.</p>
@@ -596,7 +607,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="savenote" id="saveNote" role="status" aria-live="polite"></div>
 
-<script src="js/i18n.js?v=20261004c"></script>
-<script src="js/app.js?v=20261004c"></script>
+<script src="js/i18n.js?v=20261004d"></script>
+<script src="js/app.js?v=20261004d"></script>
 </body>
 </html>
