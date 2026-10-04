@@ -1373,7 +1373,7 @@ $("tSave").onclick=async()=>{
     $("themeBtn").title=$("themeQuick").ariaLabel=dark?"Passer en mode jour":"Passer en mode nuit";
     $("themeQuick").setAttribute("aria-label",dark?"Passer en mode jour":"Passer en mode nuit");
     document.querySelectorAll("#themeSeg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.th===pref));
-    const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=dark?"#0A1122":"#14213D";
+    const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=dark?"#090D1A":"#14213D";
   }
   function inkFor(hex){const n=parseInt(hex.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255;return (0.299*r+0.587*g+0.114*b)/255>0.6?"#14213D":"#FFFFFF";}
   function favicon(c){
@@ -1397,12 +1397,14 @@ $("tSave").onclick=async()=>{
   $("accentReset").onclick=()=>{applyAccent(DEF,true);pref="auto";set(TK,null);applyTheme();};
   $("accentDone").onclick=()=>$("accentDlg").close();
   $("accentBtn").onclick=()=>$("accentDlg").showModal();
-  document.querySelectorAll("#themeSeg button").forEach(b=>b.onclick=()=>{pref=b.dataset.th;set(TK,pref==="auto"?null:pref);applyTheme();});
-  const toggle=()=>{pref=isDark()?"light":"dark";set(TK,pref);applyTheme();};
+  // Fondu entre les modes quand le navigateur le permet et que les animations sont autorisées
+  const swap=fn=>{const calm=window.matchMedia("(prefers-reduced-motion: reduce)").matches||document.body.classList.contains("nomotion");if(document.startViewTransition&&!calm){try{document.startViewTransition(fn);return;}catch(e){}}fn();};
+  document.querySelectorAll("#themeSeg button").forEach(b=>b.onclick=()=>swap(()=>{pref=b.dataset.th;set(TK,pref==="auto"?null:pref);applyTheme();}));
+  const toggle=()=>swap(()=>{pref=isDark()?"light":"dark";set(TK,pref);applyTheme();});
   $("themeBtn").onclick=toggle;$("themeQuick").onclick=toggle;
   (mq.addEventListener?mq.addEventListener("change",applyTheme):mq.addListener(applyTheme));
   window.Appearance={ACCENTS,DEF,getTheme:()=>pref,getAccent:()=>accent,
-    setTheme:v=>{pref=v;set(TK,v==="auto"?null:v);applyTheme();},setAccent:c=>applyAccent(c,true)};
+    setTheme:v=>swap(()=>{pref=v;set(TK,v==="auto"?null:v);applyTheme();}),setAccent:c=>applyAccent(c,true)};
   applyAccent(accent,false);applyTheme();
 })();
 
