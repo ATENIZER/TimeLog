@@ -849,22 +849,33 @@ body.layedit .homebar{display:none}
 #personalView>.col2.solo{grid-column:1/-1}
 #kpiSec{margin-top:16px}
 #orgSec+#kpiSec{margin-top:0}
-#personalView>[data-blk].lay-off{display:none!important}
+[data-lay]>[data-blk].lay-off{display:none!important}
 .blkbar{display:none}
-body.layedit #personalView>[data-blk]{position:relative;outline:2px dashed var(--line);outline-offset:6px;border-radius:var(--radius,6px);margin-bottom:22px}
-body.layedit #personalView>[data-blk].lay-off:not([hidden]){display:block!important;opacity:.5}
-body.layedit #personalView>[data-blk]>:not(.blkbar){pointer-events:none;user-select:none;-webkit-user-select:none}
+body.layedit [data-lay]>[data-blk]{position:relative;outline:2px dashed var(--line);outline-offset:6px;border-radius:var(--radius,6px);margin-bottom:22px}
+body.layedit [data-lay]>[data-blk].lay-off:not([hidden]){display:block!important;opacity:.5}
+body.layedit [data-lay]>[data-blk]>:not(.blkbar){pointer-events:none;user-select:none;-webkit-user-select:none}
 body.layedit .blkbar{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:6px 8px;background:var(--soft);border-radius:10px}
 .blkbar .bb-grip{touch-action:none;cursor:grab;border:none;background:var(--panel);color:var(--ink);border-radius:8px;width:36px;height:36px;font-size:18px;line-height:1;flex:none}
 .blkbar .bb-grip:focus-visible,.blkbar .bb-vis:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .blkbar .bb-name{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .blkbar .bb-vis{padding:6px 12px}
-body.layedit #personalView>[data-blk].dragging{outline:2px solid var(--accent);box-shadow:0 12px 30px rgba(16,24,40,.18);z-index:5}
-body.layedit #personalView>[data-blk].dragging .bb-grip{cursor:grabbing}
+body.layedit [data-lay]>[data-blk].dragging{outline:2px solid var(--accent);box-shadow:0 12px 30px rgba(16,24,40,.18);z-index:5}
+body.layedit [data-lay]>[data-blk].dragging .bb-grip{cursor:grabbing}
 .homeedit{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:45;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;background:var(--panel);box-shadow:0 8px 30px rgba(16,24,40,.22);border-radius:14px;padding:10px 12px;width:max-content;max-width:calc(100vw - 24px)}
 .homeedit[hidden]{display:none}
 .he-hint{color:var(--muted);font-size:.9em;padding:0 4px}
-body.layedit #personalView{padding-bottom:110px}
+body.layedit [data-lay]{padding-bottom:110px}
+/* Disposition sur tous les onglets : animations de déplacement */
+body.booting .homebar,.noorg .homebar{display:none}
+#projList>[data-blk].lay-first,#calView>[data-blk].lay-first,#teamView>[data-blk].lay-first,#rolesView>[data-blk].lay-first{margin-top:0}
+body.layedit [data-lay]>[data-blk]{will-change:transform}
+body.layedit [data-lay]>[data-blk].dragging{transition:box-shadow .15s ease!important;z-index:20}
+body.layedit .blkbar{animation:fadein .2s ease-out}
+/* Première visite */
+.welcome{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:16px;border-left:4px solid var(--accent)}
+.welcome .wc-txt{display:grid;gap:4px;flex:1 1 320px}
+.welcome .wc-txt span{color:var(--muted)}
+body.layedit #welcomeCard{display:none}
 @media (max-width:760px){.he-hint{flex-basis:100%;text-align:center}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -948,8 +959,15 @@ body.layedit #personalView{padding-bottom:110px}
   </div>
 
 
-  <div id="teamView" hidden>
-    <div class="sechead">
+  <div class="homebar" id="homeBar"><button class="btn ghost" id="homeEdit"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="4" rx="1.5"/><rect x="13" y="10" width="7" height="10" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/></svg><span id="homeEditLbl">Modifier l'accueil</span></button></div>
+  <div class="homeedit" id="homeEditBar" role="toolbar" aria-label="Modifier la disposition" hidden>
+    <span class="he-hint">Glissez les blocs par la poignée ⠿, ou utilisez les flèches du clavier.</span>
+    <button class="btn ghost" id="homeReset">Rétablir la disposition par défaut</button>
+    <button class="btn in" id="homeDone" style="border:none">Terminer</button>
+  </div>
+
+  <div id="teamView" hidden data-lay="team">
+    <section data-blk="table" data-lbl="Tableau de l'équipe"><div class="sechead">
       <h2>Équipe</h2>
       <div class="row">
         <div class="seg" id="teamPeriod" role="group" aria-label="Période du tableau">
@@ -962,8 +980,8 @@ body.layedit #personalView{padding-bottom:110px}
       </div>
     </div>
     <div class="card"><div class="scroll" id="teamTable"></div>
-      <div class="hint">Cliquez sur une personne pour voir le détail de ses activités.</div></div>
-    <section id="teamChartSec">
+      <div class="hint">Cliquez sur une personne pour voir le détail de ses activités.</div></div></section>
+    <section id="teamChartSec" data-blk="charts" data-lbl="Tableau de bord de l'équipe">
       <div class="sechead"><h2>Tableau de bord de l'équipe</h2><div class="seg chartRange" role="group" aria-label="Période du tableau de bord"><button data-w="8">8 semaines</button><button data-w="12">12 semaines</button><button data-w="26">6 mois</button></div></div>
       <div class="card"><div class="dash-g">
         <div class="dash-wide"><h3 class="dash-h">Heures par semaine</h3><div class="chscroll" id="tchWeeks"></div></div>
@@ -971,7 +989,7 @@ body.layedit #personalView{padding-bottom:110px}
         <div><h3 class="dash-h">Par projet</h3><div class="bars" id="tchProj"></div></div>
       </div></div>
     </section>
-    <section>
+    <section data-blk="day" data-lbl="Journée de l'équipe">
       <div class="sechead">
         <h2>Journée de l'équipe</h2>
         <div class="daynav" role="group" aria-label="Choisir le jour">
@@ -985,16 +1003,16 @@ body.layedit #personalView{padding-bottom:110px}
     </section>
   </div>
 
-  <div id="rolesView" hidden>
-    <div class="sechead"><h2>Rôles et accès</h2></div>
+  <div id="rolesView" hidden data-lay="roles">
+    <section data-blk="roles" data-lbl="Rôles et accès"><div class="sechead"><h2>Rôles et accès</h2></div>
     <div class="card">
       <div id="rolesList"></div>
       <div class="row" style="margin-top:14px">
         <input type="text" id="newRole" placeholder="Nouveau rôle, ex. Superviseur" aria-label="Nom du nouveau rôle">
         <button class="btn" id="addRole">Créer le rôle</button>
       </div>
-    </div>
-    <div class="card" style="margin-top:16px">
+    </div></section>
+    <section data-blk="org" data-lbl="Paramètres de l'organisation"><div class="card">
       <div class="row" style="margin-bottom:12px">
         <label for="orgName" style="font-weight:500">Nom de l'organisation</label>
         <input type="text" id="orgName" placeholder="Ex. Association étudiante de…" style="flex:1 1 240px">
@@ -1004,16 +1022,16 @@ body.layedit #personalView{padding-bottom:110px}
         <select id="defaultRole"></select>
       </div>
       <div class="hint">Les rôles administrateurs voient toute l'équipe, valident les heures et gèrent les rôles. Les nouvelles personnes qui créent un compte reçoivent le rôle choisi ici.</div>
-    </div>
+    </div></section>
   </div>
 
   <div id="projectsView" hidden>
-    <div id="projList">
-      <section style="margin-top:0">
+    <div id="projList" data-lay="projects">
+      <section data-blk="tasks" data-lbl="Mes tâches">
         <div class="sechead"><h2>Mes tâches</h2></div>
         <div class="card"><div class="mytasks" id="myTasks"></div></div>
       </section>
-      <section>
+      <section data-blk="list" data-lbl="Projets">
         <div class="sechead">
           <h2>Projets</h2>
           <div class="row">
@@ -1031,7 +1049,8 @@ body.layedit #personalView{padding-bottom:110px}
     <div id="projDetail" hidden></div>
   </div>
 
-  <div id="calView" hidden>
+  <div id="calView" hidden data-lay="calendar">
+    <section data-blk="month" data-lbl="Calendrier du mois">
     <div class="cal-head">
       <div class="cal-nav">
         <button class="btn arrow" id="calPrev" aria-label="Mois précédent">‹</button>
@@ -1050,22 +1069,23 @@ body.layedit #personalView{padding-bottom:110px}
     </div>
     <div class="card cal-card" id="calGrid"></div>
     <div class="hint" id="calTz"></div>
-    <section id="calDaySec">
+    </section>
+    <section id="calDaySec" data-blk="day" data-lbl="Journée choisie">
       <div class="sechead"><h2 id="calDayTitle"></h2><button class="btn ghost" id="calDayAdd" hidden>+ Ajouter ce jour-là</button></div>
       <div class="card" id="calDay"></div>
     </section>
   </div>
 
   <div id="settingsView" hidden>
-    <div class="settings">
-      <section class="card set-card">
+    <div class="settings" data-lay="settings">
+      <section class="card set-card" data-blk="profile" data-lbl="Profil">
         <h2>Profil</h2>
         <div class="set-row"><div class="set-lbl"><b>Nom affiché</b><span id="sNameHelp">Apparaît sur vos attestations et dans les projets.</span></div><div class="set-ctl"><input type="text" id="sName" autocomplete="name"></div></div>
         <div class="set-row" id="sEmailRow"><div class="set-lbl"><b>Courriel</b></div><div class="set-ctl"><span id="sEmail"></span></div></div>
         <div class="set-row"><div class="set-lbl"><b>Rôle</b><span>Attribué par les administrateurs.</span></div><div class="set-ctl"><span class="badge" id="sRole" style="margin:0"></span></div></div>
       </section>
 
-      <section class="card set-card">
+      <section class="card set-card" data-blk="look" data-lbl="Apparence">
         <h2>Apparence</h2>
         <div class="set-row"><div class="set-lbl"><b>Langue</b><span>La langue est propre à chaque appareil.</span></div><div class="set-ctl"><select id="sLang" aria-label="Langue"></select></div></div>
         <div class="set-row"><div class="set-lbl"><b>Mode</b></div><div class="set-ctl"><div class="seg" id="sTheme" role="group" aria-label="Mode"><button data-v="light">Jour</button><button data-v="dark">Nuit</button><button data-v="auto">Automatique</button></div></div></div>
@@ -1076,7 +1096,7 @@ body.layedit #personalView{padding-bottom:110px}
         <div class="since" style="margin-top:6px">L'apparence est propre à chaque appareil.</div>
       </section>
 
-      <section class="card set-card">
+      <section class="card set-card" data-blk="clock" data-lbl="Pointage">
         <h2>Pointage</h2>
         <div class="set-row"><div class="set-lbl"><b>Activité proposée par défaut</b><span>Présélectionnée à l'ouverture du chronomètre.</span></div><div class="set-ctl"><select id="sDefType"></select></div></div>
         <div class="set-row"><div class="set-lbl"><b>Premier jour de la semaine</b><span>Pour les totaux « Cette semaine ».</span></div><div class="set-ctl"><div class="seg" id="sWeek" role="group" aria-label="Premier jour"><button data-v="1">Lundi</button><button data-v="0">Dimanche</button></div></div></div>
@@ -1086,7 +1106,7 @@ body.layedit #personalView{padding-bottom:110px}
         <div class="set-row"><div class="set-lbl"><b>Rappel de sortie</b><span>Vous avertir si le chronomètre tourne depuis longtemps.</span></div><div class="set-ctl"><select id="sRemind"><option value="0">Jamais</option><option value="4">Après 4 h</option><option value="6">Après 6 h</option><option value="8">Après 8 h</option><option value="10">Après 10 h</option><option value="12">Après 12 h</option></select></div></div>
       </section>
 
-      <section class="card set-card" id="sOrgCard" hidden>
+      <section class="card set-card" id="sOrgCard" hidden data-blk="org" data-lbl="Association">
         <h2>Association</h2>
         <div class="set-row"><div class="set-lbl"><b>Nom de l'association</b><span>Affiché sur les attestations.</span></div><div class="set-ctl"><input type="text" id="sOrg"></div></div>
         <div class="set-row"><div class="set-lbl"><b>Valeur d'une heure de bénévolat</b><span>Sert à estimer la valeur des heures validées (attestations, accueil). Laissez vide pour ne pas l'afficher.</span></div><div class="set-ctl"><input type="number" id="sRate" min="0" step="0.5" inputmode="decimal" placeholder="Ex. 25" style="max-width:120px" aria-label="Valeur d'une heure de bénévolat, en dollars"><span class="since">$/h</span></div></div>
@@ -1095,29 +1115,28 @@ body.layedit #personalView{padding-bottom:110px}
         <div class="set-row" id="sLeaveRow"><div class="set-lbl"><b>Quitter l'association</b><span>Vos heures restent enregistrées, mais vous n'y aurez plus accès.</span></div><div class="set-ctl"><button class="btn danger" id="sLeave">Quitter</button></div></div>
       </section>
 
-      <section class="card set-card">
+      <section class="card set-card" data-blk="data" data-lbl="Données">
         <h2>Données</h2>
         <div class="set-row"><div class="set-lbl"><b>Mon journal</b><span>Toutes vos entrées, lisibles dans Excel.</span></div><div class="set-ctl"><button class="btn" id="sCsv">Exporter en CSV</button></div></div>
         <div class="set-row"><div class="set-lbl"><b>Toutes mes données</b><span>Copie complète de votre espace (JSON).</span></div><div class="set-ctl"><button class="btn" id="sJson">Télécharger</button></div></div>
       </section>
-      <section class="card set-card">
+      <section class="card set-card" data-blk="account" data-lbl="Compte">
         <h2>Compte</h2>
         <div class="set-row" id="sPwRow"><div class="set-lbl"><b>Mot de passe</b><span>Recevez un courriel pour choisir un nouveau mot de passe.</span></div><div class="set-ctl"><button class="btn" id="sPw">Changer mon mot de passe</button></div></div>
         <div class="set-row"><div class="set-lbl"><b>Session</b><span>Vous déconnecter de cet appareil.</span></div><div class="set-ctl"><button class="btn danger" id="sOut">Se déconnecter</button></div></div>
+        <div class="set-row"><div class="set-lbl"><b>Supprimer mon compte</b><span>Efface définitivement votre compte et vos données personnelles.</span></div><div class="set-ctl"><button class="btn danger" id="sDelete">Supprimer mon compte</button></div></div>
       </section>
 
       <div class="set-foot"><button class="btn ghost" id="sReset">Rétablir les paramètres par défaut</button></div>
     </div>
   </div>
 
-  <div id="personalView">
-    <div class="homebar" id="homeBar"><button class="btn ghost" id="homeEdit"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="4" rx="1.5"/><rect x="13" y="10" width="7" height="10" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/></svg>Modifier l'accueil</button></div>
-    <div class="homeedit" id="homeEditBar" role="toolbar" aria-label="Modifier l'accueil" hidden>
-      <span class="he-hint">Glissez les blocs par la poignée ⠿, ou utilisez les flèches du clavier.</span>
-      <button class="btn ghost" id="homeReset">Rétablir la disposition par défaut</button>
-      <button class="btn in" id="homeDone" style="border:none">Terminer</button>
-    </div>
+  <div id="personalView" data-lay="mine">
     <div class="notice" id="roleNotice" hidden></div>
+    <div class="card welcome" id="welcomeCard" hidden>
+      <div class="wc-txt"><b>Bienvenue !</b><span>Votre accueil montre l'essentiel : vos associations, vos indicateurs, ce qui s'en vient et votre journal. Pour pointer vos heures, utilisez le chronomètre en haut à droite.</span><span>D'autres blocs (vue par jour, tableau de bord…) sont disponibles quand vous serez prêt.</span></div>
+      <div class="row"><button class="btn ghost" id="wcEdit">Choisir mes blocs</button><button class="btn ghost" id="wcAll">Tout afficher</button><button class="btn in" id="wcOk" style="border:none">Compris</button></div>
+    </div>
     <div class="who" id="who" hidden></div>
     <section id="orgSec" style="margin-top:0" data-blk="orgs" data-lbl="Mes associations">
       <div class="sechead"><h2>Mes associations</h2>
@@ -1391,6 +1410,18 @@ body.layedit #personalView{padding-bottom:110px}
   <div class="dlgacts"><button class="btn ghost" id="notifClose">Fermer</button></div>
 </dialog>
 
+<dialog id="delDlg" aria-labelledby="delTitle">
+  <h3 id="delTitle">Supprimer mon compte</h3>
+  <p class="since" style="margin-top:0">Cette action est définitive. Votre compte, votre journal d'heures et vos préférences seront effacés, et vous quitterez toutes vos associations.</p>
+  <p class="since">Ce que vous avez partagé avec une association (événements, commentaires, tâches, heures déjà validées) peut y rester. Pensez à télécharger vos données avant, dans Paramètres › Données.</p>
+  <div class="notice" id="dOwned" hidden></div>
+  <div class="field" id="dPassField" hidden><label for="dPass">Mot de passe actuel</label><input type="password" id="dPass" autocomplete="current-password"></div>
+  <div class="since" id="dGoogle" hidden style="margin-bottom:10px">Une fenêtre Google s'ouvrira pour confirmer votre identité.</div>
+  <div class="field"><label for="dConfirm">Écrivez SUPPRIMER pour confirmer</label><input type="text" id="dConfirm" autocomplete="off" spellcheck="false"></div>
+  <div class="err" id="dErr"></div>
+  <div class="dlgacts"><button class="btn ghost" id="dCancel">Annuler</button><button class="btn danger" id="dOk">Supprimer définitivement</button></div>
+</dialog>
+
 <dialog id="dlg">
   <h3 id="dlgTitle">Modifier l'entrée</h3>
   <div class="field"><label for="fType">Activité</label><select id="fType"></select></div>
@@ -1438,6 +1469,19 @@ en:{_name:"English",_locale:"en-CA",
 "Glissez les blocs par la poignée ⠿, ou utilisez les flèches du clavier.":"Drag blocks by the ⠿ handle, or use the arrow keys.",
 "Rétablir la disposition par défaut":"Restore default layout","Terminer":"Done","Afficher":"Show","Masquer":"Hide",
 "Déplacer le bloc {} (flèches haut et bas)":"Move the {} block (up and down arrows)","Glisser pour déplacer":"Drag to move",
+"Modifier la disposition":"Customize layout","Tableau de l'équipe":"Team table","Paramètres de l'organisation":"Organization settings","Calendrier du mois":"Monthly calendar","Journée choisie":"Selected day",
+"Votre accueil montre l'essentiel : vos associations, vos indicateurs, ce qui s'en vient et votre journal. Pour pointer vos heures, utilisez le chronomètre en haut à droite.":"Your home shows the essentials: your associations, indicators, what's coming up and your log. To clock your hours, use the timer at the top right.",
+"D'autres blocs (vue par jour, tableau de bord…) sont disponibles quand vous serez prêt.":"More blocks (day view, dashboard…) are available whenever you're ready.",
+"Choisir mes blocs":"Choose my blocks","Tout afficher":"Show all","Compris":"Got it","Tous les blocs sont affichés":"All blocks are shown",
+"Supprimer mon compte":"Delete my account","Efface définitivement votre compte et vos données personnelles.":"Permanently erases your account and your personal data.",
+"Cette action est définitive. Votre compte, votre journal d'heures et vos préférences seront effacés, et vous quitterez toutes vos associations.":"This cannot be undone. Your account, your time log and your preferences will be erased, and you will leave all your associations.",
+"Ce que vous avez partagé avec une association (événements, commentaires, tâches, heures déjà validées) peut y rester. Pensez à télécharger vos données avant, dans Paramètres › Données.":"What you shared with an association (events, comments, tasks, already validated hours) may remain there. Consider downloading your data first, in Settings › Data.",
+"Mot de passe actuel":"Current password","Une fenêtre Google s'ouvrira pour confirmer votre identité.":"A Google window will open to confirm your identity.",
+"Écrivez SUPPRIMER pour confirmer":"Type DELETE to confirm","Supprimer définitivement":"Delete permanently","Suppression en cours…":"Deleting…",
+"Écrivez SUPPRIMER pour confirmer.":"Type DELETE to confirm.","Entrez votre mot de passe actuel.":"Enter your current password.","Mot de passe incorrect.":"Incorrect password.",
+"La fenêtre de confirmation a été fermée.":"The confirmation window was closed.","Utilisez le même compte Google que celui de la Pointeuse.":"Use the same Google account as the one used in the app.",
+"Suppression impossible pour le moment. Réessayez plus tard.":"Unable to delete right now. Please try again later.","Compte supprimé":"Account deleted",
+"Vous êtes propriétaire de : {}. Une association ne peut pas rester sans propriétaire : la suppression de votre compte est bloquée tant que vous l'êtes.":"You own: {}. An association cannot be left without an owner: deleting your account is blocked while you own it.",
 "Nouveau type, ex. Formation":"New type, e.g. Training","Nom du nouveau type":"New type name","Chronomètre":"Timer","Fermer le chronomètre":"Close the timer",
 "Ex. Marie Tremblay, présidente":"E.g. Marie Tremblay, president","Ex. Association étudiante en génie":"E.g. Engineering student association",
 "Ex. Comité étudiant de la faculté de génie":"E.g. Engineering faculty student committee","Choisir une icône":"Choose an icon","Choisir une image de bannière":"Choose a banner image",
@@ -3323,6 +3367,52 @@ $("sReset").onclick=()=>{
 $("sName").onchange=()=>{const v=$("sName").value.trim();if(!v){$("sName").value=myProfile.displayName||"";return;}myProfile.displayName=v;persist();syncMyName();render();toast("Nom enregistré");};
 $("sPw").onclick=async()=>{try{await auth.sendPasswordResetEmail(myProfile.email);toast("Courriel envoyé à "+myProfile.email,3500);}catch(e){toast("Envoi impossible pour le moment");}};
 $("sOut").onclick=()=>auth.signOut().then(()=>location.reload());
+/* ---------- Supprimer mon compte ---------- */
+const myProviders=()=>{const u=auth&&auth.currentUser;return u?u.providerData.map(x=>x.providerId):[];};
+$("sDelete").onclick=()=>{
+  const owned=myOrgIds.filter(id=>orgsInfo[id]&&orgsInfo[id].owner).map(id=>orgsInfo[id].name);
+  const pv=myProviders(),pw=pv.includes("password");
+  $("dOwned").hidden=!owned.length;
+  $("dOwned").textContent=owned.length?`Vous êtes propriétaire de : ${owned.join(", ")}. Une association ne peut pas rester sans propriétaire : la suppression de votre compte est bloquée tant que vous l'êtes.`:"";
+  $("dPassField").hidden=!pw;$("dGoogle").hidden=pw||!pv.includes("google.com");
+  $("dPass").value="";$("dConfirm").value="";$("dErr").textContent="";
+  $("dOk").disabled=!!owned.length;$("dOk").textContent="Supprimer définitivement";
+  $("delDlg").showModal();setTimeout(()=>(pw?$("dPass"):$("dConfirm")).focus(),50);
+};
+$("dCancel").onclick=()=>$("delDlg").close();
+$("dOk").onclick=async()=>{
+  const word=$("dConfirm").value.trim().toUpperCase();
+  if(word!=="SUPPRIMER"&&word!=="DELETE"){$("dErr").textContent="Écrivez SUPPRIMER pour confirmer.";return;}
+  const u=auth&&auth.currentUser;if(!u) return;
+  const pv=myProviders(),dlg=$("delDlg");
+  if(pv.includes("password")&&!$("dPass").value){$("dErr").textContent="Entrez votre mot de passe actuel.";return;}
+  $("dErr").textContent="";$("dOk").disabled=true;$("dOk").textContent="Suppression en cours…";dlg.dataset.busy="1";
+  try{
+    // 1. Firebase exige une connexion récente : on confirme l'identité AVANT d'effacer quoi que ce soit.
+    if(pv.includes("password")) await u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email,$("dPass").value));
+    else if(pv.includes("google.com")) await u.reauthenticateWithPopup(new firebase.auth.GoogleAuthProvider());
+    // 2. Plus aucun enregistrement automatique, puis effacement des données personnelles.
+    clearTimeout(saveTimer);backend=null;
+    for(const id of myOrgIds.slice()){
+      if(orgsInfo[id]&&orgsInfo[id].owner) continue;
+      await L.org(id).collection("people").doc(myId).delete().catch(()=>{});
+      await L.members(id).doc(myId).delete().catch(()=>{});
+    }
+    await L.idx().delete().catch(()=>{});
+    // 3. Suppression du compte lui-même.
+    await u.delete();
+    // 4. Nettoyage de cet appareil.
+    try{Object.keys(localStorage).filter(k=>k.endsWith(":"+myId)).forEach(k=>localStorage.removeItem(k));localStorage.removeItem(ORG_KEY);}catch(e){}
+    toast("Compte supprimé");setTimeout(()=>location.reload(),800);
+  }catch(e){
+    const c=e&&e.code;
+    $("dErr").textContent=(c==="auth/wrong-password"||c==="auth/invalid-credential")?"Mot de passe incorrect."
+      :(c==="auth/popup-closed-by-user"||c==="auth/cancelled-popup-request")?"La fenêtre de confirmation a été fermée."
+      :c==="auth/user-mismatch"?"Utilisez le même compte Google que celui de la Pointeuse."
+      :(AUTH_ERR[c]||"Suppression impossible pour le moment. Réessayez plus tard.");
+    $("dOk").disabled=false;$("dOk").textContent="Supprimer définitivement";
+  }finally{delete dlg.dataset.busy;}
+};
 applyUi();
 
 
@@ -4237,95 +4327,180 @@ function renderNow(){
   $("settingsView").hidden=mode!=="settings";
   $("calView").hidden=mode!=="calendar";
   $("personalView").hidden=mode==="team"||mode==="roles"||inProj||mode==="settings"||mode==="calendar";
-  if(mode!=="mine"&&mode!=="person"&&layEdit) laySetEdit(false);
-  if(mode==="settings"){renderSettings();return;}
-  if(mode==="calendar"){renderCalendar();return;}
-  if(inProj){renderProjects();return;}
-  if(mode==="team"){renderTeam();renderTeamDay();renderTeamCharts();return;}
-  if(mode==="roles"){renderRoles();return;}
-  renderWho();renderOrgs();renderDash();renderDay();renderSummary();renderCharts();renderJournal();renderTypes();
-  $("homeBar").hidden=mode!=="mine";
-  if(mode!=="mine"&&layEdit) laySetEdit(false);
-  layApply();
+  if(layEdit&&layCurView()!==layView) laySetEdit(false);
+  if(mode==="settings") renderSettings();
+  else if(mode==="calendar") renderCalendar();
+  else if(inProj) renderProjects();
+  else if(mode==="team"){renderTeam();renderTeamDay();renderTeamCharts();}
+  else if(mode==="roles") renderRoles();
+  else{renderWho();renderOrgs();renderDash();renderDay();renderSummary();renderCharts();renderJournal();renderTypes();}
+  layRefresh();
 }
 function renderNotifSoon(){clearTimeout(renderNotifSoon._t);renderNotifSoon._t=setTimeout(()=>{try{notifRefresh();}catch(e){}},300);}
-/* ---- Accueil personnalisable ---- */
-let layEdit=false,layDrag=null;
-const layBlocks=()=>[...$("personalView").querySelectorAll(":scope>[data-blk]")];
-const LAY_DEF=layBlocks().map(b=>b.dataset.blk);
-const layKey=()=>"pointeuse-accueil:"+(myId||"anon");
-function layLoad(){try{const v=JSON.parse(localStorage.getItem(layKey())||"null");if(v&&Array.isArray(v.order))return{order:v.order,hidden:Array.isArray(v.hidden)?v.hidden:[]};}catch(e){}return{order:LAY_DEF.slice(),hidden:[]};}
-function laySave(o){try{localStorage.setItem(layKey(),JSON.stringify(o));}catch(e){}}
-function layOrder(o){
-  const out=o.order.filter(k=>LAY_DEF.includes(k));
-  LAY_DEF.forEach((k,i)=>{if(out.includes(k))return;const prev=LAY_DEF.slice(0,i).reverse().find(x=>out.includes(x));out.splice(prev?out.indexOf(prev)+1:0,0,k);});
+/* ---- Disposition personnalisable (tous les onglets) ---- */
+const LAY_VIEWS={mine:"pointeuse-accueil",projects:"pointeuse-dispo-projets",calendar:"pointeuse-dispo-calendrier",team:"pointeuse-dispo-equipe",roles:"pointeuse-dispo-roles",settings:"pointeuse-dispo-parametres"};
+// Première visite : accueil allégé. Les blocs masqués restent disponibles avec « Modifier l'accueil ».
+const LAY_STARTER={mine:["day","hours","charts","types"]};
+const LAY_EASE="transform .26s cubic-bezier(.2,.8,.2,1)";
+let layEdit=false,layView=null,layDrag=null;
+const layBox=v=>document.querySelector(`[data-lay="${v}"]`);
+const layBlocks=v=>{const b=layBox(v);return b?[...b.querySelectorAll(":scope>[data-blk]")]:[];};
+const LAY_DEF={};Object.keys(LAY_VIEWS).forEach(v=>LAY_DEF[v]=layBlocks(v).map(b=>b.dataset.blk));
+const layKey=v=>LAY_VIEWS[v]+":"+(myId||"anon");
+const welcomeKey=()=>"pointeuse-bienvenue:"+(myId||"anon");
+const layCurView=()=>LAY_VIEWS[mode]?mode:null;
+const layShown=o=>o.getClientRects().length>0;
+function laySave(v,o){try{localStorage.setItem(layKey(v),JSON.stringify(o));}catch(e){}}
+function layLoad(v){
+  try{const s=JSON.parse(localStorage.getItem(layKey(v))||"null");if(s&&Array.isArray(s.order))return{order:s.order,hidden:Array.isArray(s.hidden)?s.hidden:[]};}catch(e){}
+  const o={order:LAY_DEF[v].slice(),hidden:[]};
+  // Nouvelle personne (données chargées, aucune entrée) : on enregistre la version allégée une seule fois.
+  if(LAY_STARTER[v]&&booted&&myId&&curOrg&&!state.sessions.length&&!state.active){
+    o.hidden=LAY_STARTER[v].slice();laySave(v,o);
+    try{localStorage.setItem(welcomeKey(),"1");}catch(e){}
+  }
+  return o;
+}
+function layOrder(v,o){
+  const def=LAY_DEF[v],out=o.order.filter(k=>def.includes(k));
+  def.forEach((k,i)=>{if(out.includes(k))return;const prev=def.slice(0,i).reverse().find(x=>out.includes(x));out.splice(prev?out.indexOf(prev)+1:0,0,k);});
   return out;
 }
-function layApply(){
-  if(layDrag) return;
-  const o=layLoad(),order=layOrder(o),pv=$("personalView");
-  const cur=layBlocks().map(b=>b.dataset.blk);
-  if(cur.join()!==order.join()) order.forEach(k=>pv.appendChild(pv.querySelector(`:scope>[data-blk="${k}"]`)));
-  layBlocks().forEach(b=>{const off=o.hidden.includes(b.dataset.blk);b.classList.toggle("lay-off",off);
-    const v=b.querySelector(":scope>.blkbar .bb-vis");if(v){v.textContent=off?"Afficher":"Masquer";v.setAttribute("aria-pressed",off?"true":"false");}});
-  layPair();
+function layApply(v){
+  if(!v||layDrag) return;
+  const box=layBox(v);if(!box) return;
+  const o=layLoad(v),order=layOrder(v,o),blocks=layBlocks(v);
+  if(blocks.map(b=>b.dataset.blk).join()!==order.join()){
+    const anchor=blocks.length?blocks[blocks.length-1].nextSibling:null; // garde les éléments qui suivent les blocs (ex. bouton de réinitialisation)
+    order.forEach(k=>box.insertBefore(box.querySelector(`:scope>[data-blk="${k}"]`),anchor));
+  }
+  layBlocks(v).forEach(b=>{const off=o.hidden.includes(b.dataset.blk);b.classList.toggle("lay-off",off);
+    const t=b.querySelector(":scope>.blkbar .bb-vis");if(t){t.textContent=off?"Afficher":"Masquer";t.setAttribute("aria-pressed",off?"true":"false");}});
+  layPair(v);
 }
-function layPair(){
-  const vis=layBlocks().filter(b=>!b.hidden&&(layEdit||!b.classList.contains("lay-off")));
+function layPair(v){
+  const editing=layEdit&&layView===v,all=layBlocks(v);
+  const vis=all.filter(b=>!b.hidden&&(editing||!b.classList.contains("lay-off")));
+  all.forEach(b=>b.classList.toggle("lay-first",b===vis[0]));
   for(let i=0;i<vis.length;i++){const b=vis[i];if(!b.classList.contains("col2"))continue;
     const n=vis[i+1];if(n&&n.classList.contains("col2")){b.classList.remove("solo");n.classList.remove("solo");i++;}else b.classList.add("solo");}
 }
-function layCurrent(){return{order:layBlocks().map(b=>b.dataset.blk),hidden:layBlocks().filter(b=>b.classList.contains("lay-off")).map(b=>b.dataset.blk)};}
-function layBars(on){
-  layBlocks().forEach(b=>{let bar=b.querySelector(":scope>.blkbar");
+function layCurrent(v){const bl=layBlocks(v);return{order:bl.map(b=>b.dataset.blk),hidden:bl.filter(b=>b.classList.contains("lay-off")).map(b=>b.dataset.blk)};}
+// Position de mise en page d'un bloc, sans la translation d'animation en cours.
+function layRect(o){
+  const r=o.getBoundingClientRect();let dx=0,dy=0;
+  try{const m=new DOMMatrixReadOnly(getComputedStyle(o).transform);dx=m.m41;dy=m.m42;}catch(e){}
+  return{left:r.left-dx,right:r.right-dx,top:r.top-dy,bottom:r.bottom-dy,width:r.width,height:r.height};
+}
+// Animation FLIP : chaque bloc glisse de son ancienne position vers la nouvelle.
+function layFlip(v,fn){
+  const els=layBlocks(v).filter(o=>!(layDrag&&o===layDrag.b)&&layShown(o));
+  const first=new Map(els.map(o=>[o,o.getBoundingClientRect()]));
+  fn();
+  els.forEach(o=>{o.style.transition="none";o.style.transform="";});
+  const moved=[];
+  els.forEach(o=>{if(!layShown(o))return;const f=first.get(o),l=o.getBoundingClientRect(),dx=f.left-l.left,dy=f.top-l.top;
+    if(Math.abs(dx)>.5||Math.abs(dy)>.5){o.style.transform=`translate(${dx}px,${dy}px)`;moved.push(o);}});
+  if(moved.length) void layBox(v).offsetHeight;
+  els.forEach(o=>{if(moved.includes(o)){o.style.transition=LAY_EASE;o.style.transform="";}else o.style.transition="";});
+}
+function layBars(v,on){
+  layBlocks(v).forEach(b=>{let bar=b.querySelector(":scope>.blkbar");
     if(on&&!bar){bar=document.createElement("div");bar.className="blkbar";
       bar.innerHTML=`<button class="bb-grip" aria-label="Déplacer le bloc ${esc(b.dataset.lbl)} (flèches haut et bas)" title="Glisser pour déplacer">⠿</button><span class="bb-name">${esc(b.dataset.lbl)}</span><button class="btn bb-vis"></button>`;
       b.prepend(bar);
-      bar.querySelector(".bb-vis").onclick=()=>{b.classList.toggle("lay-off");laySave(layCurrent());layApply();};
+      bar.querySelector(".bb-vis").onclick=()=>layFlip(v,()=>{b.classList.toggle("lay-off");laySave(v,layCurrent(v));layApply(v);});
       const g=bar.querySelector(".bb-grip");
       g.addEventListener("pointerdown",e=>layStart(e,b,g));
-      g.addEventListener("keydown",e=>{const pv=$("personalView");
-        if(e.key==="ArrowUp"){const p=b.previousElementSibling;if(p&&p.dataset.blk){pv.insertBefore(b,p);}else return;}
-        else if(e.key==="ArrowDown"){const n=b.nextElementSibling;if(n&&n.dataset.blk){pv.insertBefore(n,b);}else return;}
+      g.addEventListener("keydown",e=>{const box=layBox(v);let ref;
+        if(e.key==="ArrowUp"){const p=b.previousElementSibling;if(!p||!p.dataset.blk)return;ref=p;}
+        else if(e.key==="ArrowDown"){const n=b.nextElementSibling;if(!n||!n.dataset.blk)return;ref=n.nextSibling;}
         else return;
-        e.preventDefault();laySave(layCurrent());layPair();g.focus();b.scrollIntoView({block:"nearest",behavior:"smooth"});});
+        e.preventDefault();layFlip(v,()=>{box.insertBefore(b,ref);layPair(v);});laySave(v,layCurrent(v));g.focus({preventScroll:true});b.scrollIntoView({block:"nearest",behavior:"smooth"});});
     }
     if(!on&&bar) bar.remove();
   });
 }
 function laySetEdit(on){
-  if(on===layEdit) return;layEdit=on;
+  if(on===layEdit) return;
+  const v=on?layCurView():layView;
+  if(!v){layEdit=false;layView=null;document.body.classList.remove("layedit");$("homeEditBar").hidden=true;return;}
+  layEdit=on;layView=on?v:null;
   document.body.classList.toggle("layedit",on);
   $("homeEditBar").hidden=!on;
-  layBars(on);layApply();
-  if(on){const g=$("personalView").querySelector(".bb-grip");if(g)g.focus({preventScroll:true});}
-  else $("homeEdit").focus({preventScroll:true});
+  layBars(v,on);
+  if(!on) layBlocks(v).forEach(b=>{b.style.transition="";b.style.transform="";});
+  layApply(v);
+  if(on){const g=layBox(v).querySelector(".bb-grip");if(g)g.focus({preventScroll:true});}
+  else if(!$("homeBar").hidden) $("homeEdit").focus({preventScroll:true});
 }
+// Glisser-déposer : le bloc suit le doigt ou la souris, les autres s'écartent en douceur.
 function layStart(e,b,g){
-  if(e.button>0) return;e.preventDefault();
+  if(e.button>0||layDrag||!layView) return;e.preventDefault();
   try{g.setPointerCapture(e.pointerId);}catch(_){}
-  layDrag={b,id:e.pointerId,y:e.clientY,x:e.clientX,t:0};b.classList.add("dragging");
-  const move=ev=>{if(!layDrag||ev.pointerId!==layDrag.id)return;layDrag.x=ev.clientX;layDrag.y=ev.clientY;layMove();
-    if(!layDrag.t&&(ev.clientY<70||ev.clientY>innerHeight-70))layDrag.t=setInterval(()=>{if(!layDrag)return;
-      const d=layDrag.y<70?-14:layDrag.y>innerHeight-70?14:0;if(d){scrollBy(0,d);layMove();}},16);};
-  const end=ev=>{if(!layDrag||ev.pointerId!==layDrag.id)return;clearInterval(layDrag.t);
+  const r=b.getBoundingClientRect();
+  b.style.transition="none";b.style.transform="";
+  layDrag={b,v:layView,id:e.pointerId,x:e.clientX,y:e.clientY,ox:e.clientX-r.left,oy:e.clientY-r.top,tx:0,ty:0,t:0,raf:0};
+  b.classList.add("dragging");layFollow();
+  const move=ev=>{const d=layDrag;if(!d||ev.pointerId!==d.id)return;d.x=ev.clientX;d.y=ev.clientY;
+    if(!d.raf) d.raf=requestAnimationFrame(()=>{if(!layDrag)return;layDrag.raf=0;layMove();});
+    if(!d.t&&(ev.clientY<70||ev.clientY>innerHeight-70))d.t=setInterval(()=>{if(!layDrag)return;
+      const dy=layDrag.y<70?-14:layDrag.y>innerHeight-70?14:0;if(dy){scrollBy(0,dy);layMove();}},16);};
+  const end=ev=>{const d=layDrag;if(!d||ev.pointerId!==d.id)return;clearInterval(d.t);cancelAnimationFrame(d.raf);
     g.removeEventListener("pointermove",move);g.removeEventListener("pointerup",end);g.removeEventListener("pointercancel",end);
-    b.classList.remove("dragging");layDrag=null;laySave(layCurrent());layApply();};
+    b.classList.remove("dragging");
+    b.style.transition=LAY_EASE;b.style.transform=""; // le bloc se pose en douceur à sa place
+    layDrag=null;laySave(d.v,layCurrent(d.v));layApply(d.v);};
   g.addEventListener("pointermove",move);g.addEventListener("pointerup",end);g.addEventListener("pointercancel",end);
 }
+function layFollow(){
+  const d=layDrag,r=d.b.getBoundingClientRect();
+  const lx=r.left-d.tx,ly=r.top-d.ty;
+  d.tx=d.x-d.ox-lx;d.ty=d.y-d.oy-ly;
+  d.b.style.transform=`translate(${d.tx}px,${d.ty}px)`;
+}
 function layMove(){
-  const {b,x,y}=layDrag,pv=$("personalView");
-  const t=layBlocks().find(o=>{if(o===b||o.hidden)return false;const r=o.getBoundingClientRect();return y>=r.top-11&&y<=r.bottom+11&&x>=r.left-11&&x<=r.right+11;});
-  if(!t) return;
-  const r=t.getBoundingClientRect(),br=b.getBoundingClientRect();
-  const side=Math.abs(r.top-br.top)<20&&t.classList.contains("col2")&&b.classList.contains("col2");
-  const after=side?x>r.left+r.width/2:y>r.top+r.height/2;
-  pv.insertBefore(b,after?t.nextElementSibling:t);layPair();
+  const d=layDrag,{b,x,y}=d,box=layBox(d.v);
+  const t=layBlocks(d.v).find(o=>{if(o===b||o.hidden||!layShown(o))return false;const r=layRect(o);return y>=r.top-11&&y<=r.bottom+11&&x>=r.left-11&&x<=r.right+11;});
+  if(t){
+    const r=layRect(t),bTop=b.getBoundingClientRect().top-d.ty;
+    const side=Math.abs(r.top-bTop)<20&&t.classList.contains("col2")&&b.classList.contains("col2");
+    const after=side?x>r.left+r.width/2:y>r.top+r.height/2;
+    const ref=after?t.nextSibling:t;
+    const already=after?t.nextElementSibling===b:b.nextElementSibling===t;
+    if(!already) layFlip(d.v,()=>{box.insertBefore(b,ref);layPair(d.v);});
+  }
+  layFollow();
+}
+function layRefresh(){
+  const v=layCurView(),lbl=v==="mine"?"Modifier l'accueil":"Modifier la disposition",el=$("homeEditLbl");
+  $("homeBar").hidden=!v;
+  if(el.dataset.k!==lbl){el.dataset.k=lbl;el.textContent=lbl;}
+  if(v) layApply(v);
+  welcomeRender();
 }
 $("homeEdit").onclick=()=>laySetEdit(true);
 $("homeDone").onclick=()=>laySetEdit(false);
-$("homeReset").onclick=()=>{laySave({order:LAY_DEF.slice(),hidden:[]});layApply();};
-document.addEventListener("keydown",e=>{if(layEdit&&e.key==="Escape"&&!layDrag)laySetEdit(false);});
+$("homeReset").onclick=()=>{const v=layView;if(!v)return;layFlip(v,()=>{laySave(v,{order:LAY_DEF[v].slice(),hidden:[]});layApply(v);});};
+document.addEventListener("keydown",e=>{if(layEdit&&e.key==="Escape"&&!layDrag&&!document.querySelector("dialog[open]"))laySetEdit(false);});
+/* ---- Première visite : message d'accueil ---- */
+function welcomeRender(){
+  let on=false;try{on=localStorage.getItem(welcomeKey())==="1";}catch(e){}
+  $("welcomeCard").hidden=!(on&&mode==="mine"&&curOrg);
+}
+const welcomeDone=()=>{try{localStorage.setItem(welcomeKey(),"0");}catch(e){}welcomeRender();};
+$("wcOk").onclick=welcomeDone;
+$("wcEdit").onclick=()=>{welcomeDone();laySetEdit(true);};
+$("wcAll").onclick=()=>{welcomeDone();layFlip("mine",()=>{laySave("mine",{order:layCurrent("mine").order,hidden:[]});layApply("mine");});toast("Tous les blocs sont affichés");};
+/* ---- Fenêtres : un clic sur le fond les ferme ---- */
+{
+  const outside=(d,e)=>{const r=d.getBoundingClientRect();return e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom;};
+  let downOn=null; // le clic doit commencer ET finir sur le fond (évite de fermer en sélectionnant du texte)
+  document.addEventListener("pointerdown",e=>{const d=e.target;downOn=d instanceof HTMLDialogElement&&d.open&&outside(d,e)?d:null;},true);
+  document.addEventListener("click",e=>{const d=e.target;
+    if(d===downOn&&d instanceof HTMLDialogElement&&d.open&&!d.dataset.busy&&outside(d,e)){e.preventDefault();d.close();}
+    downOn=null;},true);
+}
 let lastMinute=-1;
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)render();});
 setInterval(()=>{
