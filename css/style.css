@@ -904,3 +904,65 @@ button.side-me:focus-visible{outline:2px solid var(--accent);outline-offset:-2px
 .demobar .row{gap:8px}
 .noorg #actTab{display:none}
 @media (max-width:760px){.he-hint{flex-basis:100%;text-align:center}}
+
+/* ===== Palette « Nuit d'encre » : jour et nuit =====
+   Fonds teintés de bleu marine (jamais blanc pur ni noir pur), hiérarchie de surfaces
+   fond < panneau < surélevé, et accent éclairci la nuit. Contrastes vérifiés (WCAG AA). */
+:root{
+  --bg:#F3F5FB;--panel:#FFFFFF;--raised:#FFFFFF;--soft:#F2F4FA;--line:#DCE1EE;
+  --ink:#14213D;--muted:#5A6283;
+  --go:#14213D;--go-ink:#FFFFFF;--punch:#C8462A;--punch-ink:#FFFFFF;
+  --side:#14213D;--side-ink:#C5CEDD;--side-line:transparent;
+  --link:var(--ink);--warn:#D99A1E;--warn-ink:#8A5A00;--info:#3559C7;
+  --scrim:rgba(20,33,61,.45);
+  --shadow:0 1px 2px rgba(20,33,61,.06),0 6px 20px rgba(20,33,61,.07);
+  --shadow-hover:0 12px 30px rgba(20,33,61,.13);
+  --shadow-float:0 24px 60px rgba(20,33,61,.22);
+  --glow1:#E1E7F7;--glow2:color-mix(in srgb,var(--accent) 16%,#FFFFFF);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0D1224;--panel:#171D33;--raised:#1D2440;--soft:#1F2740;--line:#2A3352;
+  --ink:#E4E8F5;--muted:#9AA3C2;
+  --go:var(--accent);--go-ink:var(--accent-ink);--punch:#F27A5E;--punch-ink:#0D1224;
+  --side:#090D1A;--side-ink:#A9B2CC;--side-line:rgba(255,255,255,.06);
+  --link:color-mix(in srgb,var(--accent) 80%,#FFFFFF);--warn:#E9B04A;--warn-ink:#E9B04A;--info:#7FA0FF;
+  --scrim:rgba(4,7,16,.62);
+  --shadow:0 0 0 1px rgba(255,255,255,.05),0 8px 24px rgba(0,0,0,.35);
+  --shadow-hover:0 0 0 1px rgba(255,255,255,.08),0 14px 34px rgba(0,0,0,.45);
+  --shadow-float:0 0 0 1px rgba(255,255,255,.07),0 24px 60px rgba(0,0,0,.55);
+  --glow1:rgba(79,124,255,.09);--glow2:color-mix(in srgb,var(--accent) 7%,transparent);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0D1224;--panel:#171D33;--raised:#1D2440;--soft:#1F2740;--line:#2A3352;
+  --ink:#E4E8F5;--muted:#9AA3C2;
+  --go:var(--accent);--go-ink:var(--accent-ink);--punch:#F27A5E;--punch-ink:#0D1224;
+  --side:#090D1A;--side-ink:#A9B2CC;--side-line:rgba(255,255,255,.06);
+  --link:color-mix(in srgb,var(--accent) 80%,#FFFFFF);--warn:#E9B04A;--warn-ink:#E9B04A;--info:#7FA0FF;
+  --scrim:rgba(4,7,16,.62);
+  --shadow:0 0 0 1px rgba(255,255,255,.05),0 8px 24px rgba(0,0,0,.35);
+  --shadow-hover:0 0 0 1px rgba(255,255,255,.08),0 14px 34px rgba(0,0,0,.45);
+  --shadow-float:0 0 0 1px rgba(255,255,255,.07),0 24px 60px rgba(0,0,0,.55);
+  --glow1:rgba(79,124,255,.09);--glow2:color-mix(in srgb,var(--accent) 7%,transparent);
+  color-scheme:dark;
+}
+/* Surfaces surélevées : plus claires que le panneau la nuit, car l'ombre seule ne se voit pas */
+dialog,.homeedit,.tpanel .clock{background:var(--raised)}
+dialog,.homeedit,.tpanel .clock{box-shadow:var(--shadow-float)}
+dialog::backdrop,.scrim{background:var(--scrim)}
+@media (max-width:760px){.tscrim{background:var(--scrim)}}
+.side{box-shadow:inset -1px 0 0 var(--side-line)}
+.pcard:hover,body.layedit [data-lay]>[data-blk].dragging{box-shadow:var(--shadow-hover)}
+.auth-logo{box-shadow:var(--shadow-float)}
+/* Liens : encre + soulignement d'accent le jour, accent éclairci la nuit */
+.autolink,.ev-line a:not(.maplink){color:var(--link);text-decoration:underline;text-decoration-color:var(--accent);text-decoration-thickness:2px;text-underline-offset:3px}
+.com.orgz .autolink,.tdesc .autolink{color:inherit}
+/* États : couleurs lisibles dans les deux modes */
+.st.changed{border-color:var(--warn);color:var(--warn-ink)}
+.bud.warn .prog .fill{background:var(--warn)}
+.bflag.warn{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn-ink)}
+.tst.en_cours{background:color-mix(in srgb,var(--info) 16%,var(--panel));color:var(--info)}
+/* Bascule jour / nuit en fondu (navigateurs compatibles) */
+::view-transition-old(root),::view-transition-new(root){animation-duration:.35s;animation-timing-function:ease}
+@media (prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}}
