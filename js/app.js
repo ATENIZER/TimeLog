@@ -1584,7 +1584,7 @@ function renderSettings(){
   segSync("sWeek",P.week===0?0:1);segSync("sDur",P.dur||"hm");$("sRemind").value=String(P.remind||0);$("sNudge").value=String(P.nudge||0);notifSysLabel();
   const admin=adminUI(),owner=(typeof isOwnerNow==="function")?isOwnerNow():isOwner;
   $("sOrgCard").hidden=!curOrg;$("sOrg").readOnly=!admin;
-  $("sCodeRow").hidden=!admin;$("sRolesRow").hidden=!admin;$("sLeaveRow").hidden=owner;
+  $("sCodeRow").hidden=!admin;$("sRolesRow").hidden=!admin;$("sLeaveRow").hidden=owner;$("sDelOrgRow").hidden=!owner;
   $("sCode").textContent=fmtCode(orgCode);
   if(document.activeElement!==$("sOrg")) $("sOrg").value=org.orgName||"";
   $("sRate").readOnly=!admin;if(document.activeElement!==$("sRate")) $("sRate").value=org.hourlyValue||"";
@@ -1619,6 +1619,51 @@ $("sReset").onclick=()=>{
 $("sName").onchange=()=>{const v=$("sName").value.trim();if(!v){$("sName").value=myProfile.displayName||"";return;}myProfile.displayName=v;persist();syncMyName();render();toast("Nom enregistré");};
 $("sPw").onclick=async()=>{try{await auth.sendPasswordResetEmail(myProfile.email);toast("Courriel envoyé à "+myProfile.email,3500);}catch(e){toast("Envoi impossible pour le moment");}};
 $("sOut").onclick=()=>auth.signOut().then(()=>location.reload());
+/* ---------- Supprimer l'association (propriétaire seulement) ---------- */
+// Efface une collection et ses sous-collections connues ; renvoie le nombre d'éléments refusés.
+async function wipeCol(ref,tree){
+  let fail=0,sn;try{sn=await ref.get();}catch(e){return 1;}
+  for(const d of sn.docs){
+    for(const k of Object.keys(tree||{})) fail+=await wipeCol(d.ref.collection(k),tree[k]);
+    try{await d.ref.delete();}catch(e){fail++;}
+  }
+  return fail;
+}
+$("sDelOrg").onclick=()=>{
+  if(!isOwnerNow()) return;
+  $("doName").textContent=org.orgName||"";$("doConfirm").value="";$("doErr").textContent="";
+  $("doOk").disabled=false;$("doOk").textContent="Supprimer définitivement";
+  $("delOrgDlg").showModal();setTimeout(()=>$("doConfirm").focus(),50);
+};
+$("doCancel").onclick=()=>$("delOrgDlg").close();
+$("doConfirm").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("doOk").click();}};
+$("doOk").onclick=async()=>{
+  const name=(org.orgName||"").trim(),typed=$("doConfirm").value.trim();
+  if(!name||typed.toLocaleLowerCase()!==name.toLocaleLowerCase()){$("doErr").textContent="Le nom écrit ne correspond pas à celui de l'association.";return;}
+  if(!isOwnerNow()||!curOrg) return;
+  const id=curOrg,o=L.org(id),dlg=$("delOrgDlg");
+  dlg.dataset.busy="1";$("doOk").disabled=true;$("doOk").textContent="Suppression en cours…";$("doErr").textContent="";
+  clearTimeout(saveTimer);backend=null; // plus d'enregistrement automatique pendant l'effacement
+  let fail=0;
+  try{
+    fail+=await wipeCol(o.collection("projects"),{tasks:{},files:{chunks:{}}});
+    fail+=await wipeCol(o.collection("events"),{comments:{},minutes:{}});
+    fail+=await wipeCol(o.collection("people"));
+    fail+=await wipeCol(o.collection("validations"));
+    fail+=await wipeCol(o.collection("members"));
+    if(orgCode) await L.code(orgCode).delete().catch(()=>{fail++;});
+    await o.delete(); // en dernier : les règles de sécurité s'appuient sur ce document
+    if(fail) console.warn("Association supprimée ; éléments non effacés :",fail);
+    myOrgIds=myOrgIds.filter(x=>x!==id);await saveIndex().catch(()=>{});
+    toast("Association supprimée");setTimeout(()=>switchOrg(myOrgIds[0]||""),700);
+  }catch(e){
+    console.error(e);delete dlg.dataset.busy;
+    $("doErr").textContent="Suppression refusée. Vérifiez votre connexion, puis réessayez.";
+    $("doOk").disabled=false;$("doOk").textContent="Supprimer définitivement";
+    setTimeout(()=>location.reload(),3500); // recharge un état propre (l'enregistrement automatique avait été coupé)
+  }
+};
+$("doX").onclick=()=>$("delOrgDlg").close();
 /* ---------- Activités : validation par l'administrateur ---------- */
 const PEND_MAX=12;
 function pendGroups(){
@@ -1657,7 +1702,7 @@ $("sDelete").onclick=()=>{
   const owned=myOrgIds.filter(id=>orgsInfo[id]&&orgsInfo[id].owner).map(id=>orgsInfo[id].name);
   const pv=myProviders(),pw=pv.includes("password");
   $("dOwned").hidden=!owned.length;
-  $("dOwned").textContent=owned.length?`Vous êtes propriétaire de : ${owned.join(", ")}. Une association ne peut pas rester sans propriétaire : la suppression de votre compte est bloquée tant que vous l'êtes.`:"";
+  $("dOwned").textContent=owned.length?`Vous êtes propriétaire de : ${owned.join(", ")}. Supprimez d'abord ces associations (Paramètres › Association) : une association ne peut pas rester sans propriétaire.`:"";
   $("dPassField").hidden=!pw;$("dGoogle").hidden=pw||!pv.includes("google.com");
   $("dPass").value="";$("dConfirm").value="";$("dErr").textContent="";
   $("dOk").disabled=!!owned.length;$("dOk").textContent="Supprimer définitivement";
@@ -2936,7 +2981,7 @@ $("demoExit").onclick=()=>exitDemo(false);
 try{if(sessionStorage.getItem("pointeuse-signup")){sessionStorage.removeItem("pointeuse-signup");setAuthMode(true);}}catch(e){}
 // Dans l'aperçu, les actions qui touchent un vrai compte sont réservées aux personnes inscrites.
 if(DEMO) document.addEventListener("click",e=>{
-  const b=e.target.closest&&e.target.closest("#newOrgBtn,#joinOrgBtn,#sLeave,#sDelete,#accDel,#sPw,#accPw,#sNewCode");
+  const b=e.target.closest&&e.target.closest("#newOrgBtn,#joinOrgBtn,#sLeave,#sDelete,#accDel,#sPw,#accPw,#sNewCode,#doOk");
   if(!b) return;e.preventDefault();e.stopImmediatePropagation();toast("Créez un compte gratuit pour utiliser cette fonction.",3200);
 },true);
 /* Langue */
