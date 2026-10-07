@@ -167,7 +167,7 @@ async function loadOrgList(){
       const o=await withRetry(()=>L.org(id).get());if(!o.exists)return;const d=o.data();
       const m=await withRetry(()=>L.members(id).doc(myId).get());if(!m.exists)return;
       const r=(d.roles||[]).find(x=>x.id===m.data().roleId);
-      out[id]={id,name:d.name||"Association",role:d.ownerUid===myId?"Propriétaire":(r&&r.level==="admin"?r.name:"Membre"),owner:d.ownerUid===myId,admin:d.ownerUid===myId||(!!r&&r.level==="admin"),banner:d.banner||null,code:d.code||""};
+      out[id]={id,name:d.name||"Association",role:d.ownerUid===myId?"Propriétaire":(r&&r.level==="admin"?r.name:"Membre"),owner:d.ownerUid===myId,admin:d.ownerUid===myId||(!!r&&r.level==="admin"),banner:d.banner||null,code:d.code||"",background:d.background||null};
     }catch(e){}
   }));
   orgsInfo=out;
@@ -186,7 +186,8 @@ async function openOrg(){
     if(!sn.exists) return;const v=sn.data();
     ownerUid=v.ownerUid||null;orgCode=v.code||"";
     org={defaultRoleId:v.defaultRoleId||"r_employe",roles:JSON.parse(JSON.stringify(v.roles&&v.roles.length?v.roles:DEFAULT_ROLES.roles)),orgName:v.name||"",hourlyValue:Number(v.hourlyValue)||0};
-    if(orgsInfo[curOrg]) Object.assign(orgsInfo[curOrg],{name:org.orgName,banner:v.banner||null,code:v.code||""});
+    if(orgsInfo[curOrg]) Object.assign(orgsInfo[curOrg],{name:org.orgName,banner:v.banner||null,code:v.code||"",background:v.background||null});
+    orgChart=v.chart||null;orgBgData=v.background||null;applyOrgBg();
     applyOrgTypes(v.activityTypes);
     onAccessChange();
   },e=>console.warn("org",e));
@@ -195,6 +196,7 @@ async function openOrg(){
     sn.docs.forEach(d=>{const m=d.data();members[d.id]=m;if(m.roleId)assignments[d.id]=m.roleId;});
     onAccessChange();
   },e=>console.warn("membres",e));
+  msgStart();
   render();
 }
 function onAccessChange(){
@@ -1652,6 +1654,8 @@ $("doOk").onclick=async()=>{
     fail+=await wipeCol(o.collection("events"),{comments:{},minutes:{}});
     fail+=await wipeCol(o.collection("people"));
     fail+=await wipeCol(o.collection("validations"));
+    fail+=await wipeCol(o.collection("channels").where("kind","==","channel"),{messages:{}});
+    fail+=await wipeCol(o.collection("channels").where("memberIds","array-contains",myId),{messages:{}});
     fail+=await wipeCol(o.collection("members"));
     if(orgCode) await L.code(orgCode).delete().catch(()=>{fail++;});
     await o.delete(); // en dernier : les règles de sécurité s'appuient sur ce document
@@ -2647,7 +2651,7 @@ function renderNow(){
   const first=nm&&nm!=="Moi"&&nm!=="Personne sans nom"?" "+nm.split(/\s+/)[0]:"";
   $("today").textContent=tx(hr>=18||hr<5?"Bonsoir":"Bonjour")+first+(curOrg&&org.orgName?" · "+org.orgName:"")+" · "+new Date().toLocaleDateString(LOC(),{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   const tabSel=mode==="person"?"team":mode==="project"?"projects":mode;
-  $("pageTitle").textContent={settings:"Paramètres",calendar:"Calendrier",activities:"Activités",mine:"Accueil",projects:"Projets",project:"Projets",team:"Équipe",person:"Équipe",roles:"Rôles"}[mode]||"";
+  $("pageTitle").textContent={chart:"Organigramme",messages:"Messages",settings:"Paramètres",calendar:"Calendrier",activities:"Activités",mine:"Accueil",projects:"Projets",project:"Projets",team:"Équipe",person:"Équipe",roles:"Rôles"}[mode]||"";
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tabSel));
   recordNav();
   renderAccess();
@@ -2657,12 +2661,17 @@ function renderNow(){
   $("projectsView").hidden=!inProj;
   $("settingsView").hidden=mode!=="settings";
   $("calView").hidden=mode!=="calendar";
-  $("personalView").hidden=mode==="team"||mode==="roles"||inProj||mode==="settings"||mode==="calendar"||mode==="activities";
+  $("chartView").hidden=mode!=="chart";
+  $("msgView").hidden=mode!=="messages";
+  document.body.classList.toggle("in-msg",mode==="messages");
+  $("personalView").hidden=mode==="team"||mode==="roles"||inProj||mode==="settings"||mode==="calendar"||mode==="activities"||mode==="chart"||mode==="messages";
   $("activitiesView").hidden=!(mode==="activities"||mode==="person");
   if(mode!=="activities") $("pendSec").hidden=true;
   if(layEdit&&layCurView()!==layView) laySetEdit(false);
   if(mode==="settings") renderSettings();
   else if(mode==="calendar") renderCalendar();
+  else if(mode==="chart") renderChart();
+  else if(mode==="messages") renderMessages();
   else if(inProj) renderProjects();
   else if(mode==="team"){renderTeam();renderTeamDay();renderTeamCharts();}
   else if(mode==="roles") renderRoles();
@@ -2935,7 +2944,15 @@ function demoSeed(){
   const notes={t_travail:["Kiosque d'accueil","Préparation du gala","Mise à jour du site web","Inventaire du local"],t_reunion:["Réunion du conseil","Comité organisateur"],t_formation:["Formation premiers soins","Atelier d'animation"],t_admin:["Comptabilité","Courriels aux membres"]};
   let seed=11;const rnd=()=>(seed=seed*16807%2147483647)/2147483647;
   const db={"userOrgs/demo":{orgIds:["demo-org"],displayName:"Visiteur",email:""},
-    [O]:{name:"Association étudiante (démo)",ownerUid:"demo",code:"DEMO2026",createdAt:now-60*DY,defaultRoleId:"r_employe",roles:JSON.parse(JSON.stringify(DEFAULT_ROLES.roles)),adminRoleIds:["r_president","r_vp"],hourlyValue:25,activityTypes:T},
+    [O]:{name:"Association étudiante (démo)",ownerUid:"demo",code:"DEMO2026",createdAt:now-60*DY,defaultRoleId:"r_employe",roles:JSON.parse(JSON.stringify(DEFAULT_ROLES.roles)),adminRoleIds:["r_president","r_vp"],hourlyValue:25,activityTypes:T,
+      background:{kind:"preset",preset:"aurore",color:"#2FB7A0",veil:45},
+      chart:{updatedAt:now-3*DY,updatedBy:"demo",nodes:[
+        {id:"n_pres",title:"Présidence",desc:"Représente l'association, anime le conseil et signe les attestations.",parent:"",people:["demo"],color:"#14213D"},
+        {id:"n_vp",title:"Vice-présidence",desc:"Coordonne les comités et remplace la présidence au besoin.",parent:"n_pres",people:["d_camille"],color:"#4F7CFF"},
+        {id:"n_treso",title:"Trésorerie",desc:"Tient les comptes, prépare le budget et les demandes de subvention.",parent:"n_pres",people:[],color:"#22A05B"},
+        {id:"n_evts",title:"Comité des événements",desc:"Organise le gala, les soirées et les activités d'accueil.",parent:"n_vp",people:["d_samuel","d_lea"],color:"#F2A33A"},
+        {id:"n_comm",title:"Communications",desc:"Réseaux sociaux, affiches et infolettre.",parent:"n_vp",people:["d_noah"],color:"#D6457F"},
+        {id:"n_recr",title:"Recrutement",desc:"Kiosques et accueil des nouveaux bénévoles.",parent:"n_comm",people:["d_lea"],color:"#8B5CF6"}]}},
     "codes/DEMO2026":{orgId:"demo-org",name:"Association étudiante (démo)",defaultRoleId:"r_employe"}};
   ppl.forEach(([id,name,role],pi)=>{
     db[O+"/members/"+id]={uid:id,name,roleId:role,joinedAt:now-50*DY};
@@ -2967,6 +2984,20 @@ function demoSeed(){
   ev("e_past","Comité organisateur","reunion",-3,17,0,18,0,{icon:"📋"});
   {const d=new Date(at(16,12));const s=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());
    db[O+"/events/e_gala"]={title:"Gala de fin d'année",type:"evenement",allDay:true,start:s,end:s+DY,date:ymd(16),tz:"",video:false,location:"Centre communautaire",description:"Tenue de soirée suggérée.",icon:"🎉",image:"",createdBy:"demo",createdByName:"Visiteur",createdAt:now-5*DY,updatedAt:now-5*DY};}
+  {const C=O+"/channels/";let k=0;
+   const msg=(cid,by,text,t)=>{db[C+cid+"/messages/m"+(k++)]={by,byName:names[by],text,at:t};const c=db[C+cid];if(t>(c.lastAt||0))Object.assign(c,{lastAt:t,lastText:text.slice(0,140),lastBy:by,lastByName:names[by]});};
+   db[C+"general"]={kind:"channel",name:"général",desc:"Annonces et discussions de toute l'association",createdBy:"demo",createdAt:now-40*DY,lastAt:0};
+   db[C+"c_gala"]={kind:"channel",name:"comité-gala",desc:"Organisation du gala de fin d'année",createdBy:"demo",createdAt:now-20*DY,lastAt:0};
+   const dm="dm_"+["d_camille","demo"].sort().join("_");
+   db[C+dm]={kind:"dm",memberIds:["d_camille","demo"].sort(),createdBy:"d_camille",createdAt:now-2*DY,lastAt:0};
+   msg("general","d_camille","Bonjour tout le monde ! La réunion du conseil a lieu jeudi à 18 h, au local. L'ordre du jour est dans le calendrier.",now-26*H);
+   msg("general","d_samuel","J'apporte le projecteur 👍",now-25*H);
+   msg("general","demo","Merci ! Pensez à pointer vos heures de kiosque cette semaine.",now-24*H);
+   msg("general","d_lea","Les affiches de la campagne de recrutement sont prêtes à imprimer 🎉",now-2*H);
+   msg("c_gala","d_samuel","J'ai contacté deux commanditaires, j'attends leurs réponses.",now-50*H);
+   msg("c_gala","d_lea","Super. Je m'occupe du troisième : la librairie du campus ?",now-49*H);
+   msg("c_gala","demo","Parfait. On fait le point jeudi après le conseil.",now-48*H);
+   msg(dm,"d_camille","Salut ! Peux-tu valider mes heures de la semaine dernière quand tu auras une minute ?",now-40*60000);}
   return db;
 }
 function exitDemo(signup){try{sessionStorage.removeItem("pointeuse-demo");if(signup)sessionStorage.setItem("pointeuse-signup","1");}catch(e){}location.reload();}
@@ -2986,6 +3017,502 @@ if(DEMO) document.addEventListener("click",e=>{
   const b=e.target.closest&&e.target.closest("#newOrgBtn,#joinOrgBtn,#sLeave,#sDelete,#accDel,#sPw,#accPw,#sNewCode,#doOk");
   if(!b) return;e.preventDefault();e.stopImmediatePropagation();toast("Créez un compte gratuit pour utiliser cette fonction.",3200);
 },true);
+/* =====================================================================
+   Style de l'interface (cinq propositions)
+   ===================================================================== */
+const STYLES=[
+  {id:"encre",name:"Encre",desc:"Marine et ambre, la signature de la Pointeuse.",accent:"#F2A33A",prev:{bg:"#F3F5FB",side:"#14213D",panel:"#FFFFFF",ink:"#14213D",line:"#DCE1EE",r:7}},
+  {id:"carton",name:"Carton de pointage",desc:"Papier manille, encre tamponnée et chiffres de pointeuse.",accent:"#B3261E",prev:{bg:"#E6DCC2",side:"#23211C",panel:"#FAF6EA",ink:"#23211C",line:"#CDBF9C",r:2}},
+  {id:"aurore",name:"Aurore boréale",desc:"Verre dépoli sur un ciel du Nord, pour les soirs de gala.",accent:"#19C3A0",prev:{bg:"linear-gradient(140deg,#CFF5EA,#E4DEFF 55%,#FBE2F0)",side:"rgba(26,22,64,.88)",panel:"rgba(255,255,255,.72)",ink:"#1A1640",line:"rgba(26,22,64,.12)",r:11}},
+  {id:"bloc",name:"Affiche",desc:"Contours épais et couleurs franches, comme une affiche de campagne.",accent:"#FF5A36",prev:{bg:"#E9ECF2",side:"#FFD23F",panel:"#FFFFFF",ink:"#0F1B3D",line:"#0F1B3D",r:5,hard:1}},
+  {id:"lichen",name:"Lichen",desc:"Clair et posé, sans ombres, pour se concentrer.",accent:"#2E7D5B",prev:{bg:"#EEF2EE",side:"#E1E8E1",panel:"#FBFCFA",ink:"#1E2B24",line:"#D3DDD3",r:8}}
+];
+const STYLE_KEY="pointeuse-style";
+const curStyle=()=>{try{const s=localStorage.getItem(STYLE_KEY);return STYLES.some(x=>x.id===s)?s:"encre";}catch(e){return "encre";}};
+const calmUI=()=>window.matchMedia("(prefers-reduced-motion: reduce)").matches||document.body.classList.contains("nomotion");
+function setStyle(id,withAccent){
+  const st=STYLES.find(x=>x.id===id)||STYLES[0];
+  const apply=()=>{
+    if(st.id==="encre") document.documentElement.removeAttribute("data-style");
+    else{document.documentElement.setAttribute("data-style",st.id);if(window.loadStyleFont)window.loadStyleFont(st.id);}
+    try{st.id==="encre"?localStorage.removeItem(STYLE_KEY):localStorage.setItem(STYLE_KEY,st.id);}catch(e){}
+    if(withAccent&&window.Appearance) window.Appearance.setAccent(st.accent);
+    applyOrgBg();
+  };
+  if(document.startViewTransition&&!calmUI()){try{document.startViewTransition(apply);return;}catch(e){}}
+  apply();
+}
+function renderStyleSettings(){
+  const g=$("sStyle"),cur=curStyle();
+  if(!g.children.length){
+    g.innerHTML=STYLES.map(s=>{const p=s.prev;
+      return `<button class="style-opt" data-style="${s.id}" aria-pressed="false">
+        <span class="sp${p.hard?" hard":""}" style="--pb:${p.bg};--ps:${p.side};--pp:${p.panel};--pi:${p.ink};--pl:${p.line};--pa:${s.accent};--pr:${p.r}px" aria-hidden="true"><i class="sp-side"><i></i><i></i><i></i></i><i class="sp-main"><i class="sp-h"></i><i class="sp-cards"><i></i><i></i><i></i></i><i class="sp-wide"><i></i></i></i></span>
+        <span class="so-txt"><b>${esc(s.name)}</b><span>${esc(s.desc)}</span></span></button>`;}).join("");
+    g.querySelectorAll("[data-style]").forEach(b=>b.onclick=()=>{
+      const s=STYLES.find(x=>x.id===b.dataset.style);setStyle(s.id,true);
+      setTimeout(()=>{renderStyleSettings();toast(tx("Style « {} » appliqué",s.name));},30);});
+  }
+  g.querySelectorAll("[data-style]").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.style===cur)));
+  $("sOrgBgOn").checked=orgBgOn();
+  $("sBgRow").hidden=!curOrg||!adminUI();
+}
+{const base=renderSettings;renderSettings=function(){base();renderStyleSettings();};}
+$("sOrgBgOn").onchange=()=>{try{localStorage.setItem(BG_KEY,$("sOrgBgOn").checked?"1":"0");}catch(e){}applyOrgBg();};
+$("sReset").addEventListener("click",()=>{setStyle("encre",false);try{localStorage.removeItem(BG_KEY);}catch(e){}applyOrgBg();});
+{const prev=window.onAppearanceChange;window.onAppearanceChange=()=>{if(prev)prev();applyOrgBg();};
+ const mq=window.matchMedia("(prefers-color-scheme: dark)");(mq.addEventListener?mq.addEventListener("change",applyOrgBg):mq.addListener(applyOrgBg));}
+
+/* =====================================================================
+   Arrière-plan de la page, propre à chaque association
+   ===================================================================== */
+let orgBgData=null;
+const BG_KEY="pointeuse-orgbg";
+const orgBgOn=()=>{try{return localStorage.getItem(BG_KEY)!=="0";}catch(e){return true;}};
+const isDarkNow=()=>{const t=document.documentElement.getAttribute("data-theme");return t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);};
+const svgUrl=s=>"data:image/svg+xml,"+encodeURIComponent(s);
+function topoSVG(c){
+  const ring=(cx,cy,n,k)=>Array.from({length:n},(_,i)=>{const r=18+i*k;return `<ellipse cx="${cx}" cy="${cy}" rx="${r*1.25}" ry="${r}" transform="rotate(${(i*7)%40-20} ${cx} ${cy})"/>`;}).join("");
+  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="520" height="520" viewBox="0 0 520 520"><g fill="none" stroke="${c}" stroke-opacity=".38" stroke-width="1.4">${ring(120,140,9,17)}${ring(400,360,11,15)}${ring(430,60,5,16)}${ring(60,460,6,15)}</g></svg>`);
+}
+function waveSVG(c){
+  const lines=Array.from({length:9},(_,i)=>{const y=260+i*34,a=26+i*3;return `<path d="M0 ${y} C 240 ${y-a} 480 ${y+a} 720 ${y} S 1200 ${y-a} 1440 ${y}" stroke-opacity="${(.25+i*.06).toFixed(2)}"/>`;}).join("");
+  return svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="600" viewBox="0 0 1440 600" preserveAspectRatio="none"><g fill="none" stroke="${c}" stroke-width="2">${lines}</g></svg>`);
+}
+// Chaque motif reçoit la couleur choisie (c) et la base du mode jour ou nuit (b)
+const BG_PRESETS=[
+  {id:"degrade",name:"Dégradé",css:(c,b)=>`linear-gradient(155deg,color-mix(in srgb,${c} 70%,${b}) 0%,color-mix(in srgb,${c} 35%,#14213D) 100%)`},
+  {id:"aurore",name:"Aurore",css:(c,b)=>`radial-gradient(60% 50% at 12% 8%,color-mix(in srgb,${c} 80%,transparent),transparent 70%),radial-gradient(50% 55% at 92% 18%,color-mix(in srgb,${c} 35%,#8B5CF6),transparent 72%),radial-gradient(70% 60% at 60% 105%,color-mix(in srgb,${c} 40%,#2FB7A0),transparent 70%),color-mix(in srgb,${c} 12%,${b})`},
+  {id:"points",name:"Points",css:(c,b)=>`radial-gradient(color-mix(in srgb,${c} 60%,transparent) 1.6px,transparent 1.9px) 0 0/22px 22px,color-mix(in srgb,${c} 10%,${b})`},
+  {id:"carreaux",name:"Carreaux",css:(c,b)=>`linear-gradient(color-mix(in srgb,${c} 28%,transparent) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(90deg,color-mix(in srgb,${c} 28%,transparent) 1px,transparent 1px) 0 0/28px 28px,color-mix(in srgb,${c} 7%,${b})`},
+  {id:"rayures",name:"Rayures",css:(c,b)=>`repeating-linear-gradient(135deg,color-mix(in srgb,${c} 14%,${b}) 0 22px,color-mix(in srgb,${c} 24%,${b}) 22px 44px)`},
+  {id:"relief",name:"Relief",css:(c,b)=>`url("${topoSVG(c)}") center/520px,color-mix(in srgb,${c} 9%,${b})`},
+  {id:"vagues",name:"Vagues",css:(c,b)=>`url("${waveSVG(c)}") center bottom/100% 70% no-repeat,linear-gradient(180deg,color-mix(in srgb,${c} 6%,${b}),color-mix(in srgb,${c} 22%,${b}))`},
+  {id:"uni",name:"Uni",css:(c,b)=>`color-mix(in srgb,${c} 26%,${b})`}
+];
+const BG_COLORS=["#F2A33A","#2FB7A0","#4F7CFF","#8B5CF6","#D6457F","#E4572E","#22A05B","#14213D"];
+function bgCss(b){
+  if(!b||!b.kind||b.kind==="none") return "";
+  if(b.kind==="image") return typeof b.image==="string"&&/^data:image\//.test(b.image)?`url("${b.image}") center/cover no-repeat`:"";
+  const p=BG_PRESETS.find(x=>x.id===b.preset)||BG_PRESETS[0];
+  const c=/^#[0-9a-fA-F]{6}$/.test(b.color||"")?b.color:"#F2A33A";
+  return p.css(c,isDarkNow()?"#0D1224":"#FFFFFF");
+}
+function paintBg(img,veil,b){
+  const css=bgCss(b);
+  img.style.background=css||"none";
+  img.classList.toggle("blur",!!(b&&b.kind==="image"&&b.blur));
+  veil.style.opacity=css?String(Math.min(90,Math.max(0,b.veil==null?40:Number(b.veil)))/100):"0";
+}
+function applyOrgBg(){
+  const el=$("orgBg");if(!el) return;
+  const b=curOrg&&orgBgOn()?orgBgData:null,on=!!bgCss(b);
+  document.body.classList.toggle("has-orgbg",on);
+  paintBg(el.querySelector(".ob-img"),el.querySelector(".ob-veil"),on?b:null);
+}
+let bgEdit=null,bgFor=null;
+function openBgDlg(id){
+  id=id||curOrg;const o=orgsInfo[id];if(!o) return;
+  if(!o.admin&&!(id===curOrg&&adminUI())){toast("Seuls les administrateurs peuvent changer l'arrière-plan");return;}
+  bgFor=id;const cur=(id===curOrg?orgBgData:o.background)||{};
+  bgEdit={kind:cur.kind||"none",preset:cur.preset||"aurore",color:cur.color||(o.banner&&o.banner.color)||hashColor(id),image:cur.image||"",veil:cur.veil==null?40:Number(cur.veil),blur:!!cur.blur};
+  $("bgErr").textContent="";
+  $("bgColors").innerHTML=BG_COLORS.map(c=>`<button data-c="${c}" style="background:${c}" aria-label="Couleur ${c}" aria-pressed="false"></button>`).join("");
+  $("bgColors").querySelectorAll("button").forEach(x=>x.onclick=()=>{bgEdit.color=x.dataset.c;bgRender();});
+  bgRender();$("bgDlg").showModal();
+}
+function bgRender(){
+  const b=bgEdit;if(!b) return;
+  segSync("bgKind",b.kind);
+  $("bgPresetsF").hidden=$("bgColorF").hidden=b.kind!=="preset";
+  $("bgImageF").hidden=b.kind!=="image";$("bgBlurF").hidden=b.kind!=="image";
+  $("bgVeilF").hidden=b.kind==="none";
+  const base=isDarkNow()?"#0D1224":"#FFFFFF";
+  $("bgPresets").innerHTML=BG_PRESETS.map(p=>`<button class="bg-tile" data-p="${p.id}" aria-pressed="${p.id===b.preset}" style='background:${p.css(b.color,base).replace(/'/g,"%27")}'><span>${esc(p.name)}</span></button>`).join("");
+  $("bgPresets").querySelectorAll("[data-p]").forEach(x=>x.onclick=()=>{bgEdit.preset=x.dataset.p;bgRender();});
+  $("bgColors").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.c.toLowerCase()===String(b.color).toLowerCase())));
+  $("bgColor").value=/^#[0-9a-fA-F]{6}$/.test(b.color)?b.color.toLowerCase():"#f2a33a";
+  $("bgImgDel").hidden=!b.image;
+  $("bgVeil").value=b.veil;$("bgVeilVal").textContent=b.veil+" %";$("bgBlur").checked=b.blur;
+  $("bgPrevName").textContent=(orgsInfo[bgFor]&&orgsInfo[bgFor].name)||"";
+  paintBg($("bgPrevImg"),$("bgPrevVeil"),b.kind==="image"&&!b.image?null:b);
+}
+function shrinkBackground(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file),img=new Image();
+    img.onload=()=>{
+      const MAX=1600,w=img.naturalWidth||img.width,h=img.naturalHeight||img.height,r=Math.min(1,MAX/Math.max(w,h));
+      const c=document.createElement("canvas");c.width=Math.round(w*r);c.height=Math.round(h*r);
+      const g=c.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);g.drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+      let q=.8,d=c.toDataURL("image/jpeg",q);
+      while(d.length>280000&&q>.35){q-=.1;d=c.toDataURL("image/jpeg",q);}
+      if(d.length>280000){const c2=document.createElement("canvas");c2.width=Math.round(c.width*.7);c2.height=Math.round(c.height*.7);c2.getContext("2d").drawImage(c,0,0,c2.width,c2.height);d=c2.toDataURL("image/jpeg",.6);}
+      res(d);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);rej(new Error("image"));};
+    img.src=url;
+  });
+}
+document.querySelectorAll("#bgKind button").forEach(b=>b.onclick=()=>{bgEdit.kind=b.dataset.v;if(bgEdit.kind==="image"&&!bgEdit.image)$("bgFile").click();bgRender();});
+$("bgColor").oninput=e=>{bgEdit.color=e.target.value;bgRender();};
+$("bgVeil").oninput=e=>{bgEdit.veil=Number(e.target.value);bgRender();};
+$("bgBlur").onchange=e=>{bgEdit.blur=e.target.checked;bgRender();};
+$("bgImgDel").onclick=()=>{bgEdit.image="";bgRender();};
+$("bgFile").onchange=async()=>{
+  const f=$("bgFile").files[0];$("bgFile").value="";if(!f) return;$("bgErr").textContent="";
+  try{bgEdit.image=await shrinkBackground(f);bgEdit.kind="image";if(bgEdit.veil<30)bgEdit.veil=45;bgRender();}
+  catch(e){$("bgErr").textContent="Cette image n'a pas pu être lue. Essayez un fichier JPG ou PNG.";}
+};
+$("bgCancel").onclick=$("bgX").onclick=()=>$("bgDlg").close();
+$("bgSave").onclick=async()=>{
+  const b=bgEdit;if(!b||!bgFor) return;
+  if(b.kind==="image"&&!b.image){$("bgErr").textContent="Choisissez une image, ou un autre type d'arrière-plan.";return;}
+  const clean=b.kind==="none"?{kind:"none"}:b.kind==="image"?{kind:"image",image:b.image,veil:b.veil,blur:!!b.blur}:{kind:"preset",preset:b.preset,color:b.color,veil:b.veil};
+  $("bgSave").disabled=true;
+  try{
+    await L.org(bgFor).update({background:clean});
+    if(orgsInfo[bgFor]) orgsInfo[bgFor].background=clean;
+    if(bgFor===curOrg){orgBgData=clean;applyOrgBg();}
+    $("bgDlg").close();toast(clean.kind==="none"?"Arrière-plan retiré":"Arrière-plan enregistré pour tous les membres");
+  }catch(e){$("bgErr").textContent="Enregistrement refusé : il faut être administrateur de cette association.";}
+  $("bgSave").disabled=false;
+};
+$("sBgBtn").onclick=()=>openBgDlg(curOrg);
+$("bToBg").onclick=()=>{const id=banEdit&&banEdit.id;$("banDlg").close();openBgDlg(id);};
+
+/* =====================================================================
+   Organigramme de l'association
+   ===================================================================== */
+let orgChart=null,ocEdit=false,ocZoom=1,ocGenConfirm=false,ocDelConfirm=false,ocOpenId=null,ocEditing=null;
+const OC_COLORS=["#14213D","#F2A33A","#4F7CFF","#2FB7A0","#E4572E","#8B5CF6","#D6457F","#22A05B"];
+const OC_VUE="pointeuse-oc-vue";
+const pName=id=>{const p=profileOf(id);return p.displayName||(members[id]&&members[id].name)||p.email||(id===myId?"Moi":"Personne sans nom");};
+const memberIds=()=>Object.keys(members).sort((a,b)=>pName(a).localeCompare(pName(b),"fr"));
+function avHTML(id,cls){
+  const p=profileOf(id);
+  return p&&p.photoURL?`<img class="av ${cls||""}" src="${esc(p.photoURL)}" alt="" referrerpolicy="no-referrer">`:`<span class="av ${cls||""}" style="background:${hashColor(id)}" aria-hidden="true">${esc(initials(pName(id)))}</span>`;
+}
+const ocId=()=>"n_"+uid();
+function genChart(){
+  const ids=Object.keys(members),nodes=[];
+  const top=ownerUid&&members[ownerUid]?ownerUid:null;
+  const topRole=top?roleOf(top):org.roles.find(r=>r.level==="admin");
+  const root={id:"n_racine",title:(topRole&&topRole.name)||"Présidence",desc:"",parent:"",people:top?[top]:[],color:OC_COLORS[0]};
+  nodes.push(root);
+  org.roles.forEach((r,i)=>{
+    const holders=ids.filter(id=>id!==top&&roleOf(id)&&roleOf(id).id===r.id);
+    if(!holders.length) return;
+    nodes.push({id:"n_"+r.id,title:r.name+(r.level!=="admin"&&holders.length>1?"s":""),desc:"",parent:root.id,people:holders,color:OC_COLORS[(i+1)%OC_COLORS.length]});
+  });
+  return nodes;
+}
+const chartAuto=()=>!(orgChart&&Array.isArray(orgChart.nodes)&&orgChart.nodes.length);
+function chartNodes(){
+  const raw=chartAuto()?genChart():orgChart.nodes.map(n=>Object.assign({people:[],desc:"",parent:""},n));
+  const ids=new Set(raw.map(n=>n.id));
+  raw.forEach(n=>{if(!ids.has(n.parent)||n.parent===n.id)n.parent="";});
+  return raw;
+}
+const descendants=(nodes,id)=>{const out=new Set([id]);let grew=true;while(grew){grew=false;nodes.forEach(n=>{if(!out.has(n.id)&&out.has(n.parent)){out.add(n.id);grew=true;}});}return out;};
+function saveChart(nodes,msg){
+  if(!adminUI()||!curOrg) return Promise.resolve();
+  const clean=nodes.map(n=>({id:n.id,title:String(n.title||"").slice(0,60),desc:String(n.desc||"").slice(0,400),parent:n.parent||"",people:(n.people||[]).slice(0,40),color:n.color||""}));
+  orgChart={nodes:clean,updatedAt:Date.now(),updatedBy:myId};render();
+  return L.org(curOrg).update({chart:orgChart}).then(()=>{if(msg)toast(msg);}).catch(()=>toast("Enregistrement refusé : accès administrateur requis"));
+}
+function ocLayout(){try{const v=localStorage.getItem(OC_VUE);if(v==="tree"||v==="list")return v;}catch(e){}return window.matchMedia("(max-width: 700px)").matches?"list":"tree";}
+function renderChart(){
+  const nodes=chartNodes(),admin=adminUI(),lay=ocLayout();
+  if(!admin) ocEdit=false;
+  const by={};nodes.forEach(n=>{(by[n.parent]=by[n.parent]||[]).push(n);});
+  const placed=new Set();nodes.forEach(n=>(n.people||[]).forEach(p=>{if(members[p])placed.add(p);}));
+  const nodeHTML=n=>{
+    const ppl=(n.people||[]).filter(id=>members[id]);
+    const list=ppl.length?ppl.slice(0,3).map(id=>`<span class="oc-p">${avHTML(id)}<span class="oc-pn" translate="no">${esc(pName(id))}${id===myId?' <em>(vous)</em>':""}</span></span>`).join("")+(ppl.length>3?`<span class="oc-more">+ ${ppl.length-3} autre${ppl.length-3>1?"s":""}</span>`:""):`<span class="oc-vacant">Poste à pourvoir</span>`;
+    return `<div class="oc-node${ppl.includes(myId)?" me":""}${ppl.length?"":" vacant"}" style="--nc:${esc(n.color||"var(--accent)")}" data-node="${esc(n.id)}" tabindex="0" role="button" aria-label="${esc(n.title)}${ppl.length?" : "+esc(ppl.map(pName).join(", ")):" : poste à pourvoir"}">
+      <span class="oc-t" translate="no">${esc(n.title||"Sans titre")}</span><span class="oc-ppl">${list}</span>
+      ${ocEdit?`<button class="oc-plus" data-ocadd="${esc(n.id)}" title="Ajouter un poste en dessous" aria-label="Ajouter un poste sous ${esc(n.title)}">+</button>`:""}</div>`;
+  };
+  const rec=(pid,depth)=>(by[pid]||[]).map(n=>{const kids=depth<14?rec(n.id,depth+1):"";return `<li>${nodeHTML(n)}${kids?`<ul>${kids}</ul>`:""}</li>`;}).join("");
+  const tree=$("ocTree");
+  tree.className="oc-tree "+lay+(ocEdit?" editing":"");
+  tree.innerHTML=`<ul>${rec("",0)}</ul>`;
+  tree.style.zoom=lay==="tree"?ocZoom:1;
+  segSync("ocLayout",lay);
+  document.querySelector(".oc-zoom").hidden=lay!=="tree";
+  $("ocZoomFit").textContent=Math.round(ocZoom*100)+" %";
+  $("ocTitle").textContent=org.orgName||tx("Organigramme");
+  const total=Object.keys(members).length;
+  $("ocSub").textContent=`${nodes.length} poste${nodes.length>1?"s":""} · ${placed.size} membre${placed.size>1?"s":""} sur ${total} y figure${placed.size>1?"nt":""}`+(!chartAuto()&&orgChart.updatedAt?" · mis à jour "+relTime(orgChart.updatedAt):"");
+  $("ocAuto").hidden=!chartAuto();
+  $("ocAuto").textContent=admin?"Cet organigramme est généré à partir des rôles. Modifiez-le pour ajouter des comités, des postes à pourvoir et des responsabilités : il sera alors enregistré pour tous les membres.":"Cet organigramme est généré à partir des rôles de l'association.";
+  $("ocEditBtn").hidden=!admin;$("ocEditBtn").textContent=ocEdit?"Terminer":"Modifier l'organigramme";
+  $("ocGen").hidden=!(admin&&ocEdit&&!chartAuto());
+  const loose=memberIds().filter(id=>!placed.has(id));
+  $("ocLooseSec").hidden=!loose.length;
+  $("ocLoose").innerHTML=loose.map(id=>`<button class="oc-chip" data-dm="${esc(id)}" ${id===myId?"disabled":""} title="${id===myId?"":"Écrire à "+esc(pName(id))}">${avHTML(id)}<span><b>${esc(pName(id))}${id===myId?" (vous)":""}</b><small>${esc((roleOf(id)||{}).name||"Membre")}</small></span></button>`).join("");
+  $("ocLoose").querySelectorAll("[data-dm]").forEach(b=>b.onclick=()=>openDM(b.dataset.dm));
+  tree.querySelectorAll("[data-node]").forEach(el=>{
+    el.onclick=e=>{if(e.target.closest("[data-ocadd]"))return;ocOpenId=el.dataset.node;ocEdit?openNodeEdit(el.dataset.node):openNode(el.dataset.node);};
+    el.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();el.click();}};
+  });
+  tree.querySelectorAll("[data-ocadd]").forEach(b=>b.onclick=e=>{e.stopPropagation();openNodeEdit(null,b.dataset.ocadd);});
+}
+function openNode(id){
+  const nodes=chartNodes(),n=nodes.find(x=>x.id===id);if(!n) return;
+  const parent=nodes.find(x=>x.id===n.parent),admin=adminUI();
+  $("ocdHead").style.setProperty("--nc",n.color||"var(--accent)");
+  $("ocdTitle").textContent=n.title||"Sans titre";
+  $("ocdParent").textContent=parent?tx("Relève de : {}",parent.title):"";
+  $("ocdDesc").textContent=n.desc||"";$("ocdDesc").hidden=!n.desc;
+  const ppl=(n.people||[]).filter(x=>members[x]);
+  $("ocdPeople").innerHTML=ppl.length?ppl.map(p=>`<div class="ocd-person">${avHTML(p)}<span class="ocd-pt"><b>${esc(pName(p))}${p===myId?" (vous)":""}</b><small>${esc((roleOf(p)||{}).name||"Membre")}</small></span>${p!==myId?`<button class="btn" data-dm="${esc(p)}">Écrire</button>`:""}</div>`).join(""):`<div class="oc-vacant big">Ce poste est à pourvoir.</div>`;
+  $("ocdPeople").querySelectorAll("[data-dm]").forEach(b=>b.onclick=()=>{$("ocDlg").close();openDM(b.dataset.dm);});
+  $("ocdActs").hidden=!admin;ocDelConfirm=false;$("ocdDel").textContent="Supprimer";
+  $("ocDlg").showModal();
+}
+function openNodeEdit(id,parentForNew){
+  if(!adminUI()) return;
+  const nodes=chartNodes(),n=id?nodes.find(x=>x.id===id):{id:null,title:"",desc:"",parent:parentForNew||"",people:[],color:""};
+  if(!n) return;
+  ocEditing={id:n.id,color:n.color||OC_COLORS[(nodes.length)%OC_COLORS.length]};
+  $("oceTitle").textContent=id?"Modifier le poste":"Nouveau poste";
+  $("oceName").value=n.title||"";$("oceDesc").value=n.desc||"";$("oceErr").textContent="";
+  const banned=id?descendants(nodes,id):new Set();
+  $("oceParent").innerHTML=`<option value="">— Personne (sommet de l'organigramme)</option>`+nodes.filter(x=>!banned.has(x.id)).map(x=>`<option value="${esc(x.id)}">${esc(x.title||"Sans titre")}</option>`).join("");
+  $("oceParent").value=n.parent||"";
+  const ppl=new Set(n.people||[]);
+  $("ocePeople").innerHTML=memberIds().map(p=>`<label><input type="checkbox" value="${esc(p)}" ${ppl.has(p)?"checked":""}><span>${esc(pName(p))}</span></label>`).join("")||`<span class="since">Aucun membre pour l'instant.</span>`;
+  $("oceColors").innerHTML=OC_COLORS.map(c=>`<button data-c="${c}" style="background:${c}" aria-label="Couleur ${c}" aria-pressed="${c===ocEditing.color}"></button>`).join("");
+  $("oceColors").querySelectorAll("button").forEach(b=>b.onclick=()=>{ocEditing.color=b.dataset.c;$("oceColors").querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));});
+  if($("ocDlg").open) $("ocDlg").close();
+  $("ocEditDlg").showModal();setTimeout(()=>$("oceName").focus(),50);
+}
+$("oceSave").onclick=()=>{
+  const title=$("oceName").value.trim();if(!title){$("oceErr").textContent="Donnez un nom au poste ou au comité.";return;}
+  const nodes=chartNodes(),people=[...$("ocePeople").querySelectorAll("input:checked")].map(i=>i.value);
+  const data={title,desc:$("oceDesc").value.trim(),parent:$("oceParent").value,people,color:ocEditing.color};
+  let next;
+  if(ocEditing.id) next=nodes.map(n=>n.id===ocEditing.id?Object.assign({},n,data):n);
+  else next=nodes.concat([Object.assign({id:ocId()},data)]);
+  $("ocEditDlg").close();saveChart(next,ocEditing.id?"Poste modifié":"Poste ajouté");
+};
+$("oceCancel").onclick=()=>$("ocEditDlg").close();
+$("ocdX").onclick=()=>$("ocDlg").close();
+$("ocdEdit").onclick=()=>openNodeEdit(ocOpenId);
+$("ocdAdd").onclick=()=>openNodeEdit(null,ocOpenId);
+$("ocdDel").onclick=()=>{
+  if(!ocDelConfirm){ocDelConfirm=true;$("ocdDel").textContent="Confirmer la suppression";setTimeout(()=>{ocDelConfirm=false;$("ocdDel").textContent="Supprimer";},5000);return;}
+  const nodes=chartNodes(),n=nodes.find(x=>x.id===ocOpenId);if(!n) return;
+  // Les postes rattachés remontent d'un niveau
+  const next=nodes.filter(x=>x.id!==n.id).map(x=>x.parent===n.id?Object.assign({},x,{parent:n.parent}):x);
+  $("ocDlg").close();saveChart(next,"Poste supprimé");
+};
+$("ocEditBtn").onclick=()=>{ocEdit=!ocEdit;ocGenConfirm=false;$("ocGen").textContent="Régénérer à partir des rôles";if(ocEdit&&chartAuto())saveChart(chartNodes(),"Organigramme enregistré : vous pouvez maintenant le modifier");else render();};
+$("ocGen").onclick=()=>{
+  if(!ocGenConfirm){ocGenConfirm=true;$("ocGen").textContent="Confirmer (remplace l'organigramme actuel)";setTimeout(()=>{ocGenConfirm=false;$("ocGen").textContent="Régénérer à partir des rôles";},5000);return;}
+  ocGenConfirm=false;$("ocGen").textContent="Régénérer à partir des rôles";saveChart(genChart(),"Organigramme régénéré");
+};
+document.querySelectorAll("#ocLayout button").forEach(b=>b.onclick=()=>{try{localStorage.setItem(OC_VUE,b.dataset.v);}catch(e){}renderChart();});
+const ocSetZoom=z=>{ocZoom=Math.min(1.6,Math.max(.4,Math.round(z*10)/10));renderChart();};
+$("ocZoomIn").onclick=()=>ocSetZoom(ocZoom+.1);
+$("ocZoomOut").onclick=()=>ocSetZoom(ocZoom-.1);
+$("ocZoomFit").onclick=()=>{
+  if(ocZoom!==1){ocSetZoom(1);return;}
+  const t=$("ocTree"),w=t.scrollWidth,avail=$("ocScroll").clientWidth-8;
+  ocSetZoom(w>avail?Math.max(.4,Math.floor(avail/w*10)/10):1);
+};
+$("ocPrint").onclick=()=>{document.body.classList.add("print-chart");window.print();setTimeout(()=>document.body.classList.remove("print-chart"),500);};
+
+/* =====================================================================
+   Messagerie interne de l'association
+   ===================================================================== */
+let chans={},dmChans={},curChan="general",msgs=[],msgUnsub=null,msgSubFor=null,chanUnsubs=[],msgPane=false,pendingDm=null,genTried=false,chanDelConfirm=false,msgErr=false,msgJust=false;
+const msgSince=Date.now(),lastSeenAt={};
+const CH=()=>fdb.collection("orgs").doc(curOrg).collection("channels");
+const dmId=other=>"dm_"+[myId,other].sort().join("_");
+const allChans=()=>Object.assign({},chans,dmChans);
+const readKey=()=>"pointeuse-lus:"+(myId||"")+":"+(curOrg||"");
+let readMapC=null;
+function readMap(){if(!readMapC){try{readMapC=JSON.parse(localStorage.getItem(readKey())||"{}")||{};}catch(e){readMapC={};}}return readMapC;}
+function markRead(cid,t){const m=readMap();if(!t||(m[cid]||0)>=t)return;m[cid]=t;try{localStorage.setItem(readKey(),JSON.stringify(m));}catch(e){}renderMsgBadge();if(mode==="messages")renderMsgSide();}
+const isUnread=(id,c)=>!!(c&&c.lastAt&&c.lastBy&&c.lastBy!==myId&&c.lastAt>(readMap()[id]||0));
+const dmOther=c=>((c&&c.memberIds)||[]).find(x=>x!==myId)||myId;
+const chanName=(id,c)=>c&&c.kind==="dm"?pName(dmOther(c)):"# "+((c&&c.name)||(id==="general"?"général":id));
+function renderMsgBadge(){const n=Object.entries(allChans()).filter(([id,c])=>isUnread(id,c)).length;$("msgCnt").textContent=n?String(n):"";}
+function notifyMsg(id,c){
+  const who=c.lastByName||pName(c.lastBy),where=c.kind==="dm"?"":" ("+chanName(id,c)+")",txt=String(c.lastText||"").slice(0,80);
+  if(document.visibilityState==="visible") toast(`💬 ${who}${where} : ${txt}`,3500);
+  else if(notifSysOn()){try{const nt=new Notification(who+where,{body:txt,tag:"msg-"+id});nt.onclick=()=>{window.focus();mode="messages";openChan(id);};}catch(e){}}
+}
+function msgStart(){
+  if(!fdb||!curOrg||!myId||chanUnsubs.length) return;
+  const handler=kind=>sn=>{
+    const next={};sn.docs.forEach(d=>{next[d.id]=d.data();});
+    Object.entries(next).forEach(([id,c])=>{
+      const prev=lastSeenAt[id]||0;
+      if(c.lastAt&&c.lastAt>prev&&c.lastAt>msgSince&&c.lastBy!==myId&&!(mode==="messages"&&curChan===id&&document.visibilityState==="visible")) notifyMsg(id,c);
+      lastSeenAt[id]=Math.max(prev,c.lastAt||0);
+    });
+    if(kind==="c"){chans=next;ensureGeneral();}else dmChans=next;
+    if(pendingDm&&dmChans[pendingDm.id]) pendingDm=null;
+    renderMsgBadge();
+    if(mode==="messages"){renderMsgSide();if(allChans()[curChan]&&msgSubFor!==curOrg+"/"+curChan)subscribeMsgs();}
+  };
+  chanUnsubs.push(CH().where("kind","==","channel").onSnapshot(handler("c"),e=>console.warn("canaux",e)));
+  chanUnsubs.push(CH().where("memberIds","array-contains",myId).onSnapshot(handler("d"),e=>console.warn("messages directs",e)));
+}
+function ensureGeneral(){
+  if(chans.general||genTried||!curOrg) return Promise.resolve();
+  genTried=true;
+  return CH().doc("general").set({kind:"channel",name:"général",desc:"Annonces et discussions de toute l'association",createdBy:myId,createdAt:Date.now(),lastAt:0}).catch(()=>{});
+}
+function subscribeMsgs(){
+  const key=curOrg+"/"+curChan;if(msgSubFor===key) return;
+  if(msgUnsub){msgUnsub();msgUnsub=null;}
+  msgs=[];msgErr=false;msgSubFor=key;msgJust=true;
+  if(!allChans()[curChan]){msgSubFor=null;renderMsgList();return;}
+  const cid=curChan;
+  msgUnsub=CH().doc(cid).collection("messages").orderBy("at","desc").limit(200).onSnapshot(sn=>{
+    if(cid!==curChan) return;
+    msgs=sn.docs.map(d=>Object.assign({id:d.id},d.data())).reverse();renderMsgList();
+  },e=>{console.warn("messages",e);msgErr=true;renderMsgList();});
+}
+function openChan(id){curChan=id;msgPane=true;chanDelConfirm=false;if(mode!=="messages"){mode="messages";render();}else renderMessages();}
+function openDM(other){
+  if(!other||other===myId) return;
+  const id=dmId(other);
+  if(!dmChans[id]) pendingDm={id,other};
+  curChan=id;msgPane=true;mode="messages";render();
+  setTimeout(()=>{const t=$("msgText");if(t&&!window.matchMedia("(max-width: 760px)").matches)t.focus();},120);
+}
+function msgItemHTML(id,c){
+  const dm=c.kind==="dm",unread=isUnread(id,c),other=dm?dmOther(c):null;
+  const last=c.lastText?(c.lastBy===myId?tx("Vous")+" : ":"")+c.lastText:(dm?"Aucun message pour l'instant":(c.desc||""));
+  const when=c.lastAt?(startOfDay(c.lastAt)===startOfDay(Date.now())?fmtTime(c.lastAt):new Date(c.lastAt).toLocaleDateString(LOC(),{day:"numeric",month:"short"})):"";
+  return `<button class="msg-item${id===curChan?" on":""}${unread?" unread":""}" data-chan="${esc(id)}" ${id===curChan?'aria-current="true"':""}>
+    ${dm?avHTML(other,"mi-av"):`<span class="mi-hash" aria-hidden="true">#</span>`}
+    <span class="mi-txt"><span class="mi-top"><b translate="no">${esc(dm?pName(other):(c.name||id))}</b><time>${esc(when)}</time></span><span class="mi-last" translate="no">${esc(last)}</span></span>
+    ${unread?'<span class="mi-dot" aria-label="Non lu"></span>':""}</button>`;
+}
+function renderMsgSide(){
+  const ch=Object.entries(chans).sort((a,b)=>(a[0]==="general"?-1:b[0]==="general"?1:String(a[1].name).localeCompare(String(b[1].name),"fr")));
+  if(!chans.general) ch.unshift(["general",{kind:"channel",name:"général",desc:"Annonces et discussions de toute l'association"}]);
+  $("chanList").innerHTML=ch.map(([id,c])=>msgItemHTML(id,c)).join("");
+  const dms=Object.entries(dmChans).sort((a,b)=>(b[1].lastAt||0)-(a[1].lastAt||0));
+  if(pendingDm&&!dmChans[pendingDm.id]) dms.unshift([pendingDm.id,{kind:"dm",memberIds:[myId,pendingDm.other]}]);
+  $("dmList").innerHTML=dms.length?dms.map(([id,c])=>msgItemHTML(id,c)).join(""):`<p class="since msg-none">Écrivez à un membre avec « + Nouveau », ou depuis l'organigramme.</p>`;
+  document.querySelectorAll("#chanList [data-chan],#dmList [data-chan]").forEach(b=>b.onclick=()=>openChan(b.dataset.chan));
+  $("chanNew").hidden=!adminUI();
+}
+function renderMessages(){
+  msgStart();
+  const all=allChans();
+  if(!all[curChan]&&curChan!=="general"&&!(pendingDm&&pendingDm.id===curChan)) curChan="general";
+  const c=all[curChan]||(pendingDm&&pendingDm.id===curChan?{kind:"dm",memberIds:[myId,pendingDm.other]}:{kind:"channel",name:"général",desc:"Annonces et discussions de toute l'association"});
+  $("msgShell").classList.toggle("pane",msgPane);
+  renderMsgSide();
+  const dm=c.kind==="dm";
+  $("msgTitle").textContent=dm?pName(dmOther(c)):"# "+(c.name||"général");
+  $("msgDesc").textContent=dm?((roleOf(dmOther(c))||{}).name||"Membre")+" · "+tx("conversation privée"):(c.desc||"");
+  $("chanDel").hidden=!(adminUI()&&!dm&&curChan!=="general"&&all[curChan]);
+  if(!chanDelConfirm) $("chanDel").textContent="Supprimer le canal";
+  $("msgText").placeholder=dm?tx("Écrire à {}…",pName(dmOther(c)).split(/\s+/)[0]):tx("Écrire dans # {}…",c.name||"général");
+  subscribeMsgs();
+  renderMsgList();
+  fitMsgShell();
+}
+function fitMsgShell(){
+  const sh=$("msgShell");if(!sh||mode!=="messages") return;
+  const top=sh.getBoundingClientRect().top+window.scrollY;
+  sh.style.height=Math.max(420,window.innerHeight-top-(window.matchMedia("(max-width: 760px)").matches?10:22))+"px";
+}
+window.addEventListener("resize",()=>{if(mode==="messages")fitMsgShell();});
+const dayLbl=t=>{const d=startOfDay(t),n=startOfDay(Date.now());if(d===n)return tx("Aujourd'hui");if(d===addDays(n,-1))return tx("Hier");return new Date(t).toLocaleDateString(LOC(),{weekday:"long",day:"numeric",month:"long",year:new Date(t).getFullYear()!==new Date().getFullYear()?"numeric":undefined});};
+function renderMsgList(){
+  const el=$("msgList");if(!el||mode!=="messages") return;
+  const near=el.scrollHeight-el.scrollTop-el.clientHeight<120;
+  const c=allChans()[curChan];
+  if(msgErr){el.innerHTML=`<div class="msg-empty"><b>Messages inaccessibles.</b><span>Vérifiez votre connexion. Si le problème persiste, les règles de sécurité Firestore doivent être mises à jour (voir le guide).</span></div>`;return;}
+  if(!msgs.length){
+    const dm=c?c.kind==="dm":(pendingDm&&pendingDm.id===curChan);
+    const who=dm?pName(c?dmOther(c):pendingDm.other):"";
+    el.innerHTML=`<div class="msg-empty"><span class="msg-empty-ico" aria-hidden="true">${dm?"✉️":"#"}</span><b>${dm?esc(tx("Début de votre conversation avec {}",who)):esc(tx("Bienvenue dans # {}",(c&&c.name)||"général"))}</b><span>${dm?"Seules vous deux pouvez lire ces messages.":"Tous les membres de l'association lisent ce canal. Lancez la discussion !"}</span></div>`;
+    return;
+  }
+  let html="",lastDay=0,prev=null;const admin=adminUI();
+  msgs.forEach(m=>{
+    const d=startOfDay(m.at||0);
+    if(d!==lastDay){html+=`<div class="msg-day"><span>${esc(dayLbl(m.at))}</span></div>`;lastDay=d;prev=null;}
+    const mine=m.by===myId,cont=prev&&prev.by===m.by&&m.at-prev.at<5*60000;
+    html+=`<div class="msg${mine?" mine":""}${cont?" cont":""}">
+      ${cont?'<span class="msg-avsp"></span>':avHTML(m.by,"msg-av")}
+      <div class="msg-b">${cont?"":`<div class="msg-meta"><b>${esc(mine?tx("Vous"):(m.byName||pName(m.by)))}</b><time datetime="${new Date(m.at).toISOString()}">${fmtTime(m.at)}</time></div>`}
+        <div class="msg-text" translate="no"${cont?` title="${fmtTime(m.at)}"`:""}>${linkify(m.text)}</div>
+        ${mine||admin?`<button class="msg-del" data-mdel="${esc(m.id)}" title="Supprimer le message" aria-label="Supprimer le message">×</button>`:""}</div></div>`;
+    prev=m;
+  });
+  el.innerHTML=html;
+  el.querySelectorAll("[data-mdel]").forEach(b=>b.onclick=()=>{
+    if(b.dataset.confirm!=="1"){b.dataset.confirm="1";b.textContent="Supprimer ?";b.classList.add("confirm");setTimeout(()=>{if(b.isConnected){b.dataset.confirm="";b.textContent="×";b.classList.remove("confirm");}},4000);return;}
+    CH().doc(curChan).collection("messages").doc(b.dataset.mdel).delete().then(()=>toast("Message supprimé")).catch(()=>toast("Suppression refusée"));
+  });
+  if(near||msgJust){el.scrollTop=el.scrollHeight;msgJust=false;}
+  const last=msgs[msgs.length-1];if(last&&document.visibilityState==="visible") markRead(curChan,Math.max(last.at||0,(c&&c.lastAt)||0));
+}
+async function sendMsg(){
+  const ta=$("msgText"),text=ta.value.trim();if(!text||!curOrg) return;
+  const cid=curChan,now=Date.now(),byName=pName(myId);
+  ta.value="";autoGrow();
+  try{
+    if(!allChans()[cid]){
+      if(cid==="general"){genTried=false;await ensureGeneral();chans.general=chans.general||{kind:"channel",name:"général",desc:"Annonces et discussions de toute l'association",lastAt:0};}
+      else if(pendingDm&&pendingDm.id===cid){const mem=[myId,pendingDm.other].sort();await CH().doc(cid).set({kind:"dm",memberIds:mem,createdBy:myId,createdAt:now,lastAt:0});dmChans[cid]=dmChans[cid]||{kind:"dm",memberIds:mem,lastAt:0};}
+      else throw new Error("canal");
+      msgSubFor=null;subscribeMsgs();
+    }
+    await CH().doc(cid).collection("messages").add({by:myId,byName,text,at:now});
+    CH().doc(cid).update({lastAt:now,lastText:text.slice(0,140),lastBy:myId,lastByName:byName}).catch(()=>{});
+    markRead(cid,now);
+  }catch(e){console.warn(e);if(!ta.value){ta.value=text;autoGrow();}toast("Message non envoyé. Vérifiez votre connexion, puis réessayez.",3500);}
+}
+function autoGrow(){const t=$("msgText");t.style.height="auto";t.style.height=Math.min(180,t.scrollHeight+2)+"px";}
+$("msgText").oninput=autoGrow;
+$("msgText").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();sendMsg();}};
+$("msgSend").onclick=sendMsg;
+$("msgBack").onclick=()=>{msgPane=false;$("msgShell").classList.remove("pane");};
+function dmPickRender(){
+  const q=$("dmSearch").value.trim().toLocaleLowerCase();
+  const ids=memberIds().filter(id=>id!==myId&&(!q||pName(id).toLocaleLowerCase().includes(q)));
+  $("dmPick").innerHTML=ids.length?ids.map(id=>`<button class="dm-row" data-dm="${esc(id)}">${avHTML(id)}<span><b>${esc(pName(id))}</b><small>${esc((roleOf(id)||{}).name||"Membre")}</small></span></button>`).join(""):`<p class="since">Aucun membre ne correspond.</p>`;
+  $("dmPick").querySelectorAll("[data-dm]").forEach(b=>b.onclick=()=>{$("dmDlg").close();openDM(b.dataset.dm);});
+}
+$("msgNew").onclick=()=>{$("dmSearch").value="";dmPickRender();$("dmDlg").showModal();setTimeout(()=>$("dmSearch").focus(),50);};
+$("dmSearch").oninput=dmPickRender;
+$("dmX").onclick=()=>$("dmDlg").close();
+$("chanNew").onclick=()=>{$("chName").value="";$("chDesc").value="";$("chErr").textContent="";$("chanDlg").showModal();setTimeout(()=>$("chName").focus(),50);};
+$("chCancel").onclick=()=>$("chanDlg").close();
+$("chName").onkeydown=e=>{if(e.key==="Enter")$("chSave").click();};
+$("chSave").onclick=async()=>{
+  const name=$("chName").value.trim().toLocaleLowerCase("fr").replace(/^#\s*/,"").replace(/\s+/g,"-").slice(0,40);
+  if(!name){$("chErr").textContent="Donnez un nom au canal.";return;}
+  if(Object.values(chans).some(c=>c.name===name)){$("chErr").textContent="Un canal porte déjà ce nom.";return;}
+  $("chSave").disabled=true;
+  try{const ref=CH().doc("c_"+uid());await ref.set({kind:"channel",name,desc:$("chDesc").value.trim().slice(0,120),createdBy:myId,createdAt:Date.now(),lastAt:0});
+    $("chanDlg").close();chans[ref.id]=chans[ref.id]||{kind:"channel",name,lastAt:0};openChan(ref.id);toast(tx("Canal # {} créé",name));}
+  catch(e){$("chErr").textContent="Création refusée : il faut être administrateur.";}
+  $("chSave").disabled=false;
+};
+$("chanDel").onclick=async()=>{
+  if(!chanDelConfirm){chanDelConfirm=true;$("chanDel").textContent="Confirmer : tous les messages seront effacés";setTimeout(()=>{chanDelConfirm=false;if(mode==="messages")$("chanDel").textContent="Supprimer le canal";},5000);return;}
+  chanDelConfirm=false;const id=curChan;if(id==="general") return;
+  try{if(msgUnsub){msgUnsub();msgUnsub=null;msgSubFor=null;}
+    await wipeCol(CH().doc(id).collection("messages"));await CH().doc(id).delete();
+    delete chans[id];curChan="general";render();toast("Canal supprimé");}
+  catch(e){toast("Suppression refusée");}
+};
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&mode==="messages")renderMsgList();});
+
 /* Langue */
 {const sl=$("sLang");sl.innerHTML=Object.keys(I18N).map(k=>`<option value="${k}" lang="${k}" translate="no">${esc(I18N[k]._name)}</option>`).join("");sl.value=LANG;
  sl.onchange=()=>setLang(sl.value);
