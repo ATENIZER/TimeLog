@@ -11,15 +11,20 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261004f">
+<link rel="stylesheet" href="css/style.css?v=20261006a">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script>(function(){try{var t=localStorage.getItem("pointeuse-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);var a=localStorage.getItem("pointeuse-accent");if(a&&/^#[0-9a-fA-F]{6}$/.test(a))document.documentElement.style.setProperty("--accent",a);var u=JSON.parse(localStorage.getItem("pointeuse-ui")||"{}");if(u&&u.font==="s")document.documentElement.style.fontSize="14.5px";if(u&&u.font==="l")document.documentElement.style.fontSize="17.5px";}catch(e){}})();</script>
+<script>/* Style de l'interface : appliqué avant l'affichage pour éviter un clignotement */
+window.STYLE_FONTS={carton:"IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600",aurore:"Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700",bloc:"Archivo+Black&family=Archivo:wght@400;500;600;700;800",lichen:"Public+Sans:wght@400;500;600;700;800"};
+window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.getElementById("stfont-"+st))return;var l=document.createElement("link");l.rel="stylesheet";l.id="stfont-"+st;l.href="https://fonts.googleapis.com/css2?family="+f+"&display=swap";document.head.appendChild(l);};
+(function(){try{var st=localStorage.getItem("pointeuse-style");if(st&&window.STYLE_FONTS[st]){document.documentElement.setAttribute("data-style",st);window.loadStyleFont(st);}}catch(e){}})();</script>
 </head>
 <body class="booting">
+<div id="orgBg" aria-hidden="true"><i class="ob-img"></i><i class="ob-veil"></i></div>
 <div class="wrap" id="authView" hidden>
   <div style="text-align:center;margin-top:24px"><svg class="auth-logo" width="72" height="72" viewBox="0 0 200 200" role="img" aria-label="Logo de la pointeuse"><rect width="200" height="200" rx="47" fill="#14213D"/><g transform="translate(100 100) scale(.75) translate(-100 -100)"><circle cx="100" cy="100" r="70" fill="none" stroke="#EEF1F5" stroke-width="20"/><line x1="100" y1="100" x2="160" y2="24" stroke="#14213D" stroke-width="46" stroke-linecap="round"/><polyline points="74,76 100,108 160,24" fill="none" style="stroke:var(--accent)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/></g></svg></div>
   <div class="card auth">
@@ -53,6 +58,8 @@
       <button role="tab" data-tab="activities" aria-selected="false" id="actTab" title="Activités"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5H6.5A1.5 1.5 0 0 0 5 6v13.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H15"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 13.5l2.2 2.2 4.8-4.8"/></svg><span class="lbl">Activités</span></button>
       <button role="tab" data-tab="projects" aria-selected="false" id="projTab" title="Projets"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M9.5 4v16M15 4v9"/></svg><span class="lbl">Projets</span><span class="cnt" id="projCnt"></span></button>
       <button role="tab" data-tab="calendar" aria-selected="false" id="calTab" title="Calendrier"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span class="lbl">Calendrier</span></button>
+      <button role="tab" data-tab="messages" aria-selected="false" id="msgTab" title="Messages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 5.5h15a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10l-4.5 3.5V16.5h-1a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/></svg><span class="lbl">Messages</span><span class="cnt" id="msgCnt"></span></button>
+      <button role="tab" data-tab="chart" aria-selected="false" id="chartTab" title="Organigramme"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span class="lbl">Organigramme</span></button>
       <button role="tab" data-tab="team" aria-selected="false" id="teamTab" title="Équipe" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.7-3.2 3.1-5 6-5s5.3 1.8 6 5"/><path d="M15.5 5.3a3.2 3.2 0 0 1 0 6.4M17.5 14.8c1.7.7 2.9 2.3 3.4 4.7"/></svg><span class="lbl">Équipe</span><span class="cnt muted" id="teamCnt"></span></button>
       <button role="tab" data-tab="roles" aria-selected="false" id="rolesTab" title="Rôles" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l7 2.8v5c0 4.3-2.9 7.8-7 9.2-4.1-1.4-7-4.9-7-9.2v-5z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg><span class="lbl">Rôles</span></button>
       <button role="tab" data-tab="settings" aria-selected="false" id="settingsTab" title="Paramètres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="lbl">Paramètres</span></button>
@@ -225,6 +232,8 @@
       <section class="card set-card" data-blk="look" data-lbl="Apparence">
         <h2>Apparence</h2>
         <div class="set-row"><div class="set-lbl"><b>Langue</b><span>La langue est propre à chaque appareil.</span></div><div class="set-ctl"><select id="sLang" aria-label="Langue"></select></div></div>
+        <div class="set-row set-style"><div class="set-lbl"><b>Style de l'interface</b><span>Cinq propositions : choisissez celle qui ressemble à votre association.</span></div><div class="style-grid" id="sStyle" role="group" aria-label="Style de l'interface"></div></div>
+        <div class="set-row"><div class="set-lbl"><b>Arrière-plan des associations</b><span>Afficher l'arrière-plan choisi par chaque association.</span></div><div class="set-ctl"><label class="switch"><input type="checkbox" id="sOrgBgOn"><span></span></label></div></div>
         <div class="set-row"><div class="set-lbl"><b>Mode</b></div><div class="set-ctl"><div class="seg" id="sTheme" role="group" aria-label="Mode"><button data-v="light">Jour</button><button data-v="dark">Nuit</button><button data-v="auto">Automatique</button></div></div></div>
         <div class="set-row"><div class="set-lbl"><b>Couleur d'accent</b></div><div class="set-ctl"><div class="swatch-row" id="sAccent"></div><input type="color" id="sAccentCustom" aria-label="Couleur personnalisée"></div></div>
         <div class="set-row"><div class="set-lbl"><b>Taille du texte</b></div><div class="set-ctl"><div class="seg" id="sFont" role="group" aria-label="Taille du texte"><button data-v="s">Petite</button><button data-v="m">Normale</button><button data-v="l">Grande</button></div></div></div>
@@ -247,6 +256,7 @@
         <h2>Association</h2>
         <div class="set-row"><div class="set-lbl"><b>Nom de l'association</b><span>Affiché sur les attestations.</span></div><div class="set-ctl"><input type="text" id="sOrg"></div></div>
         <div class="set-row"><div class="set-lbl"><b>Valeur d'une heure de bénévolat</b><span>Sert à estimer la valeur des heures validées (attestations, accueil). Laissez vide pour ne pas l'afficher.</span></div><div class="set-ctl"><input type="number" id="sRate" min="0" step="0.5" inputmode="decimal" placeholder="Ex. 25" style="max-width:120px" aria-label="Valeur d'une heure de bénévolat, en dollars"><span class="since">$/h</span></div></div>
+        <div class="set-row" id="sBgRow"><div class="set-lbl"><b>Arrière-plan de la page</b><span>Une image ou un motif propre à l'association, visible par tous ses membres.</span></div><div class="set-ctl"><button class="btn" id="sBgBtn">Choisir l'arrière-plan</button></div></div>
         <div class="set-row" id="sCodeRow"><div class="set-lbl"><b>Code d'invitation</b><span>À transmettre aux personnes qui veulent rejoindre l'association.</span></div><div class="set-ctl"><span class="invite" id="sCode"></span><button class="btn" id="sCopyCode">Copier</button><button class="btn ghost" id="sNewCode">Nouveau code</button></div></div>
         <div class="set-row" id="sRolesRow"><div class="set-lbl"><b>Rôles et accès</b></div><div class="set-ctl"><button class="btn" id="sToRoles">Gérer les rôles ›</button></div></div>
         <div class="set-row" id="sLeaveRow"><div class="set-lbl"><b>Quitter l'association</b><span>Vos heures restent enregistrées, mais vous n'y aurez plus accès.</span></div><div class="set-ctl"><button class="btn danger" id="sLeave">Quitter</button></div></div>
@@ -266,6 +276,45 @@
       </section>
 
       <div class="set-foot"><button class="btn ghost" id="sReset">Rétablir les paramètres par défaut</button></div>
+    </div>
+  </div>
+
+  <div id="chartView" hidden>
+    <div class="sechead oc-head">
+      <div class="oc-headtxt"><h2 id="ocTitle">Organigramme</h2><span class="since" id="ocSub"></span></div>
+      <div class="row">
+        <div class="seg" id="ocLayout" role="group" aria-label="Disposition de l'organigramme"><button data-v="tree">Arbre</button><button data-v="list">Liste</button></div>
+        <div class="seg oc-zoom" role="group" aria-label="Zoom"><button id="ocZoomOut" aria-label="Réduire">−</button><button id="ocZoomFit">100 %</button><button id="ocZoomIn" aria-label="Agrandir">+</button></div>
+        <button class="btn" id="ocPrint">Imprimer</button>
+        <button class="btn" id="ocGen" hidden>Régénérer à partir des rôles</button>
+        <button class="btn in" id="ocEditBtn" style="border:none" hidden>Modifier l'organigramme</button>
+      </div>
+    </div>
+    <div class="notice oc-auto" id="ocAuto" hidden></div>
+    <div class="card oc-card"><div class="oc-scroll" id="ocScroll"><div class="oc-tree" id="ocTree"></div></div></div>
+    <section id="ocLooseSec" hidden><div class="sechead"><h2>Membres sans poste</h2></div><div class="card"><div class="oc-loose" id="ocLoose"></div></div></section>
+  </div>
+
+  <div id="msgView" hidden>
+    <div class="msg-shell" id="msgShell">
+      <aside class="msg-side" aria-label="Conversations">
+        <div class="msg-side-head"><b>Conversations</b><button class="btn ghost" id="msgNew" title="Nouveau message direct">+ Nouveau</button></div>
+        <div class="msg-group"><div class="msg-gh"><span>Canaux</span><button class="msg-add" id="chanNew" title="Créer un canal" aria-label="Créer un canal" hidden>+</button></div><div id="chanList"></div></div>
+        <div class="msg-group"><div class="msg-gh"><span>Messages directs</span></div><div id="dmList"></div></div>
+      </aside>
+      <section class="msg-main" aria-label="Conversation">
+        <header class="msg-top">
+          <button class="hbtn msg-back" id="msgBack" aria-label="Retour aux conversations"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
+          <div class="msg-ttl"><b id="msgTitle"></b><span class="since" id="msgDesc"></span></div>
+          <button class="btn ghost danger" id="chanDel" hidden>Supprimer le canal</button>
+        </header>
+        <div class="msg-list" id="msgList" role="log" aria-live="polite"></div>
+        <div class="msg-compose">
+          <textarea id="msgText" rows="1" maxlength="4000" placeholder="Écrire un message…" aria-label="Écrire un message"></textarea>
+          <button class="btn in msg-send" id="msgSend" style="border:none" aria-label="Envoyer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z"/><path d="M11.5 13.5L20 4"/></svg></button>
+        </div>
+        <div class="msg-hint since">Entrée pour envoyer · Maj + Entrée pour un saut de ligne. Les messages sont visibles par les membres de la conversation seulement.</div>
+      </section>
     </div>
   </div>
 
@@ -449,6 +498,7 @@
     <div class="row"><span class="btn upl">🖼️ Choisir une image<input type="file" id="bImg" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Choisir une image de bannière"></span><button class="btn ghost danger" id="bImgDel">Retirer l'image</button></div>
     <span class="since">Format large conseillé. L'image est recadrée et allégée automatiquement.</span>
   </div>
+  <div class="field"><label>Arrière-plan de la page</label><div class="row"><button class="btn" id="bToBg">Choisir l'arrière-plan…</button></div></div>
   <div class="err" id="bErr"></div>
   <div class="dlgacts"><button class="btn ghost" id="bCancel">Annuler</button><button class="btn in" id="bSave" style="border:none">Enregistrer</button></div>
 </dialog>
@@ -604,10 +654,62 @@
   </div>
 </dialog>
 
+<dialog id="bgDlg" aria-labelledby="bgTitle" class="bgdlg">
+  <button class="dlgx" id="bgX" aria-label="Fermer" title="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="bgTitle" style="padding-right:44px">Arrière-plan de la page</h3>
+  <div class="bg-prev" id="bgPrev"><i class="ob-img" id="bgPrevImg"></i><i class="ob-veil" id="bgPrevVeil"></i>
+    <div class="bg-prev-ui"><span class="bgp-side"></span><span class="bgp-main"><span class="bgp-h" id="bgPrevName"></span><span class="bgp-row"><span class="bgp-card"></span><span class="bgp-card"></span><span class="bgp-card"></span></span><span class="bgp-card wide"></span></span></div></div>
+  <div class="field"><label>Type</label><div class="seg" id="bgKind" role="group" aria-label="Type d'arrière-plan"><button data-v="none">Aucun</button><button data-v="preset">Motif</button><button data-v="image">Image</button></div></div>
+  <div class="field" id="bgPresetsF"><label>Motif</label><div class="bg-presets" id="bgPresets"></div></div>
+  <div class="field" id="bgColorF"><label>Couleur du motif</label><div class="row"><div class="swatch-row" id="bgColors"></div><input type="color" id="bgColor" aria-label="Couleur personnalisée"></div></div>
+  <div class="field" id="bgImageF"><label>Image</label>
+    <div class="row"><span class="btn upl">🖼️ Choisir une image<input type="file" id="bgFile" accept="image/png,image/jpeg,image/webp" aria-label="Choisir une image d'arrière-plan"></span><button class="btn ghost danger" id="bgImgDel" hidden>Retirer l'image</button></div>
+    <span class="since">Photo du local, d'un événement, d'un paysage… Elle est recadrée et allégée automatiquement.</span></div>
+  <div class="field" id="bgVeilF"><label for="bgVeil">Voile de lisibilité <span id="bgVeilVal"></span></label><input type="range" id="bgVeil" min="0" max="90" step="5"></div>
+  <label class="row" id="bgBlurF" style="gap:8px;margin-bottom:10px"><input type="checkbox" id="bgBlur" style="width:18px;height:18px;accent-color:var(--accent)"> Flouter l'image</label>
+  <div class="err" id="bgErr"></div>
+  <div class="dlgacts"><button class="btn ghost" id="bgCancel">Annuler</button><button class="btn in" id="bgSave" style="border:none">Enregistrer</button></div>
+</dialog>
+
+<dialog id="ocDlg" aria-labelledby="ocdTitle">
+  <button class="dlgx" id="ocdX" aria-label="Fermer" title="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <div class="ocd-head" id="ocdHead"><h3 id="ocdTitle"></h3><span class="since" id="ocdParent"></span></div>
+  <p class="ocd-desc" id="ocdDesc"></p>
+  <div class="ocd-people" id="ocdPeople"></div>
+  <div class="dlgacts" id="ocdActs"><button class="btn ghost danger" id="ocdDel">Supprimer</button><button class="btn" id="ocdAdd">Ajouter un poste en dessous</button><button class="btn in" id="ocdEdit" style="border:none">Modifier</button></div>
+</dialog>
+
+<dialog id="ocEditDlg" aria-labelledby="oceTitle">
+  <h3 id="oceTitle">Modifier le poste</h3>
+  <div class="field"><label for="oceName">Poste ou comité</label><input type="text" id="oceName" maxlength="60" placeholder="Ex. Trésorerie, Comité des événements"></div>
+  <div class="field"><label for="oceDesc">Responsabilités</label><textarea id="oceDesc" maxlength="400" placeholder="Ex. Tient les comptes, prépare le budget annuel"></textarea></div>
+  <div class="field"><label for="oceParent">Relève de</label><select id="oceParent"></select></div>
+  <div class="field"><label>Personnes</label><div class="checks" id="ocePeople"></div><span class="since">Laissez vide pour un poste à pourvoir.</span></div>
+  <div class="field"><label>Couleur</label><div class="swatch-row" id="oceColors"></div></div>
+  <div class="err" id="oceErr"></div>
+  <div class="dlgacts"><button class="btn ghost" id="oceCancel">Annuler</button><button class="btn in" id="oceSave" style="border:none">Enregistrer</button></div>
+</dialog>
+
+<dialog id="dmDlg" aria-labelledby="dmTitle">
+  <button class="dlgx" id="dmX" aria-label="Fermer" title="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="dmTitle" style="padding-right:44px">Nouveau message direct</h3>
+  <div class="field"><label for="dmSearch">Membre de l'association</label><input type="text" id="dmSearch" placeholder="Rechercher un nom" autocomplete="off"></div>
+  <div class="dm-pick" id="dmPick"></div>
+</dialog>
+
+<dialog id="chanDlg" aria-labelledby="chanTitle">
+  <h3 id="chanTitle">Créer un canal</h3>
+  <div class="field"><label for="chName">Nom du canal</label><input type="text" id="chName" maxlength="40" placeholder="Ex. comité-gala"></div>
+  <div class="field"><label for="chDesc">Sujet</label><input type="text" id="chDesc" maxlength="120" placeholder="Ex. Organisation du gala de fin d'année"></div>
+  <div class="since">Tous les membres de l'association voient les canaux et peuvent y écrire.</div>
+  <div class="err" id="chErr"></div>
+  <div class="dlgacts"><button class="btn ghost" id="chCancel">Annuler</button><button class="btn in" id="chSave" style="border:none">Créer le canal</button></div>
+</dialog>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="savenote" id="saveNote" role="status" aria-live="polite"></div>
 
-<script src="js/i18n.js?v=20261004d"></script>
-<script src="js/app.js?v=20261004e"></script>
+<script src="js/i18n.js?v=20261006a"></script>
+<script src="js/app.js?v=20261006a"></script>
 </body>
 </html>
