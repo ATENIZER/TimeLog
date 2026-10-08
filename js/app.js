@@ -156,8 +156,8 @@ async function startSession(u){
   const saved=lsGetOrg();
   curOrg=myOrgIds.includes(saved)?saved:(myOrgIds[0]||null);
   orgsLoaded=true;
-  if(!curOrg){setSync("");render();bootDone();maybeOnboard();return;}
-  try{await openOrg();bootDone();maybeOnboard();}catch(e){console.error(e);bootFail();}
+  if(!curOrg){setSync("");render();bootDone();maybeOnboard();handleInvite();return;}
+  try{await openOrg();bootDone();maybeOnboard();handleInvite();}catch(e){console.error(e);bootFail();}
 }
 function saveIndex(){return L.idx().set({orgIds:myOrgIds,displayName:myProfile.displayName||"",email:myProfile.email||"",username:myProfile.username||""});}
 async function loadOrgList(){
@@ -188,6 +188,7 @@ async function openOrg(){
     org={defaultRoleId:v.defaultRoleId||"r_employe",roles:JSON.parse(JSON.stringify(v.roles&&v.roles.length?v.roles:DEFAULT_ROLES.roles)),orgName:v.name||"",hourlyValue:Number(v.hourlyValue)||0};
     if(orgsInfo[curOrg]) Object.assign(orgsInfo[curOrg],{name:org.orgName,banner:v.banner||null,code:v.code||"",background:v.background||null});
     orgChart=v.chart||null;orgBgData=v.background||null;applyOrgBg();
+    boardCfg=v.board||null;
     applyOrgTypes(v.activityTypes);
     onAccessChange();
   },e=>console.warn("org",e));
@@ -198,6 +199,7 @@ async function openOrg(){
     onAccessChange();
   },e=>console.warn("membres",e));
   msgStart();
+  boardSync();
   render();
 }
 function onAccessChange(){
@@ -1729,6 +1731,7 @@ $("doOk").onclick=async()=>{
     fail+=await wipeCol(o.collection("events"),{comments:{},minutes:{}});
     fail+=await wipeCol(o.collection("people"));
     fail+=await wipeCol(o.collection("validations"));
+    fail+=await wipeCol(o.collection("board"));
     fail+=await wipeCol(o.collection("channels").where("kind","==","channel"),{messages:{},files:{}});
     fail+=await wipeCol(o.collection("channels").where("memberIds","array-contains",myId),{messages:{},files:{}});
     fail+=await wipeCol(o.collection("members"));
@@ -2727,7 +2730,7 @@ function renderNow(){
   const first=nm&&nm!=="Moi"&&nm!=="Personne sans nom"?" "+nm.split(/\s+/)[0]:"";
   $("today").textContent=tx(hr>=18||hr<5?"Bonsoir":"Bonjour")+first+(curOrg&&org.orgName?" · "+org.orgName:"")+" · "+new Date().toLocaleDateString(LOC(),{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   const tabSel=mode==="person"?"team":mode==="project"?"projects":mode;
-  $("pageTitle").textContent={chart:"Organigramme",messages:"Messages",settings:"Paramètres",calendar:"Calendrier",activities:"Activités",mine:"Accueil",projects:"Projets",project:"Projets",team:"Équipe",person:"Équipe",roles:"Rôles"}[mode]||"";
+  $("pageTitle").textContent={board:"Babillard",chart:"Organigramme",messages:"Messages",settings:"Paramètres",calendar:"Calendrier",activities:"Activités",mine:"Accueil",projects:"Projets",project:"Projets",team:"Équipe",person:"Équipe",roles:"Rôles"}[mode]||"";
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tabSel));
   recordNav();
   renderAccess();
@@ -2739,8 +2742,9 @@ function renderNow(){
   $("calView").hidden=mode!=="calendar";
   $("chartView").hidden=mode!=="chart";
   $("msgView").hidden=mode!=="messages";
+  $("boardView").hidden=mode!=="board";
   document.body.classList.toggle("in-msg",mode==="messages");
-  $("personalView").hidden=mode==="team"||mode==="roles"||inProj||mode==="settings"||mode==="calendar"||mode==="activities"||mode==="chart"||mode==="messages";
+  $("personalView").hidden=mode==="team"||mode==="roles"||inProj||mode==="settings"||mode==="calendar"||mode==="activities"||mode==="chart"||mode==="messages"||mode==="board";
   $("activitiesView").hidden=!(mode==="activities"||mode==="person");
   if(mode!=="activities") $("pendSec").hidden=true;
   if(layEdit&&layCurView()!==layView) laySetEdit(false);
@@ -2748,6 +2752,7 @@ function renderNow(){
   else if(mode==="calendar") renderCalendar();
   else if(mode==="chart") renderChart();
   else if(mode==="messages") renderMessages();
+  else if(mode==="board") renderBoard();
   else if(inProj) renderProjects();
   else if(mode==="team"){renderTeam();renderTeamDay();renderTeamCharts();}
   else if(mode==="roles") renderRoles();
@@ -3061,20 +3066,29 @@ function demoSeed(){
   {const d=new Date(at(16,12));const s=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());
    db[O+"/events/e_gala"]={title:"Gala de fin d'année",type:"evenement",allDay:true,start:s,end:s+DY,date:ymd(16),tz:"",video:false,location:"Centre communautaire",description:"Tenue de soirée suggérée.",icon:"🎉",image:"",createdBy:"demo",createdByName:"Visiteur",createdAt:now-5*DY,updatedAt:now-5*DY};}
   {const C=O+"/channels/";let k=0;
-   const msg=(cid,by,text,t,men)=>{db[C+cid+"/messages/m"+(k++)]=Object.assign({by,byName:names[by],text,at:t},men?{mentions:men}:{});const c=db[C+cid];if(t>(c.lastAt||0))Object.assign(c,{lastAt:t,lastText:text.slice(0,140),lastBy:by,lastByName:names[by],lastMentions:men||[],lastEveryone:false});};
+   const msg=(cid,by,text,t,men,x)=>{db[C+cid+"/messages/m"+(k++)]=Object.assign({by,byName:names[by],text,at:t},men?{mentions:men}:{},x||{});const c=db[C+cid];if(t>(c.lastAt||0))Object.assign(c,{lastAt:t,lastText:text.slice(0,140),lastBy:by,lastByName:names[by],lastMentions:men||[],lastEveryone:false});};
    db[C+"general"]={kind:"channel",name:"général",desc:"Annonces et discussions de toute l'association",createdBy:"demo",createdAt:now-40*DY,lastAt:0};
    db[C+"c_gala"]={kind:"channel",name:"comité-gala",desc:"Organisation du gala de fin d'année",createdBy:"demo",createdAt:now-20*DY,lastAt:0};
    const dm="dm_"+["d_camille","demo"].sort().join("_");
    db[C+dm]={kind:"dm",memberIds:["d_camille","demo"].sort(),createdBy:"d_camille",createdAt:now-2*DY,lastAt:0};
    msg("general","d_camille","Bonjour tout le monde ! La réunion du conseil a lieu jeudi à 18 h, au local. L'ordre du jour est dans le calendrier.",now-26*H);
-   msg("general","d_samuel","J'apporte le projecteur 👍",now-25*H);
+   msg("general","d_samuel","J'apporte le projecteur 👍",now-25*H,null,{rx:{d_camille:["🙏"],demo:["🙏"],d_lea:["👍"]}});
    msg("general","demo","Merci ! Pensez à pointer vos heures de kiosque cette semaine.",now-24*H);
-   msg("general","d_lea","Les affiches de la campagne de recrutement sont prêtes à imprimer 🎉",now-2*H);
+   msg("general","d_lea","Les affiches de la campagne de recrutement sont prêtes à imprimer 🎉",now-2*H,null,{rx:{d_camille:["🎉","❤️"],d_samuel:["🎉"],d_noah:["🎉"]}});
+   msg("general","d_camille","Quelle date pour la soirée d'accueil des nouveaux bénévoles ?",now-100*60000,null,{poll:{opts:["Jeudi 18 h","Vendredi 17 h","Samedi midi"],multi:false,closed:false},votes:{d_samuel:[0],d_lea:[0],d_noah:[1]}});
    msg("general","d_noah","@visiteur tu peux jeter un œil aux affiches avant l'impression ? Touche mon nom pour m'écrire en privé.",now-90*60000,["demo"]);
    msg("c_gala","d_samuel","J'ai contacté deux commanditaires, j'attends leurs réponses.",now-50*H);
    msg("c_gala","d_lea","Super. Je m'occupe du troisième : la librairie du campus ?",now-49*H);
    msg("c_gala","demo","Parfait. On fait le point jeudi après le conseil.",now-48*H);
    msg(dm,"d_camille","Salut ! Peux-tu valider mes heures de la semaine dernière quand tu auras une minute ?",now-40*60000);}
+  {const B=O+"/board/";
+   const card=(id,col,by,title,text,off,x)=>{db[B+id]=Object.assign({col,title,text,url:"",img:"",date:"",color:COLORS[0],by,byName:names[by],at:now-off*H,updatedAt:now-off*H,likes:{}},x||{});};
+   card("b_jeux","idees","d_samuel","Soirée jeux de société","Une fois par mois au local, pour accueillir les nouveaux sans pression. J'apporte une dizaine de jeux.",30,{color:"#4F7CFF",likes:{d_lea:true,d_noah:true}});
+   card("b_friperie","idees","d_lea","Friperie solidaire","Récupérer les vêtements oubliés aux objets perdus et les revendre à petit prix au profit de l'association.",8,{color:"#2FB7A0",likes:{demo:true}});
+   card("b_theme","vote","d_camille","Thème du gala : années 20 ou soirée étoilée ?","Votez avec 👍 sur l'option que vous préférez ; on tranche à la réunion du conseil.",50,{color:"#8B5CF6",date:ymd(16),likes:{d_samuel:true,d_lea:true,d_noah:true}});
+   card("b_guide","vote","d_noah","Guide d'accueil des bénévoles","Proposition : un guide d'une page à remettre au kiosque. Brouillon dans le lien.",20,{url:"https://www.jebenevole.ca",color:"#D6457F"});
+   card("b_kiosque","adopte","demo","Kiosque d'accueil à la rentrée","Adopté au dernier conseil : deux personnes par plage d'une heure, pendant toute la semaine de la rentrée.",200,{color:"#F2A33A",date:ymd(-25),likes:{d_camille:true,d_lea:true}});
+   card("b_soins","adopte","d_camille","Formation premiers soins","Offerte gratuitement par la Croix-Rouge aux membres actifs.",120,{color:"#E4572E",date:ymd(9)});}
   return db;
 }
 function exitDemo(signup){try{sessionStorage.removeItem("pointeuse-demo");if(signup)sessionStorage.setItem("pointeuse-signup","1");}catch(e){}location.reload();}
@@ -3874,10 +3888,11 @@ function renderMsgList(){
     if(att) attIndex.set(key,{a:att,cid:curChan,mid:m.id});
     html+=`<div class="msg${mine?" mine":""}${cont?" cont":""}${ping?" ping":""}">
       ${cont?'<span class="msg-avsp"></span>':`<button class="msg-avb" data-user="${esc(m.by)}" aria-label="${esc(tx("Options pour {}",name))}">${avHTML(m.by,"msg-av")}</button>`}
-      <div class="msg-b">${cont?"":`<div class="msg-meta"><button class="msg-who" data-user="${esc(m.by)}" translate="no">${esc(who)}</button><time datetime="${new Date(m.at).toISOString()}">${fmtTime(m.at)}</time></div>`}
-        ${m.text?`<div class="msg-text" translate="no"${cont?` title="${fmtTime(m.at)}"`:""}>${richText(m.text,map,m)}</div>`:""}
+      <div class="msg-b" data-mid="${esc(m.id)}">${cont?"":`<div class="msg-meta"><button class="msg-who" data-user="${esc(m.by)}" translate="no">${esc(who)}</button><time datetime="${new Date(m.at).toISOString()}">${fmtTime(m.at)}</time></div>`}
+        ${m.poll?pollHTML(m):m.text?`<div class="msg-text" translate="no"${cont?` title="${fmtTime(m.at)}"`:""}>${richText(m.text,map,m)}</div>`:""}
         ${att?`<div class="msg-att k-${attKind(att)}" data-key="${esc(key)}"${(att.kind==="image"||att.kind==="gif")?attBoxStyle(att):""}></div>`:""}
-        ${mine||admin?`<button class="msg-del" data-mdel="${esc(m.id)}" title="Supprimer le message" aria-label="Supprimer le message">×</button>`:""}</div></div>`;
+        ${rxHTML(m)}
+        <div class="msg-tools"><button class="mt-btn" data-rxmenu="${esc(m.id)}" title="Réagir" aria-label="Réagir au message">${ICO.smile}</button>${mine||admin?`<button class="msg-del" data-mdel="${esc(m.id)}" title="Supprimer le message" aria-label="Supprimer le message">×</button>`:""}</div></div></div>`;
     prev=m;
   });
   el.innerHTML=html;
@@ -3885,11 +3900,7 @@ function renderMsgList(){
   el.querySelectorAll("[data-user]").forEach(b=>b.onclick=e=>{e.stopPropagation();openUserCard(b.dataset.user,b);});
   el.querySelectorAll("[data-mdel]").forEach(b=>b.onclick=()=>{
     if(b.dataset.confirm!=="1"){b.dataset.confirm="1";b.textContent="Supprimer ?";b.classList.add("confirm");setTimeout(()=>{if(b.isConnected){b.dataset.confirm="";b.textContent="×";b.classList.remove("confirm");}},4000);return;}
-    const cid=curChan,mid=b.dataset.mdel,m=msgs.find(x=>x.id===mid);
-    CH().doc(cid).collection("messages").doc(mid).delete().then(()=>{
-      toast("Message supprimé");
-      if(m&&m.att&&m.att.file) deleteFileChunks(cid,mid,m.att);
-    }).catch(()=>toast("Suppression refusée"));
+    deleteMsg(b.dataset.mdel);
   });
   if(near||msgJust){el.scrollTop=el.scrollHeight;msgJust=false;}
   atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<120;
@@ -3905,7 +3916,7 @@ async function ensureChan(cid,now){
   else throw new Error("canal");
   msgSubFor=null;subscribeMsgs();
 }
-async function postMessage(text,d){
+async function postMessage(text,d,extra){
   const cid=curChan,now=Date.now(),byName=pName(myId);
   await ensureChan(cid,now);
   const mref=CH().doc(cid).collection("messages").doc();
@@ -3913,6 +3924,7 @@ async function postMessage(text,d){
   if(mt.ids.length) msg.mentions=mt.ids;
   if(mt.everyone) msg.everyone=true;
   if(d) msg.att=attMeta(d);
+  if(extra&&extra.poll) msg.poll=extra.poll;
   if(d&&d.blob){
     // Le fichier est découpé à part : la liste des messages reste légère.
     const buf=new Uint8Array(await d.blob.arrayBuffer()),n=msg.att.chunks,col=CH().doc(cid).collection("files");
@@ -3921,7 +3933,7 @@ async function postMessage(text,d){
     b.set(mref,msg);await b.commit();
     try{fileCache.set(cid+"/"+mref.id,URL.createObjectURL(new Blob([buf],{type:safeMime(d.kind,d.mime)})));}catch(e){}
   }else await mref.set(msg);
-  const label=msg.att?attLabel(msg.att):"",summary=(text?(label?label+" · "+text:text):label).slice(0,140);
+  const label=msg.poll?"📊 "+tx("Sondage"):msg.att?attLabel(msg.att):"",summary=(text?(label?label+" · "+text:text):label).slice(0,140);
   CH().doc(cid).update({lastAt:now,lastText:summary,lastBy:myId,lastByName:byName,lastMentions:mt.ids,lastEveryone:mt.everyone}).catch(e=>console.warn("résumé du canal",e));
   markRead(cid,now);
 }
@@ -4318,6 +4330,475 @@ $("chanDel").onclick=async()=>{
 };
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&mode==="messages")renderMsgList();});
 document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#tabs button"))hidePop();},true);
+
+
+/* =====================================================================
+   Idées inspirées de Padlet (octobre 2026)
+   1. Réactions emoji et sondages dans la messagerie
+   2. Code QR d'invitation (lien direct, image, affiche PDF, projection)
+   3. Babillard de l'association (mur en colonnes et chronologie)
+   ===================================================================== */
+const FV=()=>firebase.firestore.FieldValue;
+const MSG=mid=>CH().doc(curChan).collection("messages").doc(mid);
+ICO.smile=svgI('<circle cx="12" cy="12" r="8.5"/><path d="M8.6 14.2a4 4 0 0 0 6.8 0"/><path d="M9.4 9.8h.01M14.6 9.8h.01" stroke-width="2.6"/>');
+ICO.poll=svgI('<path d="M5 20V11M12 20V5M19 20v-6"/>',2.2);
+ICO.link=svgI('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l2.8-2.8a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-2.8 2.8a4.5 4.5 0 0 0 6.4 6.4l1-1"/>');
+ICO.pen=svgI('<path d="M4 20h4.2L19 9.2 14.8 5 4 15.8z"/><path d="M13 6.8l4.2 4.2"/>');
+const whoList=ids=>ids.map(u=>u===myId?tx("Vous"):pName(u)).join(", ");
+const slugOf=s=>String(s||"association").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/gi,"-").replace(/^-+|-+$/g,"").toLowerCase()||"association";
+function dlBlob(blob,filename){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);}
+
+/* ---------- 1a. Réactions emoji ----------
+   messages/{id}.rx = {uid:[emoji,…]} : chaque personne ne modifie que sa propre entrée (voir firestore.rules). */
+const RX_QUICK=["👍","❤️","🎉","😂","😮","🙏","👀","✅"];
+function rxGroups(m){
+  const rx=m.rx&&typeof m.rx==="object"?m.rx:{},g=new Map();
+  Object.entries(rx).forEach(([u,l])=>{if(Array.isArray(l))l.forEach(e=>{if(typeof e!=="string"||!e)return;if(!g.has(e))g.set(e,[]);g.get(e).push(u);});});
+  const rank=e=>{const i=RX_QUICK.indexOf(e);return i<0?99:i;};
+  return [...g.entries()].sort((a,b)=>rank(a[0])-rank(b[0]));
+}
+function rxHTML(m){
+  const g=rxGroups(m);if(!g.length) return "";
+  return `<div class="msg-rx">${g.map(([e,us])=>{const on=us.includes(myId);
+    return `<button class="rx${on?" on":""}" data-rx="${esc(e)}" data-rmid="${esc(m.id)}" aria-pressed="${on}" title="${esc(whoList(us))}" aria-label="${esc(e+" "+us.length+" : "+whoList(us))}"><span class="rx-e" aria-hidden="true">${esc(e)}</span><span class="rx-n">${us.length}</span></button>`;}).join("")}<button class="rx rx-add" data-rxadd="${esc(m.id)}" title="Ajouter une réaction" aria-label="Ajouter une réaction">${ICO.smile}</button></div>`;
+}
+function toggleRx(mid,e){
+  const m=msgs.find(x=>x.id===mid);if(!m||!curOrg||!e) return;
+  const cur=Array.isArray(m.rx&&m.rx[myId])?m.rx[myId]:[];
+  const next=cur.includes(e)?cur.filter(x=>x!==e):cur.concat([e]).slice(-12);
+  m.rx=Object.assign({},m.rx||{});if(next.length)m.rx[myId]=next;else delete m.rx[myId];
+  renderMsgList();
+  MSG(mid).update({["rx."+myId]:next.length?next:FV().delete()}).catch(err=>{console.warn("réaction",err);toast("Réaction non enregistrée. Si le problème persiste, mettez à jour les règles Firestore.",3800);});
+}
+function deleteMsg(mid){
+  const cid=curChan,m=msgs.find(x=>x.id===mid);
+  CH().doc(cid).collection("messages").doc(mid).delete().then(()=>{
+    toast("Message supprimé");
+    if(m&&m.att&&m.att.file) deleteFileChunks(cid,mid,m.att);
+  }).catch(()=>toast("Suppression refusée"));
+}
+// Sélecteur de réactions ; avec « actions », ajoute Copier et Supprimer (appui long sur mobile).
+function openRxPicker(mid,anchor,actions){
+  togglePop(anchor,()=>{
+    const m=msgs.find(x=>x.id===mid);if(!m) return;
+    const mine=Array.isArray(m.rx&&m.rx[myId])?m.rx[myId]:[],canDel=m.by===myId||adminUI();
+    const html=`<div class="rx-pick" role="group" aria-label="${esc(tx("Réagir au message"))}">${RX_QUICK.map(e=>`<button class="rx-pe${mine.includes(e)?" on":""}" data-pe="${e}" aria-pressed="${mine.includes(e)}" aria-label="${e}">${e}</button>`).join("")}</div>
+      ${actions&&(m.text||canDel)?`<div class="np-sep"></div>${m.text?`<button class="np-act" data-pa="copy">${ICO.copy}<span>Copier le texte</span></button>`:""}${canDel?`<button class="np-act np-danger" data-pa="del">${ICO.trash}<span>Supprimer le message</span></button>`:""}`:""}`;
+    showPop(html,anchor,p=>{
+      p.querySelectorAll("[data-pe]").forEach(b=>b.onclick=()=>{hidePop();toggleRx(mid,b.dataset.pe);});
+      p.querySelectorAll("[data-pa]").forEach(b=>b.onclick=()=>{
+        if(b.dataset.pa==="copy"){hidePop();(navigator.clipboard?navigator.clipboard.writeText(m.text):Promise.reject()).then(()=>toast("Texte copié")).catch(()=>{});return;}
+        if(b.dataset.confirm!=="1"){b.dataset.confirm="1";b.querySelector("span").textContent=tx("Confirmer la suppression");return;}
+        hidePop();deleteMsg(mid);
+      });
+    },tx("Réagir au message"));
+  });
+}
+
+/* ---------- 1b. Sondages ----------
+   messages/{id}.poll = {opts:[…], multi, closed} ; messages/{id}.votes = {uid:[indices]} */
+function pollHTML(m){
+  const p=m.poll;if(!p||!Array.isArray(p.opts)) return "";
+  const votes=m.votes&&typeof m.votes==="object"?m.votes:{};
+  const counts=p.opts.map(()=>[]);
+  Object.entries(votes).forEach(([u,l])=>{(Array.isArray(l)?l:[]).forEach(i=>{if(counts[i]&&!counts[i].includes(u))counts[i].push(u);});});
+  const voters=Object.keys(votes).filter(u=>Array.isArray(votes[u])&&votes[u].length).length;
+  const mine=Array.isArray(votes[myId])?votes[myId]:[],closed=!!p.closed,top=Math.max(0,...counts.map(c=>c.length));
+  const canClose=!closed&&(m.by===myId||adminUI());
+  const foot=[voters===0?tx("Aucun vote pour l'instant"):voters===1?tx("1 personne a voté"):tx("{} personnes ont voté",voters)];
+  if(p.multi) foot.push(tx("plusieurs réponses possibles"));
+  if(closed) foot.push(tx("sondage clos"));
+  return `<div class="poll${closed?" closed":""}" role="group" aria-label="${esc(tx("Sondage : {}",m.text||""))}">
+    <div class="poll-q">${ICO.poll}<b translate="no">${esc(m.text||"")}</b></div>
+    <div class="poll-opts">${p.opts.map((o,i)=>{const n=counts[i].length,pct=voters?Math.round(n/voters*100):0,on=mine.includes(i);
+      return `<button class="poll-opt${on?" on":""}${n&&n===top?" lead":""}" data-vote="${i}" data-pmid="${esc(m.id)}" aria-pressed="${on}"${closed?" disabled":""}${n?` title="${esc(whoList(counts[i]))}"`:""}><span class="po-fill" style="width:${pct}%"></span><span class="po-mark${p.multi?" sq":""}" aria-hidden="true"></span><span class="po-lbl" translate="no">${esc(o)}</span><span class="po-n">${n} · ${pct} %</span></button>`;}).join("")}</div>
+    <div class="poll-foot"><span>${esc(foot.join(" · "))}</span>${canClose?`<button class="btn ghost" data-pclose="${esc(m.id)}">Clore le sondage</button>`:""}</div></div>`;
+}
+function votePoll(mid,i){
+  const m=msgs.find(x=>x.id===mid);if(!m||!m.poll||m.poll.closed||!(i>=0)) return;
+  const cur=Array.isArray(m.votes&&m.votes[myId])?m.votes[myId]:[];
+  const next=m.poll.multi?(cur.includes(i)?cur.filter(x=>x!==i):cur.concat([i]).sort((a,b)=>a-b)):(cur.length===1&&cur[0]===i?[]:[i]);
+  m.votes=Object.assign({},m.votes||{});if(next.length)m.votes[myId]=next;else delete m.votes[myId];
+  renderMsgList();
+  MSG(mid).update({["votes."+myId]:next.length?next:FV().delete()}).catch(err=>{console.warn("vote",err);toast("Vote non enregistré. Le sondage est peut-être clos.",3500);});
+}
+function closePoll(mid){
+  const m=msgs.find(x=>x.id===mid);if(!m||!m.poll) return;
+  MSG(mid).update({poll:Object.assign({},m.poll,{closed:true})}).then(()=>toast("Sondage clos")).catch(()=>toast("Seule la personne qui a créé le sondage peut le clore."));
+}
+// Fenêtre de création
+let plOpts=["",""];
+function plRender(focus){
+  $("plOpts").innerHTML=plOpts.map((v,i)=>`<div class="pl-row"><input type="text" data-pli="${i}" maxlength="80" value="${esc(v)}" placeholder="${esc(tx("Choix {}",i+1))}" aria-label="${esc(tx("Choix {}",i+1))}">${plOpts.length>2?`<button class="btn ghost" data-plx="${i}" aria-label="${esc(tx("Retirer le choix {}",i+1))}" title="Retirer">×</button>`:""}</div>`).join("");
+  $("plOpts").querySelectorAll("[data-pli]").forEach(inp=>{
+    const i=Number(inp.dataset.pli);
+    inp.oninput=()=>{plOpts[i]=inp.value;};
+    inp.onkeydown=e=>{if(e.key!=="Enter")return;e.preventDefault();
+      if(i<plOpts.length-1){$("plOpts").querySelector(`[data-pli="${i+1}"]`).focus();}
+      else if(inp.value.trim()&&plOpts.length<10){plOpts.push("");plRender(plOpts.length-1);}
+      else $("plSend").click();};
+  });
+  $("plOpts").querySelectorAll("[data-plx]").forEach(b=>b.onclick=()=>{plOpts.splice(Number(b.dataset.plx),1);plRender();});
+  $("plAdd").hidden=plOpts.length>=10;
+  if(focus!=null){const f=$("plOpts").querySelector(`[data-pli="${focus}"]`);if(f)f.focus();}
+}
+$("msgPoll").onclick=()=>{
+  if(!curOrg) return;
+  plOpts=["",""];$("plQ").value="";$("plMulti").checked=false;$("plErr").textContent="";$("plSend").disabled=false;
+  plRender();$("pollDlg").showModal();setTimeout(()=>$("plQ").focus(),50);
+};
+$("plAdd").onclick=()=>{if(plOpts.length<10){plOpts.push("");plRender(plOpts.length-1);}};
+$("plCancel").onclick=()=>$("pollDlg").close();
+$("plQ").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();const f=$("plOpts").querySelector("[data-pli]");if(f)f.focus();}};
+$("plSend").onclick=async()=>{
+  const q=$("plQ").value.trim(),seen=new Set(),opts=[];
+  plOpts.map(s=>s.trim()).filter(Boolean).forEach(s=>{const k=s.toLocaleLowerCase();if(!seen.has(k)){seen.add(k);opts.push(s.slice(0,80));}});
+  if(!q){$("plErr").textContent="Écrivez la question du sondage.";$("plQ").focus();return;}
+  if(opts.length<2){$("plErr").textContent="Proposez au moins deux choix différents.";return;}
+  $("plSend").disabled=true;$("plErr").textContent="";
+  try{await postMessage(q,null,{poll:{opts:opts.slice(0,10),multi:$("plMulti").checked,closed:false}});$("pollDlg").close();}
+  catch(e){console.warn(e);$("plErr").textContent="Sondage non publié. Vérifiez votre connexion ; si le problème persiste, mettez à jour les règles Firestore.";}
+  $("plSend").disabled=false;
+};
+
+/* ---------- 1c. Interactions dans le fil (délégation : un seul écouteur) ---------- */
+{
+  const list=$("msgList");
+  list.addEventListener("click",e=>{
+    const t=e.target.closest("[data-rx],[data-rxadd],[data-rxmenu],[data-vote],[data-pclose]");if(!t) return;
+    if(t.dataset.rx!=null) toggleRx(t.dataset.rmid,t.dataset.rx);
+    else if(t.dataset.rxadd) openRxPicker(t.dataset.rxadd,t,false);
+    else if(t.dataset.rxmenu) openRxPicker(t.dataset.rxmenu,t,false);
+    else if(t.dataset.vote!=null) votePoll(t.dataset.pmid,Number(t.dataset.vote));
+    else if(t.dataset.pclose) closePoll(t.dataset.pclose);
+  });
+  // Appui long (écran tactile) : réactions, copier, supprimer
+  let lp=null;
+  const cancel=()=>{if(lp){clearTimeout(lp.t);lp=null;}};
+  list.addEventListener("pointerdown",e=>{
+    if(e.pointerType!=="touch") return;
+    const b=e.target.closest(".msg-b[data-mid]");if(!b||e.target.closest("button,a,audio,video,input,.poll")) return;
+    cancel();const x=e.clientX,y=e.clientY;
+    lp={x,y,t:setTimeout(()=>{lp=null;try{if(navigator.vibrate)navigator.vibrate(12);}catch(_){}openRxPicker(b.dataset.mid,b,true);},480)};
+  },{passive:true});
+  list.addEventListener("pointermove",e=>{if(lp&&Math.hypot(e.clientX-lp.x,e.clientY-lp.y)>10)cancel();},{passive:true});
+  ["pointerup","pointercancel","scroll"].forEach(ev=>list.addEventListener(ev,cancel,{passive:true}));
+  list.addEventListener("contextmenu",e=>{if(e.target.closest(".msg-b[data-mid]")&&matchMedia("(hover:none)").matches)e.preventDefault();});
+}
+
+/* ---------- 2. Code QR d'invitation ----------
+   Le lien ?rejoindre=CODE ouvre la page de connexion, puis la fenêtre « Rejoindre » avec le code prérempli. */
+const QR_SRC=["https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js","https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"];
+let qrLoading=null,qrCur=null;
+function loadQrLib(){
+  if(window.qrcode) return Promise.resolve(window.qrcode);
+  if(qrLoading) return qrLoading;
+  qrLoading=(async()=>{
+    for(const src of QR_SRC){
+      try{await new Promise((res,rej)=>{const s=document.createElement("script");s.src=src;s.async=true;s.onload=res;s.onerror=()=>{s.remove();rej();};document.head.appendChild(s);});
+        if(window.qrcode) return window.qrcode;}catch(e){}
+    }
+    qrLoading=null;throw new Error("qrcode");
+  })();
+  return qrLoading;
+}
+function inviteLink(code){
+  const base=location.origin&&location.origin!=="null"?location.origin+location.pathname:location.href.split(/[?#]/)[0];
+  return base+"?rejoindre="+encodeURIComponent(code);
+}
+function qrMatrix(text){
+  const q=window.qrcode(0,"M");q.addData(text);q.make();
+  const n=q.getModuleCount(),m=[];
+  for(let r=0;r<n;r++){const row=[];for(let c=0;c<n;c++)row.push(q.isDark(r,c));m.push(row);}
+  return m;
+}
+// Parcourt les modules sombres par segments horizontaux (dessin plus léger)
+function qrRuns(m,fn){m.forEach((row,r)=>{let c=0;while(c<row.length){if(row[c]){let e=c;while(e<row.length&&row[e])e++;fn(r,c,e-c);c=e;}else c++;}});}
+function qrSvg(m,label){
+  const Q=4,S=m.length+Q*2;let d="";
+  qrRuns(m,(r,c,w)=>{d+=`M${c+Q} ${r+Q}h${w}v1h-${w}z`;});
+  return `<svg viewBox="0 0 ${S} ${S}" role="img" aria-label="${esc(label)}" shape-rendering="crispEdges"><rect width="${S}" height="${S}" fill="#fff"/><path d="${d}" fill="#14213D"/></svg>`;
+}
+async function openQr(){
+  if(!curOrg||!orgCode){toast("Aucun code d'invitation pour cette association.");return;}
+  const code=orgCode,link=inviteLink(code),acts=["qrPng","qrShow","qrPdf"];
+  $("qrOrg").textContent=org.orgName||"";$("qrCode").textContent=fmtCode(code);$("qrLink").value=link;
+  $("qrBox").innerHTML=`<span class="since">${esc(tx("Préparation du code QR…"))}</span>`;
+  acts.forEach(id=>$(id).disabled=true);
+  if(!$("qrDlg").open) $("qrDlg").showModal();
+  try{
+    await loadQrLib();
+    qrCur={code,link,m:qrMatrix(link)};
+    $("qrBox").innerHTML=qrSvg(qrCur.m,tx("Code QR pour rejoindre {}",org.orgName||""));
+    acts.forEach(id=>$(id).disabled=false);
+  }catch(e){
+    qrCur=null;
+    $("qrBox").innerHTML=`<span class="err">${esc(tx("Le générateur de code QR n'a pas pu se charger. Vérifiez votre connexion, puis réessayez."))}</span>`;
+  }
+}
+$("sQrCode").onclick=openQr;
+$("teamInvite").onclick=openQr;
+$("qrX").onclick=()=>$("qrDlg").close();
+$("qrCopy").onclick=async()=>{
+  const v=$("qrLink").value;
+  try{await navigator.clipboard.writeText(v);toast("Lien d'invitation copié");}
+  catch(e){$("qrLink").select();toast("Lien sélectionné : copiez-le avec Ctrl+C");}
+};
+$("qrPng").onclick=()=>{
+  if(!qrCur) return;
+  const m=qrCur.m,Q=4,px=12,S=(m.length+Q*2)*px,foot=64,c=document.createElement("canvas");
+  c.width=S;c.height=S+foot;const g=c.getContext("2d");
+  g.fillStyle="#fff";g.fillRect(0,0,c.width,c.height);
+  g.fillStyle="#14213D";qrRuns(m,(r,k,w)=>g.fillRect((k+Q)*px,(r+Q)*px,w*px,px));
+  g.textAlign="center";g.font="700 34px Barlow, Arial, sans-serif";g.fillText(fmtCode(qrCur.code),S/2,S+12);
+  g.fillStyle="#5B6773";g.font="500 20px Barlow, Arial, sans-serif";g.fillText(String(org.orgName||"").slice(0,48),S/2,S+44);
+  c.toBlob(b=>{if(b)dlBlob(b,"invitation-"+slugOf(org.orgName)+".png");},"image/png");
+};
+$("qrPdf").onclick=()=>{
+  if(!qrCur) return;
+  if(!window.jspdf){toast("Le générateur de PDF n'a pas pu se charger. Rechargez la page.");return;}
+  const doc=new window.jspdf.jsPDF({unit:"mm",format:"letter"}),W=215.9,H=279.4,M=22;
+  let acc=getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+  if(!/^#[0-9a-f]{6}$/i.test(acc)) acc="#F2A33A";
+  doc.setFillColor(acc);doc.rect(0,0,W,12,"F");
+  doc.setFont("helvetica","bold");doc.setFontSize(30);doc.setTextColor("#14213D");
+  const name=doc.splitTextToSize(org.orgName||"",W-2*M).slice(0,3);
+  doc.text(name,W/2,38,{align:"center"});
+  let y=38+name.length*12;
+  doc.setFont("helvetica","normal");doc.setFontSize(17);doc.setTextColor("#5B6773");
+  doc.text(tx("Rejoignez-nous !"),W/2,y,{align:"center"});y+=10;
+  const size=118,s=size/qrCur.m.length,x0=(W-size)/2;
+  doc.setFillColor("#14213D");qrRuns(qrCur.m,(r,c,w)=>doc.rect(x0+c*s,y+r*s,w*s+.05,s+.05,"F"));
+  y+=size+14;
+  doc.setFontSize(14);doc.setTextColor("#18212B");
+  doc.text(tx("Scannez ce code avec l'appareil photo de votre téléphone."),W/2,y,{align:"center"});y+=12;
+  doc.setFontSize(12);doc.setTextColor("#5B6773");
+  doc.text(tx("Ou ouvrez Pointeuse et entrez le code d'invitation :"),W/2,y,{align:"center"});y+=14;
+  doc.setFont("courier","bold");doc.setFontSize(30);doc.setTextColor("#14213D");
+  doc.text(fmtCode(qrCur.code),W/2,y,{align:"center"});
+  doc.setFont("helvetica","normal");doc.setFontSize(9);doc.setTextColor("#5B6773");
+  doc.text(doc.splitTextToSize(qrCur.link,W-2*M),W/2,H-16,{align:"center"});
+  dlBlob(new Blob([doc.output("arraybuffer")],{type:"application/pdf"}),"affiche-invitation-"+slugOf(org.orgName)+".pdf");
+};
+// Projection en réunion : plein écran, fond blanc, gros caractères
+$("qrShow").onclick=()=>{
+  if(!qrCur) return;
+  const o=document.createElement("div");o.className="qr-full";o.tabIndex=-1;
+  o.setAttribute("role","dialog");o.setAttribute("aria-label",tx("Code QR en plein écran"));
+  o.innerHTML=`<div class="qf-in"><b class="qf-org" translate="no">${esc(org.orgName||"")}</b><div class="qf-qr">${qrSvg(qrCur.m,tx("Code QR pour rejoindre {}",org.orgName||""))}</div><span class="qf-lbl">${esc(tx("Scannez pour rejoindre l'association"))}</span><span class="qf-code">${esc(fmtCode(qrCur.code))}</span><span class="qf-hint">${esc(tx("Touchez l'écran ou appuyez sur Échap pour fermer"))}</span></div>`;
+  $("qrDlg").close();document.body.appendChild(o);
+  const key=e=>{if(e.key==="Escape"){e.preventDefault();close();}};
+  const fs=()=>{if(!document.fullscreenElement&&o.isConnected)close();};
+  function close(){document.removeEventListener("keydown",key,true);document.removeEventListener("fullscreenchange",fs);
+    if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});o.remove();}
+  document.addEventListener("keydown",key,true);o.onclick=close;o.focus();
+  if(o.requestFullscreen)o.requestFullscreen().then(()=>document.addEventListener("fullscreenchange",fs)).catch(()=>{});
+};
+// Lien d'invitation reçu : mémorisé le temps de se connecter, puis proposé
+const INVITE_KEY="pointeuse-invite";
+(function(){
+  try{
+    const p=new URLSearchParams(location.search),raw=p.get("rejoindre")||p.get("join");if(raw==null) return;
+    const c=normCode(raw);if(c.length===8)sessionStorage.setItem(INVITE_KEY,c);
+    p.delete("rejoindre");p.delete("join");const q=p.toString();
+    history.replaceState(history.state,"",location.pathname+(q?"?"+q:"")+location.hash);
+  }catch(e){}
+  try{if(!DEMO&&sessionStorage.getItem(INVITE_KEY))$("inviteNote").hidden=false;}catch(e){}
+})();
+async function handleInvite(){
+  if(DEMO||!myId) return;
+  let code=null;try{code=sessionStorage.getItem(INVITE_KEY);}catch(e){}
+  if(!code) return;
+  const onb=$("onbDlg");if(onb.open){onb.addEventListener("close",()=>handleInvite(),{once:true});return;}
+  try{sessionStorage.removeItem(INVITE_KEY);}catch(e){}
+  let info=null;try{const c=await L.code(code).get();if(c.exists)info=c.data();}catch(e){}
+  if(info&&myOrgIds.includes(info.orgId)){
+    if(info.orgId!==curOrg) switchOrg(info.orgId);else toast(tx("Vous faites déjà partie de {}",info.name||org.orgName||""),3500);
+    return;
+  }
+  openOrgDlg("join");$("oCode").value=fmtCode(code);
+  $("oHelp").textContent=info?tx("Vous êtes invité à rejoindre « {} ». Confirmez pour en devenir membre.",info.name||""):tx("Ce lien d'invitation ne correspond à aucune association. Le code a peut-être été remplacé : demandez le nouveau.");
+}
+
+/* ---------- 3. Babillard de l'association ----------
+   orgs/{org}/board/{carte} : {col,title,text,url,img,date,color,by,byName,at,updatedAt,likes:{uid:true}}
+   Les colonnes sont réglées par les administrateurs dans orgs/{org}.board.cols */
+const BOARD_DEF_COLS=[{id:"idees",name:"Idées"},{id:"vote",name:"À voter"},{id:"adopte",name:"Adopté"}];
+const BD_PREF="pointeuse-babillard";
+let boardCards={},boardUnsub=null,boardFor=null,boardErr=false,boardCfg=null,bdDraft=null,bdDelConfirm=false,bdDrag=null,bdcDraft=[];
+let bdPrefs=lsJSON(BD_PREF,{layout:"wall",sort:"recent"});
+const BD=()=>fdb.collection("orgs").doc(curOrg).collection("board");
+const bdCols=()=>{const c=boardCfg&&Array.isArray(boardCfg.cols)?boardCfg.cols.filter(x=>x&&x.id&&x.name):[];return c.length?c:BOARD_DEF_COLS;};
+const bdCan=c=>!!c&&(c.by===myId||adminUI());
+const bdLikes=c=>{const l=c&&c.likes&&typeof c.likes==="object"?c.likes:{};return Object.keys(l).filter(k=>l[k]);};
+const bdWhen=c=>(c.date&&parseDay(c.date))||c.at||0;
+const bdDateLbl=s=>new Date(parseDay(s)).toLocaleDateString(LOC(),{day:"numeric",month:"long",year:"numeric"});
+function boardSync(){
+  if(!fdb||!curOrg) return;
+  if(boardFor===curOrg&&boardUnsub) return;
+  if(boardUnsub){boardUnsub();boardUnsub=null;}
+  boardFor=curOrg;boardCards={};boardErr=false;
+  boardUnsub=BD().onSnapshot(sn=>{
+    const n={};sn.docs.forEach(d=>{n[d.id]=Object.assign({},d.data(),{id:d.id});});
+    boardCards=n;boardErr=false;if(mode==="board")renderBoard();
+  },e=>{console.warn("babillard",e);boardErr=true;boardUnsub=null;if(mode==="board")renderBoard();});
+}
+function bdCardHTML(c,ci,cols){
+  const likes=bdLikes(c),on=likes.includes(myId),can=bdCan(c);
+  let host="";if(c.url){try{host=new URL(c.url).hostname.replace(/^www\./,"");}catch(e){host=c.url;}}
+  const colName=ci<0?(cols.find(x=>x.id===c.col)||cols[0]).name:"";
+  const acts=can?`<span class="bc-acts">${ci>0?`<button class="bc-a" data-bmove="${esc(c.id)}" data-dir="-1" title="${esc(tx("Déplacer vers « {} »",cols[ci-1].name))}" aria-label="${esc(tx("Déplacer vers « {} »",cols[ci-1].name))}">‹</button>`:""}${ci>=0&&ci<cols.length-1?`<button class="bc-a" data-bmove="${esc(c.id)}" data-dir="1" title="${esc(tx("Déplacer vers « {} »",cols[ci+1].name))}" aria-label="${esc(tx("Déplacer vers « {} »",cols[ci+1].name))}">›</button>`:""}<button class="bc-a" data-bedit="${esc(c.id)}" title="Modifier la carte" aria-label="Modifier la carte">${ICO.pen}</button></span>`:"";
+  return `<article class="bcard${c.img?" has-img":""}" style="--bc:${esc(c.color||"var(--line)")}" data-bid="${esc(c.id)}"${can&&ci>=0?' draggable="true"':""}>
+    ${c.img?`<button class="bc-img" data-bimg="${esc(c.id)}" aria-label="${esc(tx("Agrandir la photo"))}"><img src="${esc(c.img)}" alt="${esc(c.title||tx("Photo"))}" loading="lazy"></button>`:""}
+    <div class="bc-body">
+      ${colName?`<span class="bc-col">${esc(colName)}</span>`:""}
+      ${c.title?`<h4 translate="no">${esc(c.title)}</h4>`:""}
+      ${c.text?`<p class="bc-text" translate="no">${linkify(c.text)}</p>`:""}
+      ${c.url?`<a class="bc-link" href="${esc(c.url)}" target="_blank" rel="noopener noreferrer">${ICO.link}<span>${esc(host)}</span></a>`:""}
+      ${c.date&&ci>=0?`<span class="bc-date">${esc(bdDateLbl(c.date))}</span>`:""}
+    </div>
+    <footer class="bc-foot">
+      <span class="bc-by">${avHTML(c.by,"bc-av")}<span><b translate="no">${esc(c.byName||pName(c.by))}</b><small>${esc(relTime(c.at||Date.now()))}</small></span></span>
+      <button class="bc-vote${on?" on":""}" data-bvote="${esc(c.id)}" aria-pressed="${on}" title="${esc(likes.length?whoList(likes):tx("Voter pour cette carte"))}" aria-label="${esc(tx("Voter pour cette carte ({})",likes.length))}"><span aria-hidden="true">👍</span><span>${likes.length}</span></button>
+      ${acts}
+    </footer></article>`;
+}
+function renderBoard(){
+  boardSync();
+  const admin=adminUI(),cols=bdCols(),lay=bdPrefs.layout==="time"?"time":"wall";
+  segSync("bdLayout",lay);segSync("bdSort",bdPrefs.sort==="votes"?"votes":"recent");
+  $("bdSort").hidden=lay!=="wall";$("bdCols").hidden=!admin||lay!=="wall";
+  $("bdWall").hidden=lay!=="wall";$("bdTime").hidden=lay!=="time";
+  if(boardErr){
+    $("bdWall").hidden=false;$("bdTime").hidden=true;
+    $("bdWall").innerHTML=`<div class="card bd-empty"><b>Babillard inaccessible.</b><span>Vérifiez votre connexion. Si le problème persiste, les règles de sécurité Firestore doivent être mises à jour (voir le guide).</span></div>`;
+    return;
+  }
+  const all=Object.values(boardCards);
+  if(lay==="wall"){
+    const ids=new Set(cols.map(c=>c.id));
+    const sort=bdPrefs.sort==="votes"?(a,b)=>bdLikes(b).length-bdLikes(a).length||(b.at||0)-(a.at||0):(a,b)=>(b.at||0)-(a.at||0);
+    $("bdWall").innerHTML=cols.map((col,ci)=>{
+      const list=all.filter(c=>(ids.has(c.col)?c.col:cols[0].id)===col.id).sort(sort);
+      return `<section class="bcol" data-bcol="${esc(col.id)}" aria-label="${esc(col.name)}">
+        <header class="bcol-h"><h3>${esc(col.name)}</h3><span class="bcol-n">${list.length}</span><button class="bcol-add" data-badd="${esc(col.id)}" title="${esc(tx("Épingler une carte dans « {} »",col.name))}" aria-label="${esc(tx("Épingler une carte dans « {} »",col.name))}">+</button></header>
+        <div class="bcol-list">${list.length?list.map(c=>bdCardHTML(c,ci,cols)).join(""):`<p class="bcol-empty">${esc(all.length?tx("Glissez une carte ici, ou épinglez-en une nouvelle."):ci===0?tx("Le babillard est vide. Épinglez une première carte : une photo d'événement, une idée, une annonce ou un lien."):tx("Aucune carte pour l'instant."))}</p>`}</div></section>`;
+    }).join("");
+  }else{
+    const list=all.slice().sort((a,b)=>bdWhen(a)-bdWhen(b)),groups=[];
+    list.forEach(c=>{const d=new Date(bdWhen(c)),k=d.getFullYear()*12+d.getMonth();let g=groups[groups.length-1];
+      if(!g||g.k!==k){g={k,lbl:cap(d.toLocaleDateString(LOC(),{month:"long",year:"numeric"})),items:[]};groups.push(g);}g.items.push(c);});
+    const today=startOfDay(Date.now());
+    $("bdTime").innerHTML=list.length?groups.map(g=>`<div class="bt-month"><h3>${esc(g.lbl)}</h3>${g.items.map(c=>{const t=bdWhen(c);
+      return `<div class="bt-item${startOfDay(t)>today?" future":""}"><time class="bt-date" datetime="${esc(dayKey(t))}">${esc(new Date(t).toLocaleDateString(LOC(),{weekday:"short",day:"numeric"}))}</time>${bdCardHTML(c,-1,cols)}</div>`;}).join("")}</div>`).join("")
+      :`<div class="bd-empty"><b>La chronologie est vide.</b><span>Épinglez des cartes datées (événements, décisions, réussites) pour retracer l'année de l'association.</span></div>`;
+  }
+  bindBoard();
+}
+function bindBoard(){
+  const root=$("boardView");
+  root.querySelectorAll("[data-badd]").forEach(b=>b.onclick=()=>openBoardDlg(null,b.dataset.badd));
+  root.querySelectorAll("[data-bvote]").forEach(b=>b.onclick=()=>bdVote(b.dataset.bvote));
+  root.querySelectorAll("[data-bedit]").forEach(b=>b.onclick=()=>openBoardDlg(b.dataset.bedit));
+  root.querySelectorAll("[data-bmove]").forEach(b=>b.onclick=()=>{const c=boardCards[b.dataset.bmove],cols=bdCols();if(!c)return;
+    let i=cols.findIndex(x=>x.id===c.col);if(i<0)i=0;const n=cols[i+Number(b.dataset.dir)];if(n)bdSetCol(c.id,n.id);});
+  root.querySelectorAll("[data-bimg]").forEach(b=>b.onclick=()=>{const c=boardCards[b.dataset.bimg];if(c&&c.img)openLightbox(c.img,{name:slugOf(c.title||"photo")+".jpg"});});
+  // Glisser-déposer entre colonnes (ordinateur)
+  root.querySelectorAll(".bcard[draggable]").forEach(el=>{
+    el.ondragstart=e=>{bdDrag=el.dataset.bid;el.classList.add("dragging");try{e.dataTransfer.setData("text/plain",bdDrag);e.dataTransfer.effectAllowed="move";}catch(_){}};
+    el.ondragend=()=>{bdDrag=null;el.classList.remove("dragging");root.querySelectorAll(".bcol.over").forEach(x=>x.classList.remove("over"));};
+  });
+  root.querySelectorAll(".bcol").forEach(col=>{
+    col.ondragover=e=>{if(!bdDrag)return;e.preventDefault();col.classList.add("over");};
+    col.ondragleave=e=>{if(!col.contains(e.relatedTarget))col.classList.remove("over");};
+    col.ondrop=e=>{e.preventDefault();col.classList.remove("over");if(bdDrag)bdSetCol(bdDrag,col.dataset.bcol);bdDrag=null;};
+  });
+}
+function bdVote(id){
+  const c=boardCards[id];if(!c) return;
+  const on=bdLikes(c).includes(myId);
+  c.likes=Object.assign({},c.likes||{});if(on)delete c.likes[myId];else c.likes[myId]=true;renderBoard();
+  BD().doc(id).update({["likes."+myId]:on?FV().delete():true}).catch(e=>{console.warn("vote",e);toast("Vote non enregistré. Vérifiez votre connexion.");});
+}
+function bdSetCol(id,col){
+  const c=boardCards[id];if(!c||c.col===col) return;
+  if(!bdCan(c)){toast("Seuls l'auteur de la carte et les administrateurs peuvent la déplacer.");return;}
+  c.col=col;renderBoard();
+  BD().doc(id).update({col,updatedAt:Date.now()}).catch(()=>toast("Déplacement refusé"));
+}
+$("bdNew").onclick=()=>openBoardDlg(null);
+document.querySelectorAll("#bdLayout button").forEach(b=>b.onclick=()=>{bdPrefs.layout=b.dataset.v;lsSet(BD_PREF,bdPrefs);renderBoard();});
+document.querySelectorAll("#bdSort button").forEach(b=>b.onclick=()=>{bdPrefs.sort=b.dataset.v;lsSet(BD_PREF,bdPrefs);renderBoard();});
+// Fenêtre d'une carte
+function bdDraftRender(){
+  $("bdImgPrev").hidden=!bdDraft.img;$("bdImgDel").hidden=!bdDraft.img;
+  if(bdDraft.img) $("bdImgEl").src=bdDraft.img;else $("bdImgEl").removeAttribute("src");
+  $("bdColors").innerHTML=COLORS.map(c=>`<button style="background:${c}" data-c="${c}" aria-pressed="${c===bdDraft.color}" aria-label="${esc(tx("Couleur {}",c))}"></button>`).join("");
+  $("bdColors").querySelectorAll("[data-c]").forEach(b=>b.onclick=()=>{bdDraft.color=b.dataset.c;bdDraftRender();});
+}
+function openBoardDlg(id,col){
+  if(!curOrg) return;
+  const cols=bdCols(),c=id?boardCards[id]:null;if(id&&!c) return;
+  bdDraft=c?{id,col:c.col,img:c.img||"",color:c.color||COLORS[0]}:{id:null,col:col||cols[0].id,img:"",color:COLORS[0]};
+  $("bdDlgTitle").textContent=c?"Modifier la carte":"Nouvelle carte";$("bdSave").textContent=c?"Enregistrer":"Épingler";
+  $("bdTitleIn").value=c?c.title||"":"";$("bdText").value=c?c.text||"":"";$("bdUrl").value=c?c.url||"":"";$("bdDate").value=c?c.date||"":"";
+  $("bdCol").innerHTML=cols.map(x=>`<option value="${esc(x.id)}">${esc(x.name)}</option>`).join("");
+  $("bdCol").value=cols.some(x=>x.id===bdDraft.col)?bdDraft.col:cols[0].id;
+  $("bdDel").hidden=!c;bdDelConfirm=false;$("bdDel").textContent="Supprimer";$("bdErr").textContent="";$("bdSave").disabled=false;
+  bdDraftRender();$("boardDlg").showModal();setTimeout(()=>$("bdTitleIn").focus(),50);
+}
+$("bdCancel").onclick=()=>$("boardDlg").close();
+$("bdImg").onchange=async()=>{
+  const f=$("bdImg").files[0];$("bdImg").value="";if(!f) return;$("bdErr").textContent="";
+  try{bdDraft.img=await shrinkPoster(f);bdDraftRender();}catch(e){$("bdErr").textContent="Cette image n'a pas pu être lue. Essayez un fichier JPG ou PNG.";}
+};
+$("bdImgDel").onclick=()=>{bdDraft.img="";bdDraftRender();};
+$("bdSave").onclick=async()=>{
+  const title=$("bdTitleIn").value.trim().slice(0,120),text=$("bdText").value.trim().slice(0,4000);
+  let url=$("bdUrl").value.trim();
+  if(url){if(!/^https?:\/\//i.test(url))url="https://"+url;
+    try{const u=new URL(url);if(!/^https?:$/.test(u.protocol)||!u.hostname.includes("."))throw 0;url=u.href;}
+    catch(e){$("bdErr").textContent="Ce lien n'est pas valide.";$("bdUrl").focus();return;}}
+  if(!title&&!text&&!url&&!bdDraft.img){$("bdErr").textContent="Ajoutez au moins un titre, un texte, un lien ou une photo.";return;}
+  const data={col:$("bdCol").value,title,text,url,img:bdDraft.img||"",date:$("bdDate").value||"",color:bdDraft.color||COLORS[0],updatedAt:Date.now()};
+  $("bdSave").disabled=true;$("bdErr").textContent="";
+  try{
+    if(bdDraft.id) await BD().doc(bdDraft.id).update(data);
+    else await BD().doc().set(Object.assign(data,{by:myId,byName:pName(myId),at:Date.now(),likes:{}}));
+    $("boardDlg").close();toast(bdDraft.id?"Carte modifiée":"Carte épinglée");
+  }catch(e){console.warn(e);$("bdErr").textContent="Enregistrement refusé. Vérifiez votre connexion ; si le problème persiste, mettez à jour les règles Firestore.";}
+  $("bdSave").disabled=false;
+};
+$("bdDel").onclick=async()=>{
+  if(!bdDraft||!bdDraft.id) return;
+  if(!bdDelConfirm){bdDelConfirm=true;$("bdDel").textContent="Confirmer la suppression";return;}
+  try{await BD().doc(bdDraft.id).delete();$("boardDlg").close();toast("Carte retirée du babillard");}
+  catch(e){$("bdErr").textContent="Suppression refusée.";}
+};
+// Colonnes (administrateurs)
+function bdcRender(focus){
+  $("bdcList").innerHTML=bdcDraft.map((c,i)=>`<div class="bdc-row"><input type="text" data-bci="${i}" maxlength="40" value="${esc(c.name)}" aria-label="${esc(tx("Nom de la colonne {}",i+1))}"><button class="btn ghost" data-bcu="${i}"${i===0?" disabled":""} title="Monter" aria-label="${esc(tx("Monter la colonne {}",i+1))}">↑</button><button class="btn ghost danger" data-bcx="${i}"${bdcDraft.length<=1?" disabled":""} title="Retirer" aria-label="${esc(tx("Retirer la colonne {}",i+1))}">×</button></div>`).join("");
+  $("bdcList").querySelectorAll("[data-bci]").forEach(inp=>inp.oninput=()=>{bdcDraft[Number(inp.dataset.bci)].name=inp.value;});
+  $("bdcList").querySelectorAll("[data-bcu]").forEach(b=>b.onclick=()=>{const i=Number(b.dataset.bcu);[bdcDraft[i-1],bdcDraft[i]]=[bdcDraft[i],bdcDraft[i-1]];bdcRender();});
+  $("bdcList").querySelectorAll("[data-bcx]").forEach(b=>b.onclick=()=>{bdcDraft.splice(Number(b.dataset.bcx),1);bdcRender();});
+  $("bdcAdd").hidden=bdcDraft.length>=8;
+  if(focus!=null){const f=$("bdcList").querySelector(`[data-bci="${focus}"]`);if(f)f.focus();}
+}
+$("bdCols").onclick=()=>{bdcDraft=bdCols().map(c=>({id:c.id,name:c.name}));$("bdcErr").textContent="";bdcRender();$("bdColsDlg").showModal();};
+$("bdcAdd").onclick=()=>{bdcDraft.push({id:"",name:""});bdcRender(bdcDraft.length-1);};
+$("bdcCancel").onclick=()=>$("bdColsDlg").close();
+$("bdcSave").onclick=async()=>{
+  const cols=bdcDraft.map(c=>({id:c.id||"c_"+uid(),name:String(c.name||"").trim().slice(0,40)}));
+  if(!cols.length||cols.some(c=>!c.name)){$("bdcErr").textContent="Chaque colonne doit avoir un nom.";return;}
+  const ids=new Set(cols.map(c=>c.id));
+  try{
+    await L.org(curOrg).update({board:{cols}});
+    boardCfg={cols};
+    const orphans=Object.values(boardCards).filter(c=>!ids.has(c.col));
+    if(orphans.length){const b=fdb.batch();orphans.forEach(c=>b.update(BD().doc(c.id),{col:cols[0].id}));await b.commit();}
+    $("bdColsDlg").close();renderBoard();toast("Colonnes enregistrées");
+  }catch(e){$("bdcErr").textContent="Enregistrement refusé : il faut être administrateur.";}
+};
 
 
 /* Langue */
