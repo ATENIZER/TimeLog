@@ -29,7 +29,7 @@ const DEFAULT_ROLES={defaultRoleId:"r_employe",roles:[
 let org=JSON.parse(JSON.stringify(DEFAULT_ROLES));
 let assignments={};   // id personne -> id rôle
 let fdb=null, auth=null, ownerUid=null, teamSub=null, pendingName="";
-let myProfile={displayName:"",email:"",photoURL:""};
+let myProfile={displayName:"",email:"",photoURL:"",username:""};
 const isOwnerNow=()=>!!myId&&ownerUid===myId;
 const roleById=id=>org.roles.find(r=>r.id===id);
 /* Valeur du bénévolat : taux du rôle, sinon taux de l'association */
@@ -144,11 +144,11 @@ const fmtCode=c=>c?c.slice(0,4)+"-"+c.slice(4):"";
 
 async function startSession(u){
   myId=u.uid;showOnly("app");
-  myProfile={displayName:pendingName||u.displayName||"",email:u.email||"",photoURL:u.photoURL||""};
+  myProfile={displayName:pendingName||u.displayName||"",email:u.email||"",photoURL:u.photoURL||"",username:""};
   render();
   try{
     const ix=await withRetry(()=>L.idx().get());
-    if(ix.exists){const d=ix.data();myOrgIds=Array.isArray(d.orgIds)?d.orgIds.slice():[];if(d.displayName&&!pendingName)myProfile.displayName=d.displayName;}
+    if(ix.exists){const d=ix.data();myOrgIds=Array.isArray(d.orgIds)?d.orgIds.slice():[];if(d.displayName&&!pendingName)myProfile.displayName=d.displayName;if(d.username)myProfile.username=cleanUname(d.username);}
     await loadOrgList();
   }catch(e){console.error(e);bootFail();return;}
   pendingName="";
@@ -156,10 +156,10 @@ async function startSession(u){
   const saved=lsGetOrg();
   curOrg=myOrgIds.includes(saved)?saved:(myOrgIds[0]||null);
   orgsLoaded=true;
-  if(!curOrg){setSync("");render();bootDone();return;}
-  try{await openOrg();bootDone();}catch(e){console.error(e);bootFail();}
+  if(!curOrg){setSync("");render();bootDone();maybeOnboard();return;}
+  try{await openOrg();bootDone();maybeOnboard();}catch(e){console.error(e);bootFail();}
 }
-function saveIndex(){return L.idx().set({orgIds:myOrgIds,displayName:myProfile.displayName||"",email:myProfile.email||""});}
+function saveIndex(){return L.idx().set({orgIds:myOrgIds,displayName:myProfile.displayName||"",email:myProfile.email||"",username:myProfile.username||""});}
 async function loadOrgList(){
   const out={};
   await Promise.all(myOrgIds.map(async id=>{
@@ -177,7 +177,7 @@ async function loadOrgList(){
 async function openOrg(){
   const ref=L.me();const snap=await withRetry(()=>ref.get());
   if(snap.exists){const r=sanitize(snap.data());if(r)state=r;}else state=JSON.parse(JSON.stringify(DEFAULT));
-  backend={save:o=>ref.set(Object.assign(JSON.parse(JSON.stringify(o)),{updatedAt:Date.now(),displayName:myProfile.displayName,email:myProfile.email,photoURL:myProfile.photoURL}))};
+  backend={save:o=>ref.set(Object.assign(JSON.parse(JSON.stringify(o)),{updatedAt:Date.now(),displayName:myProfile.displayName,email:myProfile.email,photoURL:myProfile.photoURL,username:myProfile.username||""}))};
   if(!snap.exists||snap.data().displayName!==myProfile.displayName) persist();
   applyDefaultType();if(!state.types.some(t=>t.id===selectedType&&!t.archived)){const f=state.types.find(t=>!t.archived);selectedType=f?f.id:null;}
   setSync("Enregistré");
@@ -194,6 +194,7 @@ async function openOrg(){
   L.members(curOrg).onSnapshot(sn=>{
     members={};assignments={};
     sn.docs.forEach(d=>{const m=d.data();members[d.id]=m;if(m.roleId)assignments[d.id]=m.roleId;});
+    syncMemberUname();
     onAccessChange();
   },e=>console.warn("membres",e));
   msgStart();
@@ -206,7 +207,7 @@ function onAccessChange(){
   if(admin&&!teamSub&&fdb){
     teamSub=fdb.collection("orgs").doc(curOrg).collection("people").onSnapshot(snap=>{
       const next={};
-      snap.docs.forEach(d=>{const raw=d.data();const v=sanitize(raw);if(v){Object.assign(v,{updatedAt:raw.updatedAt||0,displayName:raw.displayName||(members[d.id]||{}).name||"",email:raw.email||"",photoURL:raw.photoURL||""});next[d.id]=v;}});
+      snap.docs.forEach(d=>{const raw=d.data();const v=sanitize(raw);if(v){Object.assign(v,{updatedAt:raw.updatedAt||0,displayName:raw.displayName||(members[d.id]||{}).name||"",email:raw.email||"",photoURL:raw.photoURL||"",username:raw.username||""});next[d.id]=v;}});
       team=next;$("teamCnt").textContent=Object.keys(team).length;render();
     },()=>{teamSub=null;});
   }
@@ -269,6 +270,15 @@ async function regenCode(){
 async function syncMyName(){
   saveIndex().catch(()=>{});
   if(curOrg) L.members(curOrg).doc(myId).update({name:myProfile.displayName||""}).catch(()=>{});
+  syncMemberUname(true);
+}
+/* Le nom d'utilisateur est recopié dans la fiche de membre de chaque association (pour les mentions @) */
+let unameSynced="";
+function syncMemberUname(force){
+  const h=myProfile.username;if(!h||!curOrg||!myId||!members[myId]) return;
+  if(members[myId].username===h||(!force&&unameSynced===curOrg+"/"+h)) return;
+  unameSynced=curOrg+"/"+h;
+  L.members(curOrg).doc(myId).update({username:h}).catch(e=>console.warn("Nom d'utilisateur non recopié dans la fiche de membre (règles Firestore ?)",e));
 }
 async function resolveNames(){return false;}
 
@@ -315,6 +325,7 @@ $("signOut").onclick=()=>auth.signOut().then(()=>location.reload());
 function openAccount(){
   const p=myProfile,nm=nameOf(myId);
   $("nName").value=p.displayName||"";
+  $("nUser").value=p.username||"";$("nUserErr").textContent="";
   $("accName").textContent=nm;$("accMail").textContent=p.email||"";$("accMail").hidden=!p.email;
   $("accRole").textContent=curOrg?myTitle():"";$("accRole").hidden=!curOrg;
   if(p.photoURL){$("accAv").src=p.photoURL;$("accAv").hidden=false;$("accIni").hidden=true;}
@@ -331,6 +342,70 @@ $("accOut").onclick=()=>$("sOut").click();
 $("accDel").onclick=()=>{$("nameDlg").close();$("sDelete").click();};
 $("nCancel").onclick=()=>$("nameDlg").close();
 $("nSave").onclick=()=>{const v=$("nName").value.trim();if(!v)return;myProfile.displayName=v;persist();syncMyName();$("nameDlg").close();render();toast("Nom enregistré");};
+$("nUser").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("nUserSave").click();}};
+$("nUserSave").onclick=async()=>{
+  const b=$("nUserSave");$("nUserErr").textContent="";b.disabled=true;
+  try{const h=await claimUsername($("nUser").value);$("nUser").value=h;toast(tx("Nom d'utilisateur : @{}",h));render();}
+  catch(e){$("nUserErr").textContent=unameErr(e);}
+  b.disabled=false;
+};
+
+/* ---------- Nom d'utilisateur (choisi à la première connexion) ---------- */
+const UNAME_RE=/^[a-z0-9._-]{3,24}$/;
+const cleanUname=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().trim().replace(/^@+/,"").replace(/\s+/g,".").replace(/[^a-z0-9._-]/g,"").replace(/\.{2,}/g,".").replace(/^[._-]+/,"").slice(0,24);
+const unameTaken=h=>Object.keys(members).some(id=>id!==myId&&String(members[id].username||"").toLowerCase()===h);
+const unameErr=e=>e&&e.code==="invalid"?"De 3 à 24 caractères : lettres sans accents, chiffres, point, tiret ou trait de soulignement.":e&&e.code==="taken"?"Ce nom d'utilisateur est déjà pris. Essayez-en un autre.":"Enregistrement impossible. Vérifiez votre connexion, puis réessayez.";
+async function claimUsername(raw){
+  const h=cleanUname(raw);
+  if(!UNAME_RE.test(h)) throw {code:"invalid"};
+  if(h===myProfile.username) return h;
+  if(unameTaken(h)) throw {code:"taken"};
+  // Registre global (collection « usernames ») : garantit qu'un nom n'appartient qu'à une personne.
+  const ref=fdb.collection("usernames").doc(h);
+  try{
+    const sn=await ref.get();
+    if(sn.exists&&(sn.data()||{}).uid!==myId) throw {code:"taken"};
+    if(!sn.exists) await ref.set({uid:myId,at:Date.now()});
+    if(myProfile.username) fdb.collection("usernames").doc(myProfile.username).delete().catch(()=>{});
+  }catch(e){if(e&&e.code==="taken")throw e;console.warn("Registre des noms d'utilisateur indisponible (règles Firestore ?)",e);}
+  myProfile.username=h;
+  await saveIndex();
+  persist();syncMemberUname(true);
+  return h;
+}
+function onbPreview(){
+  const nm=$("onbName").value.trim()||"Votre nom",h=cleanUname($("onbUser").value);
+  $("onbIni").textContent=initials(nm);$("onbIni").style.background=hashColor(myId||"x");
+  if(myProfile.photoURL){$("onbAv").src=myProfile.photoURL;$("onbAv").hidden=false;$("onbIni").hidden=true;}
+  $("onbPName").textContent=nm;$("onbPUser").textContent="@"+(h||"…");
+  const bad=$("onbUser").value.trim()&&!UNAME_RE.test(h);
+  $("onbHint").textContent=bad?unameErr({code:"invalid"}):unameTaken(h)?unameErr({code:"taken"}):tx("C'est avec @{} que les autres membres vous mentionneront dans la messagerie.",h||"…");
+  $("onbHint").classList.toggle("bad",!!bad||unameTaken(h));
+}
+function maybeOnboard(){
+  const d=$("onbDlg");if(myProfile.username||!myId||d.open) return;
+  $("onbName").value=myProfile.displayName||"";
+  let base=cleanUname(myProfile.displayName||(myProfile.email||"").split("@")[0]);
+  if(base.length<3) base=(base+"membre").slice(0,24);
+  $("onbUser").value=base;$("onbErr").textContent="";
+  onbPreview();d.showModal();
+  setTimeout(()=>{const i=$("onbUser");i.focus();i.select();},60);
+}
+$("onbDlg").addEventListener("cancel",e=>e.preventDefault());
+$("onbUser").oninput=onbPreview;$("onbName").oninput=onbPreview;
+$("onbUser").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("onbName").value.trim()?$("onbOk").click():$("onbName").focus();}};
+$("onbName").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("onbOk").click();}};
+$("onbOk").onclick=async()=>{
+  const name=$("onbName").value.trim(),b=$("onbOk");$("onbErr").textContent="";
+  if(!name){$("onbErr").textContent="Entrez votre nom complet.";$("onbName").focus();return;}
+  b.disabled=true;
+  try{
+    await claimUsername($("onbUser").value);
+    if(name!==myProfile.displayName){myProfile.displayName=name;persist();syncMyName();}
+    $("onbDlg").close();render();toast(tx("Bienvenue, {} !",name.split(/\s+/)[0]),3000);
+  }catch(e){$("onbErr").textContent=unameErr(e);}
+  b.disabled=false;
+};
 
 /* ---------- Pointage ---------- */
 function clockIn(){
@@ -1654,8 +1729,8 @@ $("doOk").onclick=async()=>{
     fail+=await wipeCol(o.collection("events"),{comments:{},minutes:{}});
     fail+=await wipeCol(o.collection("people"));
     fail+=await wipeCol(o.collection("validations"));
-    fail+=await wipeCol(o.collection("channels").where("kind","==","channel"),{messages:{}});
-    fail+=await wipeCol(o.collection("channels").where("memberIds","array-contains",myId),{messages:{}});
+    fail+=await wipeCol(o.collection("channels").where("kind","==","channel"),{messages:{},files:{}});
+    fail+=await wipeCol(o.collection("channels").where("memberIds","array-contains",myId),{messages:{},files:{}});
     fail+=await wipeCol(o.collection("members"));
     if(orgCode) await L.code(orgCode).delete().catch(()=>{fail++;});
     await o.delete(); // en dernier : les règles de sécurité s'appuient sur ce document
@@ -1734,6 +1809,7 @@ $("dOk").onclick=async()=>{
       await L.members(id).doc(myId).delete().catch(()=>{});
     }
     await L.idx().delete().catch(()=>{});
+    if(myProfile.username) await fdb.collection("usernames").doc(myProfile.username).delete().catch(()=>{});
     // 3. Suppression du compte lui-même.
     await u.delete();
     // 4. Nettoyage de cet appareil.
@@ -2943,7 +3019,7 @@ function demoSeed(){
   const ymd=off=>dayKey(at(off,12));
   const notes={t_travail:["Kiosque d'accueil","Préparation du gala","Mise à jour du site web","Inventaire du local"],t_reunion:["Réunion du conseil","Comité organisateur"],t_formation:["Formation premiers soins","Atelier d'animation"],t_admin:["Comptabilité","Courriels aux membres"]};
   let seed=11;const rnd=()=>(seed=seed*16807%2147483647)/2147483647;
-  const db={"userOrgs/demo":{orgIds:["demo-org"],displayName:"Visiteur",email:""},
+  const db={"userOrgs/demo":{orgIds:["demo-org"],displayName:"Visiteur",email:"",username:"visiteur"},
     [O]:{name:"Association étudiante (démo)",ownerUid:"demo",code:"DEMO2026",createdAt:now-60*DY,defaultRoleId:"r_employe",roles:JSON.parse(JSON.stringify(DEFAULT_ROLES.roles)),adminRoleIds:["r_president","r_vp"],hourlyValue:25,activityTypes:T,
       background:{kind:"preset",preset:"aurore",color:"#2FB7A0",veil:45},
       chart:{updatedAt:now-3*DY,updatedBy:"demo",nodes:[
@@ -2955,7 +3031,7 @@ function demoSeed(){
         {id:"n_recr",title:"Recrutement",desc:"Kiosques et accueil des nouveaux bénévoles.",parent:"n_comm",people:["d_lea"],color:"#8B5CF6"}]}},
     "codes/DEMO2026":{orgId:"demo-org",name:"Association étudiante (démo)",defaultRoleId:"r_employe"}};
   ppl.forEach(([id,name,role],pi)=>{
-    db[O+"/members/"+id]={uid:id,name,roleId:role,joinedAt:now-50*DY};
+    db[O+"/members/"+id]={uid:id,name,roleId:role,joinedAt:now-50*DY,username:cleanUname(name)};
     const sessions=[],val={entries:{},rejected:{}};
     for(let k=1;k<=21;k++){
       if(rnd()<.45) continue;
@@ -2985,7 +3061,7 @@ function demoSeed(){
   {const d=new Date(at(16,12));const s=Date.UTC(d.getFullYear(),d.getMonth(),d.getDate());
    db[O+"/events/e_gala"]={title:"Gala de fin d'année",type:"evenement",allDay:true,start:s,end:s+DY,date:ymd(16),tz:"",video:false,location:"Centre communautaire",description:"Tenue de soirée suggérée.",icon:"🎉",image:"",createdBy:"demo",createdByName:"Visiteur",createdAt:now-5*DY,updatedAt:now-5*DY};}
   {const C=O+"/channels/";let k=0;
-   const msg=(cid,by,text,t)=>{db[C+cid+"/messages/m"+(k++)]={by,byName:names[by],text,at:t};const c=db[C+cid];if(t>(c.lastAt||0))Object.assign(c,{lastAt:t,lastText:text.slice(0,140),lastBy:by,lastByName:names[by]});};
+   const msg=(cid,by,text,t,men)=>{db[C+cid+"/messages/m"+(k++)]=Object.assign({by,byName:names[by],text,at:t},men?{mentions:men}:{});const c=db[C+cid];if(t>(c.lastAt||0))Object.assign(c,{lastAt:t,lastText:text.slice(0,140),lastBy:by,lastByName:names[by],lastMentions:men||[],lastEveryone:false});};
    db[C+"general"]={kind:"channel",name:"général",desc:"Annonces et discussions de toute l'association",createdBy:"demo",createdAt:now-40*DY,lastAt:0};
    db[C+"c_gala"]={kind:"channel",name:"comité-gala",desc:"Organisation du gala de fin d'année",createdBy:"demo",createdAt:now-20*DY,lastAt:0};
    const dm="dm_"+["d_camille","demo"].sort().join("_");
@@ -2994,6 +3070,7 @@ function demoSeed(){
    msg("general","d_samuel","J'apporte le projecteur 👍",now-25*H);
    msg("general","demo","Merci ! Pensez à pointer vos heures de kiosque cette semaine.",now-24*H);
    msg("general","d_lea","Les affiches de la campagne de recrutement sont prêtes à imprimer 🎉",now-2*H);
+   msg("general","d_noah","@visiteur tu peux jeter un œil aux affiches avant l'impression ? Touche mon nom pour m'écrire en privé.",now-90*60000,["demo"]);
    msg("c_gala","d_samuel","J'ai contacté deux commanditaires, j'attends leurs réponses.",now-50*H);
    msg("c_gala","d_lea","Super. Je m'occupe du troisième : la librairie du campus ?",now-49*H);
    msg("c_gala","demo","Parfait. On fait le point jeudi après le conseil.",now-48*H);
@@ -3326,38 +3403,150 @@ $("ocPrint").onclick=()=>{document.body.classList.add("print-chart");window.prin
 
 /* =====================================================================
    Messagerie interne de l'association
+   Canaux, messages directs, pièces jointes (images, GIF, vidéos, fichiers),
+   messages vocaux, mentions @, fiche membre et notifications façon Discord.
    ===================================================================== */
-let chans={},dmChans={},curChan="general",msgs=[],msgUnsub=null,msgSubFor=null,chanUnsubs=[],msgPane=false,pendingDm=null,genTried=false,chanDelConfirm=false,msgErr=false,msgJust=false;
+let chans={},dmChans={},curChan="general",msgs=[],msgUnsub=null,msgSubFor=null,chanUnsubs=[],msgPane=false,pendingDm=null,genTried=false,chanDelConfirm=false,msgErr=false,msgJust=false,msgSending=false;
 const msgSince=Date.now(),lastSeenAt={};
 const CH=()=>fdb.collection("orgs").doc(curOrg).collection("channels");
 const dmId=other=>"dm_"+[myId,other].sort().join("_");
 const allChans=()=>Object.assign({},chans,dmChans);
+const narrow=()=>window.matchMedia("(max-width: 760px)").matches;
+const lsJSON=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||"null");return v&&typeof v==="object"?v:d;}catch(e){return d;}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
 const readKey=()=>"pointeuse-lus:"+(myId||"")+":"+(curOrg||"");
-let readMapC=null;
-function readMap(){if(!readMapC){try{readMapC=JSON.parse(localStorage.getItem(readKey())||"{}")||{};}catch(e){readMapC={};}}return readMapC;}
-function markRead(cid,t){const m=readMap();if(!t||(m[cid]||0)>=t)return;m[cid]=t;try{localStorage.setItem(readKey(),JSON.stringify(m));}catch(e){}renderMsgBadge();if(mode==="messages")renderMsgSide();}
+const pingKey=()=>"pointeuse-ping:"+(myId||"")+":"+(curOrg||"");
+const nKey=()=>"pointeuse-msgnotif:"+(myId||"")+":"+(curOrg||"");
+let readMapC=null,pingC=null,npC=null;
+function readMap(){if(!readMapC)readMapC=lsJSON(readKey(),{});return readMapC;}
+function pingMap(){if(!pingC)pingC=lsJSON(pingKey(),{});return pingC;}
+function nprefs(){
+  if(!npC){npC=Object.assign({sound:true,dnd:false,noEveryone:false,chanDef:"all",ch:{}},lsJSON(nKey(),{}));if(!npC.ch||typeof npC.ch!=="object")npC.ch={};}
+  return npC;
+}
+function nsave(){lsSet(nKey(),nprefs());refreshMsgUI();}
+function refreshMsgUI(){renderMsgBadge();if(mode==="messages"){renderMsgSide();renderBell();}}
+function markRead(cid,t){
+  const m=readMap(),p=pingMap();let ch=false;
+  if(p[cid]){delete p[cid];lsSet(pingKey(),p);ch=true;}
+  if(t&&(m[cid]||0)<t){m[cid]=t;lsSet(readKey(),m);ch=true;}
+  if(ch) refreshMsgUI();
+}
 const isUnread=(id,c)=>!!(c&&c.lastAt&&c.lastBy&&c.lastBy!==myId&&c.lastAt>(readMap()[id]||0));
 const dmOther=c=>((c&&c.memberIds)||[]).find(x=>x!==myId)||myId;
 const chanName=(id,c)=>c&&c.kind==="dm"?pName(dmOther(c)):"# "+((c&&c.name)||(id==="general"?"général":id));
-function renderMsgBadge(){const n=Object.entries(allChans()).filter(([id,c])=>isUnread(id,c)).length;$("msgCnt").textContent=n?String(n):"";}
-function notifyMsg(id,c){
-  const who=c.lastByName||pName(c.lastBy),where=c.kind==="dm"?"":" ("+chanName(id,c)+")",txt=String(c.lastText||"").slice(0,80);
-  if(document.visibilityState==="visible") toast(`💬 ${who}${where} : ${txt}`,3500);
-  else if(notifSysOn()){try{const nt=new Notification(who+where,{body:txt,tag:"msg-"+id});nt.onclick=()=>{window.focus();mode="messages";openChan(id);};}catch(e){}}
+
+/* ---------- Icônes ---------- */
+const svgI=(p,w)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w||1.9}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const ICO={
+  bell:svgI('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>'),
+  bellOff:svgI('<path d="M8.5 5.6A6 6 0 0 1 18 11v4"/><path d="M6 11v5l-1.5 2H16"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/><path d="M3.5 3.5l17 17"/>'),
+  clip:svgI('<path d="M20 11.5l-7.6 7.6a5 5 0 0 1-7.1-7.1l8.2-8.2a3.4 3.4 0 0 1 4.8 4.8l-8.2 8.2a1.7 1.7 0 0 1-2.4-2.4l7.4-7.4"/>'),
+  mic:svgI('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/>'),
+  send:svgI('<path d="M4 12l16-8-6 16-2.5-6.5z"/><path d="M11.5 13.5L20 4"/>',2),
+  trash:svgI('<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l1 13h9l1-13"/>'),
+  play:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>',
+  pause:'<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6.5" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="13.5" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></svg>',
+  file:svgI('<path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3.5V8h4.5M9 13h6M9 16.5h4"/>'),
+  chat:svgI('<path d="M4.5 5.5h15a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10l-4.5 3.5V16.5h-1a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z"/>'),
+  at:svgI('<circle cx="12" cy="12" r="3.6"/><path d="M15.6 12v1.4a2.6 2.6 0 0 0 5.2 0V12A8.8 8.8 0 1 0 17 19"/>'),
+  copy:svgI('<rect x="8.5" y="8.5" width="11" height="11" rx="2"/><path d="M15.5 8.5V6a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 6v8A1.5 1.5 0 0 0 6 15.5h2.5"/>'),
+  user:svgI('<circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.6 7-5.6s6.2 2 7 5.6"/>'),
+  x:svgI('<path d="M6 6l12 12M18 6L6 18"/>',2.2),
+  dl:svgI('<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/>')
+};
+
+/* ---------- Réglages de notification (propres à chaque appareil) ---------- */
+const chPref=id=>nprefs().ch[id]||{};
+const muteUntil=id=>{const m=chPref(id).mute;return m===-1?-1:(m&&m>Date.now()?m:0);};
+const isMuted=id=>!!muteUntil(id);
+const isDmId=id=>String(id).startsWith("dm_");
+const levelOf=(id,c)=>chPref(id).level||((c&&c.kind==="dm")||isDmId(id)?"all":nprefs().chanDef);
+function setChPref(id,patch){
+  const p=nprefs(),cur=Object.assign({},p.ch[id]||{},patch);
+  Object.keys(cur).forEach(k=>{if(cur[k]==null||cur[k]===0)delete cur[k];});
+  if(Object.keys(cur).length) p.ch[id]=cur;else delete p.ch[id];
+  nsave();
 }
+const mentionsMe=c=>!!c&&(((c.lastMentions||[]).includes(myId))||(!!c.lastEveryone&&!nprefs().noEveryone));
+function pingCount(id,c){
+  if(!isUnread(id,c)||levelOf(id,c)==="none") return 0;
+  const dm=c.kind==="dm";if(dm&&isMuted(id)) return 0;
+  let n=pingMap()[id]||0;if(!n&&(dm||mentionsMe(c))) n=1;
+  return n;
+}
+const showsUnread=(id,c)=>isUnread(id,c)&&!isMuted(id)&&levelOf(id,c)!=="none";
+function renderMsgBadge(){
+  let pings=0,unread=0;
+  Object.entries(allChans()).forEach(([id,c])=>{pings+=pingCount(id,c);if(showsUnread(id,c))unread++;});
+  const b=$("msgCnt");b.textContent=pings?(pings>99?"99+":String(pings)):(unread?String(unread):"");
+  b.classList.toggle("muted",!pings&&!!unread);
+  let base="Pointeuse";try{if(typeof _docTitle==="string"&&_docTitle)base=_docTitle;}catch(e){}
+  document.title=(pings?"("+pings+") ":unread?"• ":"")+tr(base);
+}
+setInterval(()=>{ // fin des mises en sourdine temporaires
+  if(!myId||!curOrg) return;const p=nprefs();let ch=false;
+  Object.keys(p.ch).forEach(id=>{const m=p.ch[id].mute;if(m>0&&m<=Date.now()){delete p.ch[id].mute;if(!Object.keys(p.ch[id]).length)delete p.ch[id];ch=true;}});
+  if(ch) nsave();
+},30000);
+
+/* Son de notification (synthétisé : aucun fichier à charger) */
+let actx=null,lastDing=0;
+function audioCtx(){
+  try{if(!actx){const A=window.AudioContext||window.webkitAudioContext;if(A)actx=new A();}if(actx&&actx.state==="suspended")actx.resume();}catch(e){}
+  return actx;
+}
+addEventListener("pointerdown",()=>{audioCtx();},{once:true,passive:true});
+function ding(strong){
+  const now=Date.now();if(now-lastDing<1200) return;lastDing=now;
+  const a=audioCtx();if(!a) return;
+  try{
+    const t=a.currentTime+.01;
+    (strong?[[740,0],[988,.08],[1319,.16]]:[[880,0],[1175,.09]]).forEach(([f,d])=>{
+      const o=a.createOscillator(),g=a.createGain();o.type="sine";o.frequency.value=f;
+      g.gain.setValueAtTime(.0001,t+d);g.gain.exponentialRampToValueAtTime(.16,t+d+.012);g.gain.exponentialRampToValueAtTime(.0001,t+d+.34);
+      o.connect(g);g.connect(a.destination);o.start(t+d);o.stop(t+d+.36);
+    });
+  }catch(e){}
+}
+function wantsNotify(id,c){
+  const p=nprefs();if(p.dnd) return false;
+  const lv=levelOf(id,c);if(lv==="none") return false;
+  const dm=c.kind==="dm",direct=(c.lastMentions||[]).includes(myId);
+  if(isMuted(id)) return !dm&&direct; // une sourdine laisse passer les @mentions personnelles
+  if(lv==="mentions") return dm||mentionsMe(c);
+  return true;
+}
+function notifyMsg(id,c){
+  const ment=c.kind!=="dm"&&mentionsMe(c);
+  const who=c.lastByName||pName(c.lastBy),where=c.kind==="dm"?"":" ("+chanName(id,c)+")",txt=String(c.lastText||"").slice(0,90);
+  if(nprefs().sound) ding(ment||c.kind==="dm");
+  if(document.visibilityState==="visible") toast(`${ment?"🔔 @":"💬"} ${who}${where} : ${txt}`,3800);
+  else if(notifSysOn()){try{const nt=new Notification((ment?"@ ":"")+who+where,{body:txt,tag:"msg-"+id,silent:true});nt.onclick=()=>{window.focus();openChan(id);nt.close();};}catch(e){}}
+}
+
+/* ---------- Abonnements ---------- */
 function msgStart(){
   if(!fdb||!curOrg||!myId||chanUnsubs.length) return;
   const handler=kind=>sn=>{
     const next={};sn.docs.forEach(d=>{next[d.id]=d.data();});
+    let pinged=false;
     Object.entries(next).forEach(([id,c])=>{
       const prev=lastSeenAt[id]||0;
-      if(c.lastAt&&c.lastAt>prev&&c.lastAt>msgSince&&c.lastBy!==myId&&!(mode==="messages"&&curChan===id&&document.visibilityState==="visible")) notifyMsg(id,c);
+      if(c.lastAt&&c.lastAt>prev&&c.lastAt>msgSince&&c.lastBy&&c.lastBy!==myId){
+        const viewing=mode==="messages"&&curChan===id&&document.visibilityState==="visible"&&(msgPane||!narrow());
+        if(!viewing){
+          if((c.kind==="dm"&&!isMuted(id))||mentionsMe(c)){const p=pingMap();p[id]=(p[id]||0)+1;pinged=true;}
+          if(wantsNotify(id,c)) notifyMsg(id,c);
+        }
+      }
       lastSeenAt[id]=Math.max(prev,c.lastAt||0);
     });
+    if(pinged) lsSet(pingKey(),pingMap());
     if(kind==="c"){chans=next;ensureGeneral();}else dmChans=next;
     if(pendingDm&&dmChans[pendingDm.id]) pendingDm=null;
     renderMsgBadge();
-    if(mode==="messages"){renderMsgSide();if(allChans()[curChan]&&msgSubFor!==curOrg+"/"+curChan)subscribeMsgs();}
+    if(mode==="messages"){renderMsgSide();renderBell();if(allChans()[curChan]&&msgSubFor!==curOrg+"/"+curChan)subscribeMsgs();}
   };
   chanUnsubs.push(CH().where("kind","==","channel").onSnapshot(handler("c"),e=>console.warn("canaux",e)));
   chanUnsubs.push(CH().where("memberIds","array-contains",myId).onSnapshot(handler("d"),e=>console.warn("messages directs",e)));
@@ -3378,22 +3567,31 @@ function subscribeMsgs(){
     msgs=sn.docs.map(d=>Object.assign({id:d.id},d.data())).reverse();renderMsgList();
   },e=>{console.warn("messages",e);msgErr=true;renderMsgList();});
 }
-function openChan(id){curChan=id;msgPane=true;chanDelConfirm=false;if(mode!=="messages"){mode="messages";render();}else renderMessages();}
+function openChan(id){
+  if(id!==curChan){if(REC)stopRec(false);if(draftAtt)setDraft(null);closeGif();closeMention();}
+  curChan=id;msgPane=true;chanDelConfirm=false;hidePop();
+  if(mode!=="messages"){mode="messages";render();}else renderMessages();
+}
 function openDM(other){
   if(!other||other===myId) return;
   const id=dmId(other);
   if(!dmChans[id]) pendingDm={id,other};
-  curChan=id;msgPane=true;mode="messages";render();
-  setTimeout(()=>{const t=$("msgText");if(t&&!window.matchMedia("(max-width: 760px)").matches)t.focus();},120);
+  if(id!==curChan){if(REC)stopRec(false);if(draftAtt)setDraft(null);closeGif();closeMention();}
+  curChan=id;msgPane=true;mode="messages";hidePop();render();
+  setTimeout(()=>{const t=$("msgText");if(t&&!narrow())t.focus();},120);
 }
+
+/* ---------- Liste des conversations ---------- */
 function msgItemHTML(id,c){
-  const dm=c.kind==="dm",unread=isUnread(id,c),other=dm?dmOther(c):null;
+  const dm=c.kind==="dm",unread=showsUnread(id,c),pings=pingCount(id,c),other=dm?dmOther(c):null;
+  const quiet=isMuted(id)||levelOf(id,c)==="none";
   const last=c.lastText?(c.lastBy===myId?tx("Vous")+" : ":"")+c.lastText:(dm?"Aucun message pour l'instant":(c.desc||""));
   const when=c.lastAt?(startOfDay(c.lastAt)===startOfDay(Date.now())?fmtTime(c.lastAt):new Date(c.lastAt).toLocaleDateString(LOC(),{day:"numeric",month:"short"})):"";
-  return `<button class="msg-item${id===curChan?" on":""}${unread?" unread":""}" data-chan="${esc(id)}" ${id===curChan?'aria-current="true"':""}>
+  return `<button class="msg-item${id===curChan?" on":""}${unread||pings?" unread":""}${quiet?" muted":""}" data-chan="${esc(id)}" ${id===curChan?'aria-current="true"':""}>
     ${dm?avHTML(other,"mi-av"):`<span class="mi-hash" aria-hidden="true">#</span>`}
     <span class="mi-txt"><span class="mi-top"><b translate="no">${esc(dm?pName(other):(c.name||id))}</b><time>${esc(when)}</time></span><span class="mi-last" translate="no">${esc(last)}</span></span>
-    ${unread?'<span class="mi-dot" aria-label="Non lu"></span>':""}</button>`;
+    ${quiet?`<span class="mi-mute" title="En sourdine" aria-label="En sourdine">${ICO.bellOff}</span>`:""}
+    ${pings?`<span class="mi-ping" aria-label="${esc(tx("{} non lu(s) pour vous",pings))}">${pings>99?"99+":pings}</span>`:unread?'<span class="mi-dot" aria-label="Non lu"></span>':""}</button>`;
 }
 function renderMsgSide(){
   const ch=Object.entries(chans).sort((a,b)=>(a[0]==="general"?-1:b[0]==="general"?1:String(a[1].name).localeCompare(String(b[1].name),"fr")));
@@ -3401,34 +3599,257 @@ function renderMsgSide(){
   $("chanList").innerHTML=ch.map(([id,c])=>msgItemHTML(id,c)).join("");
   const dms=Object.entries(dmChans).sort((a,b)=>(b[1].lastAt||0)-(a[1].lastAt||0));
   if(pendingDm&&!dmChans[pendingDm.id]) dms.unshift([pendingDm.id,{kind:"dm",memberIds:[myId,pendingDm.other]}]);
-  $("dmList").innerHTML=dms.length?dms.map(([id,c])=>msgItemHTML(id,c)).join(""):`<p class="since msg-none">Écrivez à un membre avec « + Nouveau », ou depuis l'organigramme.</p>`;
-  document.querySelectorAll("#chanList [data-chan],#dmList [data-chan]").forEach(b=>b.onclick=()=>openChan(b.dataset.chan));
+  $("dmList").innerHTML=dms.length?dms.map(([id,c])=>msgItemHTML(id,c)).join(""):`<p class="since msg-none">Écrivez à un membre avec « + Nouveau », ou en touchant son nom dans une conversation.</p>`;
+  document.querySelectorAll("#chanList [data-chan],#dmList [data-chan]").forEach(b=>{
+    b.onclick=()=>openChan(b.dataset.chan);
+    b.oncontextmenu=e=>{e.preventDefault();openNotifMenu(b.dataset.chan,b);};
+  });
   $("chanNew").hidden=!adminUI();
+  const g=$("msgNotifSet"),p=nprefs();
+  g.innerHTML=p.dnd?ICO.bellOff:ICO.bell;g.classList.toggle("dnd",!!p.dnd);
+  g.title=p.dnd?tx("Ne pas déranger est activé"):tx("Réglages des notifications");
+}
+function curChanObj(){
+  const all=allChans();
+  return all[curChan]||(pendingDm&&pendingDm.id===curChan?{kind:"dm",memberIds:[myId,pendingDm.other]}:{kind:"channel",name:"général",desc:"Annonces et discussions de toute l'association"});
+}
+function renderBell(){
+  const b=$("msgBell");if(!b) return;
+  const c=curChanObj(),off=isMuted(curChan)||levelOf(curChan,c)==="none";
+  b.innerHTML=off?ICO.bellOff:ICO.bell;b.classList.toggle("off",off);
+  const lv=levelOf(curChan,c);
+  b.title=tx("Notifications : {}",off?tx("en sourdine"):lv==="mentions"?tx("@mentions seulement"):tx("tous les messages"));
 }
 function renderMessages(){
   msgStart();
   const all=allChans();
   if(!all[curChan]&&curChan!=="general"&&!(pendingDm&&pendingDm.id===curChan)) curChan="general";
-  const c=all[curChan]||(pendingDm&&pendingDm.id===curChan?{kind:"dm",memberIds:[myId,pendingDm.other]}:{kind:"channel",name:"général",desc:"Annonces et discussions de toute l'association"});
+  const c=curChanObj();
   $("msgShell").classList.toggle("pane",msgPane);
   renderMsgSide();
-  const dm=c.kind==="dm";
+  const dm=c.kind==="dm",ttl=$("msgTtl");
   $("msgTitle").textContent=dm?pName(dmOther(c)):"# "+(c.name||"général");
-  $("msgDesc").textContent=dm?((roleOf(dmOther(c))||{}).name||"Membre")+" · "+tx("conversation privée"):(c.desc||"");
+  $("msgDesc").textContent=dm?((roleOf(dmOther(c))||{}).name||"Membre")+" · @"+handleOf(dmOther(c)):(c.desc||"");
+  ttl.classList.toggle("click",dm);
+  if(dm){ttl.setAttribute("role","button");ttl.tabIndex=0;ttl.setAttribute("aria-label",tx("Options pour {}",pName(dmOther(c))));}
+  else{ttl.removeAttribute("role");ttl.removeAttribute("tabindex");ttl.removeAttribute("aria-label");}
   $("chanDel").hidden=!(adminUI()&&!dm&&curChan!=="general"&&all[curChan]);
   if(!chanDelConfirm) $("chanDel").textContent="Supprimer le canal";
   $("msgText").placeholder=dm?tx("Écrire à {}…",pName(dmOther(c)).split(/\s+/)[0]):tx("Écrire dans # {}…",c.name||"général");
+  renderBell();
   subscribeMsgs();
   renderMsgList();
+  updateComposeBtns();
   fitMsgShell();
 }
 function fitMsgShell(){
   const sh=$("msgShell");if(!sh||mode!=="messages") return;
   const top=sh.getBoundingClientRect().top+window.scrollY;
-  sh.style.height=Math.max(420,window.innerHeight-top-(window.matchMedia("(max-width: 760px)").matches?10:22))+"px";
+  sh.style.height=Math.max(420,window.innerHeight-top-(narrow()?10:22))+"px";
 }
 window.addEventListener("resize",()=>{if(mode==="messages")fitMsgShell();});
 const dayLbl=t=>{const d=startOfDay(t),n=startOfDay(Date.now());if(d===n)return tx("Aujourd'hui");if(d===addDays(n,-1))return tx("Hier");return new Date(t).toLocaleDateString(LOC(),{weekday:"long",day:"numeric",month:"long",year:new Date(t).getFullYear()!==new Date().getFullYear()?"numeric":undefined});};
+
+/* ---------- Noms d'utilisateur et mentions ---------- */
+const handleOf=id=>(id===myId&&myProfile.username)||(members[id]&&members[id].username)||(team[id]&&team[id].username)||cleanUname(pName(id))||"membre";
+function handleMap(){const m={};memberIds().forEach(id=>{const h=handleOf(id).toLowerCase();if(!(h in m))m[h]=id;});if(myId&&!(handleOf(myId) in m))m[handleOf(myId)]=myId;return m;}
+const MENTION_RE=/(^|[\s(\[>])@([\p{L}\p{N}._-]+)/gu;
+const EVERY=new Set(["tous","everyone","ici","here"]);
+const trimHandle=s=>s.replace(/[._-]+$/,"");
+const normTxt=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+function parseMentions(text,cid){
+  const ids=new Set();let everyone=false;
+  if(!text) return {ids:[],everyone:false};
+  const map=handleMap();
+  for(const m of text.matchAll(MENTION_RE)){
+    const h=trimHandle(m[2]).toLowerCase();
+    if(EVERY.has(h)){if(!isDmId(cid)&&adminUI())everyone=true;continue;}
+    const id=map[h];if(id&&id!==myId) ids.add(id);
+  }
+  return {ids:[...ids].slice(0,50),everyone};
+}
+function richText(t,map,m){
+  return linkify(t).replace(MENTION_RE,(all,pre,raw)=>{
+    const n=trimHandle(raw),trail=raw.slice(n.length),k=n.toLowerCase();
+    if(EVERY.has(k)) return m&&m.everyone?pre+`<span class="mention all">@${esc(n)}</span>`+trail:all;
+    const id=map[k];if(!id) return all;
+    return pre+`<button class="mention${id===myId?" me":""}" data-user="${esc(id)}">@${esc(n)}</button>`+trail;
+  });
+}
+
+/* ---------- Pièces jointes : outils ---------- */
+// Comme les fichiers des projets : découpés en morceaux binaires dans Firestore (aucun forfait payant requis).
+const MAX_ATT=5*1024*1024;  // taille maximale d'une pièce jointe
+const IMG_TARGET=450*1024;  // les photos sont allégées sous ce poids
+const VOICE_MAX=300;        // durée maximale d'un message vocal, en secondes
+const VOICE_BPS=32000;      // débit du micro : environ 4 Ko par seconde
+const attIndex=new Map(),fileCache=new Map(),fileLoads=new Map();
+const fmtSec=s=>{s=Math.max(0,Math.round(Number(s)||0));return Math.floor(s/60)+":"+pad(s%60);};
+const attKind=a=>["image","gif","video","voice","audio","file"].includes(a&&a.kind)?a.kind:"file";
+const safeUrl=u=>typeof u==="string"&&/^https:\/\/[^\s"'<>]+$/i.test(u)?u:"";
+function safeMime(kind,mime){
+  mime=String(mime||"").toLowerCase().split(";")[0].trim();
+  const pre={image:"image/",gif:"image/",video:"video/",voice:"audio/",audio:"audio/"}[kind];
+  if(pre&&mime.startsWith(pre)&&mime!=="image/svg+xml") return mime;
+  return kind==="gif"?"image/gif":kind==="voice"?"audio/webm":"application/octet-stream";
+}
+const imgSize=src=>new Promise(res=>{const i=new Image();const t=setTimeout(()=>res({w:0,h:0}),12000);i.onload=()=>{clearTimeout(t);res({w:i.naturalWidth,h:i.naturalHeight});};i.onerror=()=>{clearTimeout(t);res({w:0,h:0});};i.referrerPolicy="no-referrer";i.src=src;});
+const canvasBlob=(cv,type,q)=>new Promise(res=>cv.toBlob(b=>res(b),type,q));
+async function compressImage(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});
+    const webp=document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp");
+    let max=1920,q=.84,blob=null,w=0,h=0;
+    for(let k=0;k<8;k++){
+      const s=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+      w=Math.max(1,Math.round(img.naturalWidth*s));h=Math.max(1,Math.round(img.naturalHeight*s));
+      const cv=document.createElement("canvas");cv.width=w;cv.height=h;const cx=cv.getContext("2d");
+      if(!webp){cx.fillStyle="#fff";cx.fillRect(0,0,w,h);}
+      cx.drawImage(img,0,0,w,h);
+      blob=await canvasBlob(cv,webp?"image/webp":"image/jpeg",q);
+      if(!blob) throw new Error("conversion impossible");
+      if(blob.size<=IMG_TARGET) break;
+      if(q>.64) q-=.1;else max=Math.round(max*.8);
+    }
+    // Une image déjà légère et plus petite que la version recompressée est gardée telle quelle.
+    if(file.size<=blob.size&&file.size<=IMG_TARGET&&/^image\/(png|jpe?g|webp)$/.test(file.type)){blob=file;w=img.naturalWidth;h=img.naturalHeight;}
+    if(blob.size>MAX_ATT) throw new Error("image trop lourde");
+    const base=String(file.name||"image").replace(/\.[^.]+$/,"")||"image";
+    const mime=blob===file?file.type:(webp?"image/webp":"image/jpeg");
+    return {kind:"image",mime,name:blob===file?file.name:base+(webp?".webp":".jpg"),size:blob.size,orig:file.size,blob,w,h,preview:URL.createObjectURL(blob)};
+  }finally{URL.revokeObjectURL(url);}
+}
+function attMeta(d){
+  const a={kind:d.kind,name:String(d.name||"").slice(0,120),mime:String(d.mime||"").slice(0,80),size:Number(d.size)||0};
+  ["w","h","dur"].forEach(k=>{if(d[k])a[k]=Math.round(Number(d[k])*10)/10;});
+  if(d.wave) a.wave=String(d.wave).slice(0,64);
+  if(d.url) a.url=d.url;
+  if(d.blob){a.file=true;a.chunks=Math.max(1,Math.ceil(d.blob.size/CHUNK));}
+  return a;
+}
+const attLabel=a=>!a?"":a.kind==="image"?"📷 "+tx("Image"):a.kind==="gif"?"GIF":a.kind==="video"?"🎬 "+tx("Vidéo"):a.kind==="voice"?"🎤 "+tx("Message vocal")+" ("+fmtSec(a.dur)+")":a.kind==="audio"?"🎵 "+(a.name||tx("Audio")):"📎 "+(a.name||tx("Fichier"));
+// Morceaux d'une pièce jointe : channels/{canal}/files/{message}-{n}
+function loadFile(cid,mid,a){
+  const key=cid+"/"+mid;
+  if(fileCache.has(key)) return Promise.resolve(fileCache.get(key));
+  if(fileLoads.has(key)) return fileLoads.get(key);
+  const n=Math.max(1,Math.min(20,Number(a&&a.chunks)||1)),col=CH().doc(cid).collection("files");
+  const p=Promise.all(Array.from({length:n},(_,i)=>col.doc(mid+"-"+i).get())).then(ss=>{
+    const parts=ss.map(s=>{if(!s.exists)throw new Error("absent");const d=(s.data()||{}).data;return d&&d.toUint8Array?d.toUint8Array():d instanceof Uint8Array?d:new Uint8Array(0);});
+    const url=URL.createObjectURL(new Blob(parts,{type:safeMime(attKind(a),a&&a.mime)}));
+    fileCache.set(key,url);return url;
+  });
+  fileLoads.set(key,p);p.catch(()=>fileLoads.delete(key));
+  return p;
+}
+function deleteFileChunks(cid,mid,a){
+  const n=Math.max(1,Math.min(20,Number(a&&a.chunks)||1)),col=CH().doc(cid).collection("files");
+  return Promise.all(Array.from({length:n},(_,i)=>col.doc(mid+"-"+i).delete().catch(()=>{})));
+}
+// Les images se chargent quand elles approchent de l'écran ; vidéos, fichiers et vocaux, au premier clic.
+let attIO=null;
+function watchAtt(n){
+  if(!("IntersectionObserver" in window)){loadAtt(n);return;}
+  if(!attIO) attIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){attIO.unobserve(e.target);loadAtt(e.target);}}),{root:$("msgList"),rootMargin:"500px 0px"});
+  attIO.observe(n);
+}
+function loadAtt(n,then){
+  const info=attIndex.get(n.dataset.key);if(!info) return Promise.resolve(null);
+  n.classList.add("loading");
+  return loadFile(info.cid,info.mid,info.a).then(url=>{n.classList.remove("loading");if(n.isConnected)fillAtt(n);if(then)then(url);return url;})
+    .catch(()=>{n.classList.remove("loading");if(n.isConnected){n.dataset.ready="";n.innerHTML=`<span class="att-load">${esc(tx("Pièce jointe indisponible"))}</span>`;}return null;});
+}
+function attBoxStyle(a){
+  const w=Number(a.w)||0,h=Number(a.h)||0;if(!w||!h) return "";
+  const dw=Math.max(80,Math.round(Math.min(320,w,300*w/h)));
+  return ` style="--w:${dw}px;aspect-ratio:${w}/${h}"`;
+}
+function waveBars(str){
+  const s=String(str||"");
+  if(/^[0-9a-f]{8,}$/i.test(s)) return [...s].map(ch=>Math.round(18+parseInt(ch,16)/15*82));
+  return Array.from({length:36},(_,i)=>Math.round(30+30*Math.abs(Math.sin(i*1.7))+15*Math.abs(Math.sin(i*.6))));
+}
+function packWave(peaks){
+  const N=40;if(!peaks.length) return "";
+  const out=[];for(let i=0;i<N;i++){const a=Math.floor(i*peaks.length/N),b=Math.max(a+1,Math.floor((i+1)*peaks.length/N));let m=0;for(let j=a;j<b&&j<peaks.length;j++)m=Math.max(m,peaks[j]);out.push(m);}
+  const mx=Math.max(.05,...out);return out.map(v=>Math.round(v/mx*15).toString(16)).join("");
+}
+let vnPlaying=null,atBottom=true;
+function stickBottom(){const el=$("msgList");if(el&&atBottom)el.scrollTop=el.scrollHeight;}
+function fillAtt(n){
+  const key=n.dataset.key,info=attIndex.get(key);if(!info){n.remove();return;}
+  const a=info.a,k=attKind(a),gone=`<span class="att-load">${esc(tx("Pièce jointe indisponible"))}</span>`;
+  const src=safeUrl(a.url)||(a.file?fileCache.get(key)||"":"");
+  if(!src&&!a.file){n.innerHTML=gone;return;}
+  const sizeTxt=a.size?fmtSize(a.size):"";
+  if(k==="image"||k==="gif"){
+    if(!src){n.innerHTML=`<span class="att-load"><span class="att-spin" aria-hidden="true"></span></span>`;watchAtt(n);return;}
+    n.dataset.ready="1";
+    n.innerHTML=`<button class="att-img" aria-label="${esc(tx("Agrandir l'image"))}"><img src="${esc(src)}" alt="${esc(a.name||"")}" decoding="async"${a.url?' referrerpolicy="no-referrer"':""}></button>${k==="gif"?'<span class="att-tag" aria-hidden="true">GIF</span>':""}`;
+    const img=n.querySelector("img");img.onload=stickBottom;img.onerror=()=>{n.dataset.ready="";n.innerHTML=gone;};
+    n.querySelector("button").onclick=()=>openLightbox(src,a);
+  }else if(k==="voice"){
+    n.dataset.ready="1";buildVoice(n,src,a);
+  }else if(k==="video"||k==="audio"){
+    n.dataset.ready="1";
+    if(src){
+      n.innerHTML=k==="video"?`<video src="${esc(src)}" controls preload="metadata" playsinline></video>`
+        :`<div class="att-audio"><span translate="no">🎵 ${esc(a.name||tx("Audio"))}</span><audio src="${esc(src)}" controls preload="metadata"></audio></div>`;
+      const m=n.querySelector("video,audio");m.onloadedmetadata=stickBottom;
+      if(n.dataset.autoplay){delete n.dataset.autoplay;m.play().catch(()=>{});}
+      return;
+    }
+    n.innerHTML=`<button class="att-file att-media">${k==="video"?"<span class=\"att-play\" aria-hidden=\"true\">"+ICO.play+"</span>":ICO.file}<span><b translate="no">${esc(k==="video"?tx("Vidéo"):(a.name||tx("Audio")))}</b><small>${esc(sizeTxt)}${sizeTxt?" · ":""}${esc(tx("Toucher pour lire"))}</small></span></button>`;
+    n.querySelector("button").onclick=()=>{n.dataset.autoplay="1";loadAtt(n);};
+  }else{
+    n.dataset.ready="1";
+    n.innerHTML=`<button class="att-file">${ICO.file}<span><b translate="no">${esc(a.name||tx("Fichier"))}</b><small>${esc(sizeTxt)}${sizeTxt?" · ":""}${esc(tx("Télécharger"))}</small></span>${ICO.dl}</button>`;
+    n.querySelector("button").onclick=()=>{
+      const go=url=>{if(!url)return;const l=document.createElement("a");l.href=url;l.download=a.name||"fichier";document.body.appendChild(l);l.click();l.remove();};
+      if(src) go(src);else{const info2=attIndex.get(key);n.classList.add("loading");loadFile(info2.cid,info2.mid,info2.a).then(u=>{n.classList.remove("loading");go(u);}).catch(()=>{n.classList.remove("loading");toast("Pièce jointe indisponible");});}
+    };
+  }
+}
+function buildVoice(n,src,a){
+  const bars=waveBars(a.wave),lbl=tx("Écouter le message vocal"),key=n.dataset.key;
+  n.innerHTML=`<div class="vn"><button class="vn-play" aria-label="${esc(lbl)}">${ICO.play}</button><span class="vn-wave" role="slider" tabindex="0" aria-label="${esc(tx("Position de lecture"))}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">${bars.map(h=>`<i style="height:${h}%"></i>`).join("")}</span><span class="vn-t">${fmtSec(a.dur)}</span><audio preload="${src?"metadata":"none"}"${src?` src="${esc(src)}"`:""}></audio></div>`;
+  const au=n.querySelector("audio"),btn=n.querySelector(".vn-play"),wave=n.querySelector(".vn-wave"),t=n.querySelector(".vn-t"),is=[...wave.children];
+  const dur=()=>isFinite(au.duration)&&au.duration>0?au.duration:(Number(a.dur)||0);
+  const paint=()=>{const d=dur(),r=d?Math.min(1,au.currentTime/d):0,k=Math.round(r*is.length);is.forEach((x,i)=>x.classList.toggle("on",i<k));wave.setAttribute("aria-valuenow",String(Math.round(r*100)));t.textContent=au.paused&&!au.currentTime?fmtSec(a.dur):fmtSec(au.currentTime);};
+  const ensure=()=>{
+    if(au.getAttribute("src")) return Promise.resolve(true);
+    const info=attIndex.get(key);if(!info) return Promise.resolve(false);
+    n.classList.add("loading");
+    return loadFile(info.cid,info.mid,info.a).then(u=>{n.classList.remove("loading");au.src=u;return true;}).catch(()=>{n.classList.remove("loading");toast("Message vocal indisponible");return false;});
+  };
+  btn.onclick=async()=>{
+    if(!au.paused){au.pause();return;}
+    if(!(await ensure())) return;
+    if(vnPlaying&&vnPlaying!==au) vnPlaying.pause();
+    audioCtx();au.play().catch(()=>toast("Lecture impossible sur ce navigateur"));
+  };
+  au.onplay=()=>{vnPlaying=au;btn.innerHTML=ICO.pause;btn.setAttribute("aria-label",tx("Pause"));n.classList.add("playing");};
+  au.onpause=()=>{btn.innerHTML=ICO.play;btn.setAttribute("aria-label",lbl);n.classList.remove("playing");paint();};
+  au.onended=()=>{try{au.currentTime=0;}catch(e){}paint();};
+  au.ontimeupdate=paint;
+  const seek=r=>{const d=dur();if(!d||!au.getAttribute("src"))return;try{au.currentTime=Math.max(0,Math.min(d-.05,r*d));}catch(e){}paint();};
+  wave.onclick=e=>{const b=wave.getBoundingClientRect();seek((e.clientX-b.left)/b.width);};
+  wave.onkeydown=e=>{const d=dur()||1;
+    if(e.key==="ArrowRight"){e.preventDefault();seek((au.currentTime+3)/d);}
+    else if(e.key==="ArrowLeft"){e.preventDefault();seek((au.currentTime-3)/d);}
+    else if(e.key===" "||e.key==="Enter"){e.preventDefault();btn.click();}};
+}
+function openLightbox(src,a){
+  $("mediaImg").src=src;$("mediaImg").alt=a.name||"";
+  const dl=$("mediaDl");dl.href=src;dl.setAttribute("download",a.name||"image");
+  if(a.url){dl.target="_blank";dl.rel="noopener noreferrer";}else{dl.removeAttribute("target");dl.removeAttribute("rel");}
+  $("mediaDlg").showModal();
+}
+$("mediaX").onclick=()=>$("mediaDlg").close();
+$("mediaDlg").addEventListener("close",()=>{$("mediaImg").removeAttribute("src");});
+
+/* ---------- Fil de la conversation ---------- */
 function renderMsgList(){
   const el=$("msgList");if(!el||mode!=="messages") return;
   const near=el.scrollHeight-el.scrollTop-el.clientHeight<120;
@@ -3440,51 +3861,434 @@ function renderMsgList(){
     el.innerHTML=`<div class="msg-empty"><span class="msg-empty-ico" aria-hidden="true">${dm?"✉️":"#"}</span><b>${dm?esc(tx("Début de votre conversation avec {}",who)):esc(tx("Bienvenue dans # {}",(c&&c.name)||"général"))}</b><span>${dm?"Seules vous deux pouvez lire ces messages.":"Tous les membres de l'association lisent ce canal. Lancez la discussion !"}</span></div>`;
     return;
   }
-  let html="",lastDay=0,prev=null;const admin=adminUI();
+  // Les médias déjà affichés sont conservés tels quels (pas de clignotement, la lecture d'un vocal continue).
+  const old=new Map();el.querySelectorAll(".msg-att[data-key]").forEach(n=>{if(n.dataset.ready==="1")old.set(n.dataset.key,n);});
+  let html="",lastDay=0,prev=null;const admin=adminUI(),map=handleMap(),noAll=nprefs().noEveryone;
   msgs.forEach(m=>{
     const d=startOfDay(m.at||0);
     if(d!==lastDay){html+=`<div class="msg-day"><span>${esc(dayLbl(m.at))}</span></div>`;lastDay=d;prev=null;}
     const mine=m.by===myId,cont=prev&&prev.by===m.by&&m.at-prev.at<5*60000;
-    html+=`<div class="msg${mine?" mine":""}${cont?" cont":""}">
-      ${cont?'<span class="msg-avsp"></span>':avHTML(m.by,"msg-av")}
-      <div class="msg-b">${cont?"":`<div class="msg-meta"><b>${esc(mine?tx("Vous"):(m.byName||pName(m.by)))}</b><time datetime="${new Date(m.at).toISOString()}">${fmtTime(m.at)}</time></div>`}
-        <div class="msg-text" translate="no"${cont?` title="${fmtTime(m.at)}"`:""}>${linkify(m.text)}</div>
+    const name=m.byName||pName(m.by),who=mine?tx("Vous"):name;
+    const ping=!mine&&((Array.isArray(m.mentions)&&m.mentions.includes(myId))||(!!m.everyone&&!noAll));
+    const att=m.att&&typeof m.att==="object"?m.att:null,key=curChan+"/"+m.id;
+    if(att) attIndex.set(key,{a:att,cid:curChan,mid:m.id});
+    html+=`<div class="msg${mine?" mine":""}${cont?" cont":""}${ping?" ping":""}">
+      ${cont?'<span class="msg-avsp"></span>':`<button class="msg-avb" data-user="${esc(m.by)}" aria-label="${esc(tx("Options pour {}",name))}">${avHTML(m.by,"msg-av")}</button>`}
+      <div class="msg-b">${cont?"":`<div class="msg-meta"><button class="msg-who" data-user="${esc(m.by)}" translate="no">${esc(who)}</button><time datetime="${new Date(m.at).toISOString()}">${fmtTime(m.at)}</time></div>`}
+        ${m.text?`<div class="msg-text" translate="no"${cont?` title="${fmtTime(m.at)}"`:""}>${richText(m.text,map,m)}</div>`:""}
+        ${att?`<div class="msg-att k-${attKind(att)}" data-key="${esc(key)}"${(att.kind==="image"||att.kind==="gif")?attBoxStyle(att):""}></div>`:""}
         ${mine||admin?`<button class="msg-del" data-mdel="${esc(m.id)}" title="Supprimer le message" aria-label="Supprimer le message">×</button>`:""}</div></div>`;
     prev=m;
   });
   el.innerHTML=html;
+  el.querySelectorAll(".msg-att[data-key]").forEach(n=>{const o=old.get(n.dataset.key);if(o)n.replaceWith(o);else fillAtt(n);});
+  el.querySelectorAll("[data-user]").forEach(b=>b.onclick=e=>{e.stopPropagation();openUserCard(b.dataset.user,b);});
   el.querySelectorAll("[data-mdel]").forEach(b=>b.onclick=()=>{
     if(b.dataset.confirm!=="1"){b.dataset.confirm="1";b.textContent="Supprimer ?";b.classList.add("confirm");setTimeout(()=>{if(b.isConnected){b.dataset.confirm="";b.textContent="×";b.classList.remove("confirm");}},4000);return;}
-    CH().doc(curChan).collection("messages").doc(b.dataset.mdel).delete().then(()=>toast("Message supprimé")).catch(()=>toast("Suppression refusée"));
+    const cid=curChan,mid=b.dataset.mdel,m=msgs.find(x=>x.id===mid);
+    CH().doc(cid).collection("messages").doc(mid).delete().then(()=>{
+      toast("Message supprimé");
+      if(m&&m.att&&m.att.file) deleteFileChunks(cid,mid,m.att);
+    }).catch(()=>toast("Suppression refusée"));
   });
   if(near||msgJust){el.scrollTop=el.scrollHeight;msgJust=false;}
+  atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<120;
   const last=msgs[msgs.length-1];if(last&&document.visibilityState==="visible") markRead(curChan,Math.max(last.at||0,(c&&c.lastAt)||0));
 }
-async function sendMsg(){
-  const ta=$("msgText"),text=ta.value.trim();if(!text||!curOrg) return;
+$("msgList").addEventListener("scroll",()=>{const el=$("msgList");atBottom=el.scrollHeight-el.scrollTop-el.clientHeight<120;},{passive:true});
+
+/* ---------- Envoi ---------- */
+async function ensureChan(cid,now){
+  if(allChans()[cid]) return;
+  if(cid==="general"){genTried=false;await ensureGeneral();chans.general=chans.general||{kind:"channel",name:"général",desc:"Annonces et discussions de toute l'association",lastAt:0};}
+  else if(pendingDm&&pendingDm.id===cid){const mem=[myId,pendingDm.other].sort();await CH().doc(cid).set({kind:"dm",memberIds:mem,createdBy:myId,createdAt:now,lastAt:0});dmChans[cid]=dmChans[cid]||{kind:"dm",memberIds:mem,lastAt:0};}
+  else throw new Error("canal");
+  msgSubFor=null;subscribeMsgs();
+}
+async function postMessage(text,d){
   const cid=curChan,now=Date.now(),byName=pName(myId);
-  ta.value="";autoGrow();
-  try{
-    if(!allChans()[cid]){
-      if(cid==="general"){genTried=false;await ensureGeneral();chans.general=chans.general||{kind:"channel",name:"général",desc:"Annonces et discussions de toute l'association",lastAt:0};}
-      else if(pendingDm&&pendingDm.id===cid){const mem=[myId,pendingDm.other].sort();await CH().doc(cid).set({kind:"dm",memberIds:mem,createdBy:myId,createdAt:now,lastAt:0});dmChans[cid]=dmChans[cid]||{kind:"dm",memberIds:mem,lastAt:0};}
-      else throw new Error("canal");
-      msgSubFor=null;subscribeMsgs();
-    }
-    await CH().doc(cid).collection("messages").add({by:myId,byName,text,at:now});
-    CH().doc(cid).update({lastAt:now,lastText:text.slice(0,140),lastBy:myId,lastByName:byName}).catch(()=>{});
-    markRead(cid,now);
-  }catch(e){console.warn(e);if(!ta.value){ta.value=text;autoGrow();}toast("Message non envoyé. Vérifiez votre connexion, puis réessayez.",3500);}
+  await ensureChan(cid,now);
+  const mref=CH().doc(cid).collection("messages").doc();
+  const msg={by:myId,byName,text,at:now},mt=parseMentions(text,cid);
+  if(mt.ids.length) msg.mentions=mt.ids;
+  if(mt.everyone) msg.everyone=true;
+  if(d) msg.att=attMeta(d);
+  if(d&&d.blob){
+    // Le fichier est découpé à part : la liste des messages reste légère.
+    const buf=new Uint8Array(await d.blob.arrayBuffer()),n=msg.att.chunks,col=CH().doc(cid).collection("files");
+    const b=fdb.batch();
+    for(let i=0;i<n;i++) b.set(col.doc(mref.id+"-"+i),{by:myId,at:now,data:firebase.firestore.Blob.fromUint8Array(buf.subarray(i*CHUNK,(i+1)*CHUNK))});
+    b.set(mref,msg);await b.commit();
+    try{fileCache.set(cid+"/"+mref.id,URL.createObjectURL(new Blob([buf],{type:safeMime(d.kind,d.mime)})));}catch(e){}
+  }else await mref.set(msg);
+  const label=msg.att?attLabel(msg.att):"",summary=(text?(label?label+" · "+text:text):label).slice(0,140);
+  CH().doc(cid).update({lastAt:now,lastText:summary,lastBy:myId,lastByName:byName,lastMentions:mt.ids,lastEveryone:mt.everyone}).catch(e=>console.warn("résumé du canal",e));
+  markRead(cid,now);
+}
+async function sendMsg(){
+  if(msgSending) return;
+  const ta=$("msgText"),text=ta.value.trim(),d=draftAtt;
+  if((!text&&!d)||!curOrg) return;
+  msgSending=true;ta.value="";autoGrow();setDraft(null);closeMention();
+  $("msgCompose").classList.add("sending");
+  try{await postMessage(text,d);}
+  catch(e){console.warn(e);if(!ta.value){ta.value=text;autoGrow();}if(d&&!draftAtt){if(d.blob)d.preview=URL.createObjectURL(d.blob);setDraft(d);}toast("Message non envoyé. Vérifiez votre connexion, puis réessayez.",3500);}
+  msgSending=false;$("msgCompose").classList.remove("sending");updateComposeBtns();
+}
+async function sendAtt(d){
+  if(!curOrg||!d) return;
+  $("msgCompose").classList.add("sending");
+  try{await postMessage("",d);}
+  catch(e){console.warn(e);toast("Pièce jointe non envoyée. Vérifiez votre connexion, puis réessayez.",3500);}
+  $("msgCompose").classList.remove("sending");
 }
 function autoGrow(){const t=$("msgText");t.style.height="auto";t.style.height=Math.min(180,t.scrollHeight+2)+"px";}
-$("msgText").oninput=autoGrow;
-$("msgText").onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();sendMsg();}};
+function updateComposeBtns(){$("msgCompose").classList.toggle("has-content",!!($("msgText").value.trim()||draftAtt));}
+
+/* ---------- Brouillon de pièce jointe ---------- */
+let draftAtt=null;
+function setDraft(d){
+  if(draftAtt&&draftAtt.preview&&draftAtt.preview.startsWith("blob:")) URL.revokeObjectURL(draftAtt.preview);
+  const wasBottom=atBottom;draftAtt=d;renderDraft();updateComposeBtns();
+  if(wasBottom){atBottom=true;requestAnimationFrame(stickBottom);}
+}
+function renderDraft(){
+  const el=$("msgDraft");
+  if(!draftAtt){el.hidden=true;el.innerHTML="";return;}
+  const d=draftAtt,k=d.kind;
+  const thumb=k==="image"||k==="gif"?`<img src="${esc(d.preview)}" alt="">`:k==="video"?`<video src="${esc(d.preview)}" muted playsinline></video>`:`<span class="dr-ico">${k==="audio"?"🎵":ICO.file}</span>`;
+  const note=k==="image"&&d.orig>d.size?" · "+tx("allégée de {}",fmtSize(d.orig)):"";
+  el.innerHTML=`<div class="dr-card">${thumb}<span class="dr-txt"><b translate="no">${esc(d.name)}</b><small>${esc(fmtSize(d.size)+note)}</small></span><button class="dr-x" aria-label="${esc(tx("Retirer la pièce jointe"))}" title="${esc(tx("Retirer la pièce jointe"))}">${ICO.x}</button></div><span class="since">Ajoutez un message si vous le souhaitez, puis envoyez.</span>`;
+  el.hidden=false;el.querySelector(".dr-x").onclick=()=>{setDraft(null);$("msgText").focus();};
+  requestAnimationFrame(stickBottom);
+}
+async function prepAttachment(file){
+  if(!file||!curOrg) return;
+  if(REC) return;
+  const type=String(file.type||"").toLowerCase(),name=file.name||"fichier";
+  const tooBig=()=>toast(tx("Fichier trop lourd : {} maximum par pièce jointe.",fmtSize(MAX_ATT)),4500);
+  try{
+    let d=null;
+    if(/^image\/(png|jpe?g|webp|bmp|avif|heic|heif)$/.test(type)){
+      try{d=await compressImage(file);}
+      catch(e){if(file.size>MAX_ATT){tooBig();return;}d={kind:"file",mime:type,name,size:file.size,blob:file};}
+    }else if(type==="image/gif"){
+      if(file.size>MAX_ATT){toast(tx("GIF trop lourd : {} maximum. Essayez la recherche de GIF.",fmtSize(MAX_ATT)),4500);return;}
+      const url=URL.createObjectURL(file),dim=await imgSize(url);
+      d={kind:"gif",mime:type,name,size:file.size,blob:file,w:dim.w,h:dim.h,preview:url};
+    }else{
+      if(file.size>MAX_ATT){tooBig();return;}
+      const kind=/^video\//.test(type)?"video":/^audio\//.test(type)?"audio":"file";
+      d={kind,mime:type||"application/octet-stream",name,size:file.size,blob:file};
+      if(kind==="video"){d.preview=URL.createObjectURL(file);const v=document.createElement("video");v.preload="metadata";v.src=d.preview;await new Promise(r=>{v.onloadedmetadata=r;v.onerror=r;setTimeout(r,3000);});if(isFinite(v.duration))d.dur=v.duration;if(v.videoWidth){d.w=v.videoWidth;d.h=v.videoHeight;}}
+    }
+    closeGif();setDraft(d);
+    if(!narrow()) $("msgText").focus();
+  }catch(e){console.warn(e);toast("Impossible de lire ce fichier");}
+}
+$("msgAttach").onclick=()=>{$("msgFile").value="";$("msgFile").click();};
+$("msgFile").onchange=()=>{const f=$("msgFile").files[0];if(f)prepAttachment(f);};
+$("msgText").addEventListener("paste",e=>{
+  const f=[...((e.clipboardData&&e.clipboardData.files)||[])][0];
+  if(f){e.preventDefault();prepAttachment(f);}
+});
+{const main=document.querySelector(".msg-main");let depth=0;
+ const hasFiles=e=>[...((e.dataTransfer&&e.dataTransfer.types)||[])].includes("Files");
+ main.addEventListener("dragenter",e=>{if(!hasFiles(e))return;e.preventDefault();depth++;main.dataset.drop=tx("Déposez le fichier pour le joindre");main.classList.add("drop");});
+ main.addEventListener("dragover",e=>{if(hasFiles(e))e.preventDefault();});
+ main.addEventListener("dragleave",()=>{if(--depth<=0){depth=0;main.classList.remove("drop");}});
+ main.addEventListener("drop",e=>{if(!hasFiles(e))return;e.preventDefault();depth=0;main.classList.remove("drop");const f=e.dataTransfer.files[0];if(f)prepAttachment(f);});}
+
+/* ---------- Messages vocaux ---------- */
+let REC=null;
+async function startRec(){
+  if(REC||!curOrg) return;
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!window.MediaRecorder){toast("Les messages vocaux ne sont pas pris en charge par ce navigateur",3500);return;}
+  closeGif();closeMention();
+  let stream;
+  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});}
+  catch(e){toast(e&&e.name==="NotAllowedError"?"Accès au micro refusé. Autorisez-le dans les réglages du navigateur.":"Aucun micro disponible",4500);return;}
+  const mime=["audio/webm;codecs=opus","audio/ogg;codecs=opus","audio/mp4;codecs=mp4a.40.2","audio/mp4","audio/webm"].find(t=>{try{return MediaRecorder.isTypeSupported(t);}catch(e){return false;}})||"";
+  let rec;
+  try{rec=new MediaRecorder(stream,Object.assign({audioBitsPerSecond:VOICE_BPS},mime?{mimeType:mime}:{}));}
+  catch(e){try{rec=new MediaRecorder(stream);}catch(e2){stream.getTracks().forEach(t=>t.stop());toast("Enregistrement impossible sur ce navigateur");return;}}
+  const r={rec,stream,chunks:[],peaks:[],t0:Date.now(),send:false,ctx:null,an:null,timer:0,size:0};
+  try{const A=window.AudioContext||window.webkitAudioContext;r.ctx=new A();const src=r.ctx.createMediaStreamSource(stream);r.an=r.ctx.createAnalyser();r.an.fftSize=512;src.connect(r.an);}catch(e){}
+  rec.ondataavailable=e=>{if(e.data&&e.data.size){r.chunks.push(e.data);r.size+=e.data.size;}};
+  rec.onstop=()=>finishRec(r);
+  try{rec.start(250);}catch(e){stream.getTracks().forEach(t=>t.stop());toast("Enregistrement impossible sur ce navigateur");return;}
+  REC=r;
+  $("msgCompose").classList.add("recording");$("msgRec").hidden=false;$("recWave").innerHTML="";$("recTime").textContent="0:00";
+  const buf=r.an?new Uint8Array(r.an.fftSize):null;
+  r.timer=setInterval(()=>{
+    const s=(Date.now()-r.t0)/1000;$("recTime").textContent=fmtSec(s);
+    let lvl=.12;
+    if(r.an){r.an.getByteTimeDomainData(buf);let sum=0;for(let i=0;i<buf.length;i++){const x=(buf[i]-128)/128;sum+=x*x;}lvl=Math.min(1,Math.sqrt(sum/buf.length)*4.5);}
+    r.peaks.push(lvl);
+    const w=$("recWave"),i=document.createElement("i");i.style.height=Math.max(10,Math.round(lvl*100))+"%";w.appendChild(i);
+    while(w.children.length>70) w.firstChild.remove();
+    if(s>=VOICE_MAX||r.size>MAX_ATT*.92){toast("Durée maximale atteinte : message envoyé");stopRec(true);}
+  },100);
+  $("recSend").focus();
+}
+function stopRec(send){
+  const r=REC;if(!r) return;REC=null;
+  r.send=send;r.dur=(Date.now()-r.t0)/1000;clearInterval(r.timer);
+  $("msgCompose").classList.remove("recording");$("msgRec").hidden=true;
+  try{if(r.rec.state!=="inactive")r.rec.stop();else finishRec(r);}catch(e){finishRec(r);}
+  if(!narrow()) $("msgText").focus();
+}
+async function finishRec(r){
+  if(r.done) return;r.done=true;
+  r.stream.getTracks().forEach(t=>t.stop());if(r.ctx)r.ctx.close().catch(()=>{});
+  if(!r.send) return;
+  if(r.dur<1){toast("Message vocal trop court");return;}
+  const type=String(r.rec.mimeType||r.chunks[0]&&r.chunks[0].type||"audio/webm").split(";")[0]||"audio/webm";
+  const blob=new Blob(r.chunks,{type});
+  if(!blob.size){toast("Aucun son enregistré");return;}
+  if(blob.size>MAX_ATT){toast(tx("Message vocal trop lourd ({} maximum)",fmtSize(MAX_ATT)),4000);return;}
+  const ext=/mp4|aac|m4a/.test(type)?"m4a":/ogg/.test(type)?"ogg":"webm";
+  sendAtt({kind:"voice",mime:type,name:"message-vocal."+ext,size:blob.size,dur:Math.round(r.dur*10)/10,wave:packWave(r.peaks),blob});
+}
+$("msgMic").onclick=startRec;
+$("recSend").onclick=()=>stopRec(true);
+$("recCancel").onclick=()=>{stopRec(false);toast("Enregistrement annulé");};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&REC){e.preventDefault();stopRec(false);}});
+
+/* ---------- GIF ---------- */
+const giphyKey=()=>String(window.GIPHY_API_KEY||"").trim();
+let gifReq=0,gifT=null;
+function closeGif(){const p=$("gifPop");if(p&&!p.hidden){p.hidden=true;p.innerHTML="";$("msgGif").setAttribute("aria-expanded","false");}}
+function openGif(){
+  const p=$("gifPop");if(!p.hidden){closeGif();return;}
+  closeMention();hidePop();
+  const key=giphyKey();
+  p.innerHTML=`<div class="gif-head">${key?`<input type="text" inputmode="search" id="gifSearch" placeholder="${esc(tx("Rechercher un GIF"))}" aria-label="${esc(tx("Rechercher un GIF"))}" autocomplete="off" enterkeyhint="search">`:`<b>GIF</b>`}<button class="mc-btn gif-x" id="gifClose" aria-label="Fermer" title="Fermer">${ICO.x}</button></div>
+    ${key?`<div class="gif-grid" id="gifGrid" aria-live="polite"></div><div class="gif-foot">Propulsé par GIPHY</div>`:""}
+    <div class="gif-alt"><button class="btn" id="gifUp">Choisir un GIF sur l'appareil</button>
+      <div class="gif-url"><input type="text" inputmode="url" id="gifUrl" placeholder="${esc(tx("…ou collez le lien d'un GIF"))}" aria-label="${esc(tx("Lien d'un GIF"))}" autocomplete="off"><button class="btn in" id="gifUrlOk" style="border:none">${esc(tx("Envoyer"))}</button></div></div>
+    ${!key&&adminUI()?`<p class="since gif-note">Pour chercher parmi des millions de GIF, ajoutez une clé GIPHY gratuite dans firebase-config.js (voir le guide).</p>`:""}`;
+  p.hidden=false;$("msgGif").setAttribute("aria-expanded","true");
+  $("gifClose").onclick=closeGif;
+  $("gifUp").onclick=()=>{$("gifFile").value="";$("gifFile").click();};
+  $("gifUrl").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("gifUrlOk").click();}};
+  $("gifUrlOk").onclick=sendGifUrl;
+  if(key){const s=$("gifSearch");s.oninput=()=>{clearTimeout(gifT);gifT=setTimeout(()=>gifLoad(s.value.trim()),350);};gifLoad("");if(!narrow())setTimeout(()=>s.focus(),30);}
+}
+async function gifLoad(q){
+  const key=giphyKey(),grid=$("gifGrid");if(!grid||!key) return;
+  const n=++gifReq;grid.innerHTML=`<p class="since gif-msg">Chargement…</p>`;
+  try{
+    const base="https://api.giphy.com/v1/gifs/",k="api_key="+encodeURIComponent(key);
+    const u=q?`${base}search?${k}&q=${encodeURIComponent(q)}&limit=24&rating=pg&lang=${encodeURIComponent(LANG)}`:`${base}trending?${k}&limit=24&rating=pg`;
+    const r=await fetch(u);if(!r.ok) throw new Error(String(r.status));
+    const j=await r.json();if(n!==gifReq) return;
+    const items=(j.data||[]).map(g=>{const im=g.images||{},pv=im.fixed_width_downsampled||im.fixed_width||{},full=im.fixed_width||pv;return{pv:safeUrl(pv.url),url:safeUrl(full.url),w:Number(full.width)||200,h:Number(full.height)||150,title:String(g.title||"GIF")};}).filter(x=>x.url&&x.pv);
+    grid.innerHTML=items.length?items.map((g,i)=>`<button class="gif-it" data-g="${i}" aria-label="${esc(g.title)}" style="aspect-ratio:${g.w}/${g.h}"><img src="${esc(g.pv)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join(""):`<p class="since gif-msg">Aucun GIF trouvé.</p>`;
+    grid.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{const g=items[Number(b.dataset.g)];closeGif();sendAtt({kind:"gif",url:g.url,w:g.w,h:g.h,name:g.title.slice(0,120),mime:"image/gif",size:0});});
+  }catch(e){if(n===gifReq)grid.innerHTML=`<p class="since gif-msg">Recherche indisponible pour le moment.</p>`;}
+}
+async function sendGifUrl(){
+  let u=$("gifUrl").value.trim();if(!u) return;
+  const gp=/^https?:\/\/(?:www\.)?giphy\.com\/(?:gifs|stickers)\/(?:[^/?#]*-)?([A-Za-z0-9]+)\/?(?:[?#].*)?$/i.exec(u);
+  if(gp) u=`https://media.giphy.com/media/${gp[1]}/giphy.gif`;
+  u=u.replace(/^http:\/\//i,"https://");
+  if(!safeUrl(u)){toast("Ce lien n'est pas valide");return;}
+  const dim=await imgSize(u);
+  if(!dim.w){toast("Ce lien ne mène pas directement à une image. Sur Tenor ou Giphy, utilisez « Copier le lien du GIF ».",5000);return;}
+  closeGif();sendAtt({kind:"gif",url:u,w:dim.w,h:dim.h,name:"GIF",mime:"image/gif",size:0});
+}
+$("msgGif").onclick=openGif;
+$("gifFile").onchange=()=>{const f=$("gifFile").files[0];if(f)prepAttachment(f);};
+
+/* ---------- Saisie : mentions avec @ ---------- */
+let mentState=null;
+function mentionCheck(){
+  const ta=$("msgText"),pos=ta.selectionStart;
+  if(pos!==ta.selectionEnd){closeMention();return;}
+  const m=/(^|[\s(\[])@([\p{L}\p{N}._-]{0,24})$/u.exec(ta.value.slice(0,pos));
+  if(!m){closeMention();return;}
+  const q=normTxt(m[2]),dm=isDmId(curChan),c=curChanObj();
+  let ids=memberIds().filter(id=>id!==myId);
+  if(dm) ids=ids.filter(id=>(c.memberIds||[]).includes(id));
+  const score=id=>{const h=normTxt(handleOf(id)),n=normTxt(pName(id));return !q?1:h.startsWith(q)||n.startsWith(q)?2:h.includes(q)||n.includes(q)?1:0;};
+  const items=ids.map(id=>({id,s:score(id)})).filter(x=>x.s).sort((a,b)=>b.s-a.s).slice(0,8);
+  if(!dm&&adminUI()&&"tous".startsWith(q)) items.push({all:true});
+  if(!items.length){closeMention();return;}
+  const keep=mentState&&mentState.q===q?mentState.sel:0;
+  mentState={start:pos-m[2].length-1,end:pos,items,q,sel:Math.min(keep,items.length-1)};
+  renderMention();
+}
+function renderMention(){
+  const p=$("mentPop");
+  p.innerHTML=mentState.items.map((it,i)=>`<button class="ment-it${i===mentState.sel?" on":""}" role="option" aria-selected="${i===mentState.sel}" data-i="${i}">${it.all
+    ?`<span class="av ment-all" aria-hidden="true">@</span><span><b>@tous</b><small>${esc(tx("Avertit tous les membres du canal"))}</small></span>`
+    :`${avHTML(it.id)}<span><b translate="no">${esc(pName(it.id))}</b><small translate="no">@${esc(handleOf(it.id))}</small></span>`}</button>`).join("");
+  p.hidden=false;$("msgText").setAttribute("aria-expanded","true");
+  p.querySelectorAll("[data-i]").forEach(b=>{b.onmousedown=e=>e.preventDefault();b.onclick=()=>pickMention(Number(b.dataset.i));});
+  const on=p.querySelector(".on");if(on)on.scrollIntoView({block:"nearest"});
+}
+function pickMention(i){
+  const it=mentState&&mentState.items[i];if(!it) return;
+  const ta=$("msgText"),h="@"+(it.all?"tous":handleOf(it.id))+" ";
+  ta.value=ta.value.slice(0,mentState.start)+h+ta.value.slice(mentState.end);
+  const c=mentState.start+h.length;closeMention();ta.focus();ta.setSelectionRange(c,c);autoGrow();updateComposeBtns();
+}
+function closeMention(){mentState=null;const p=$("mentPop");if(p&&!p.hidden){p.hidden=true;p.innerHTML="";}const t=$("msgText");if(t)t.setAttribute("aria-expanded","false");}
+function insertMention(id){
+  const ta=$("msgText");if(!ta) return;
+  const pos=ta.selectionStart??ta.value.length,before=ta.value.slice(0,pos),h=(before&&!/\s$/.test(before)?" ":"")+"@"+handleOf(id)+" ";
+  ta.value=before+h+ta.value.slice(pos);ta.focus();const c=pos+h.length;ta.setSelectionRange(c,c);autoGrow();updateComposeBtns();
+}
+$("msgText").oninput=()=>{autoGrow();mentionCheck();updateComposeBtns();};
+$("msgText").onclick=mentionCheck;
+$("msgText").onblur=()=>setTimeout(closeMention,160);
+$("msgText").onkeydown=e=>{
+  if(mentState){
+    const n=mentState.items.length;
+    if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();mentState.sel=(mentState.sel+(e.key==="ArrowDown"?1:n-1))%n;renderMention();return;}
+    if((e.key==="Enter"&&!e.shiftKey)||e.key==="Tab"){e.preventDefault();pickMention(mentState.sel);return;}
+    if(e.key==="Escape"){e.preventDefault();closeMention();return;}
+  }
+  if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();sendMsg();}
+};
 $("msgSend").onclick=sendMsg;
-$("msgBack").onclick=()=>{msgPane=false;$("msgShell").classList.remove("pane");};
+$("msgBack").onclick=()=>{msgPane=false;$("msgShell").classList.remove("pane");hidePop();};
+
+/* ---------- Fenêtre flottante (fiche membre, réglages) ---------- */
+const pop=document.createElement("div");pop.className="mpop";pop.hidden=true;pop.setAttribute("role","dialog");document.body.appendChild(pop);
+let popAnchor=null;
+function showPop(html,anchor,bind,label){
+  pop.innerHTML=html;pop.hidden=false;pop.setAttribute("aria-label",label||"");popAnchor=anchor||null;
+  if(bind) bind(pop);
+  placePop();
+  if(!narrow()){const f=pop.querySelector("[data-focus]")||pop.querySelector("button,input");if(f)f.focus({preventScroll:true});}
+}
+function placePop(){
+  if(narrow()){pop.classList.add("sheet");pop.style.left=pop.style.top="";return;}
+  pop.classList.remove("sheet");
+  const r=popAnchor&&popAnchor.isConnected?popAnchor.getBoundingClientRect():{left:innerWidth/2-150,right:innerWidth/2+150,top:innerHeight/3,bottom:innerHeight/3};
+  const w=pop.offsetWidth,h=pop.offsetHeight,m=8;
+  let left=r.left,top=r.bottom+6;
+  if(left+w>innerWidth-m) left=Math.max(m,r.right-w);
+  if(top+h>innerHeight-m) top=Math.max(m,r.top-h-6);
+  pop.style.left=Math.max(m,left)+"px";pop.style.top=top+"px";
+}
+function hidePop(){
+  if(pop.hidden) return;
+  const a=popAnchor,inside=pop.contains(document.activeElement);
+  pop.hidden=true;pop.innerHTML="";popAnchor=null;
+  if(inside&&a&&a.isConnected) a.focus({preventScroll:true});
+}
+document.addEventListener("pointerdown",e=>{
+  const t=e.target;
+  if(!pop.hidden&&!pop.contains(t)&&!(popAnchor&&popAnchor.contains(t))) hidePop();
+  const g=$("gifPop");if(g&&!g.hidden&&!g.contains(t)&&!$("msgGif").contains(t)) closeGif();
+},true);
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Escape") return;
+  if(!pop.hidden){e.preventDefault();hidePop();}
+  else if(!$("gifPop").hidden){e.preventDefault();closeGif();$("msgGif").focus();}
+});
+addEventListener("resize",()=>{if(!pop.hidden)placePop();});
+const togglePop=(anchor,open)=>{if(!pop.hidden&&popAnchor===anchor){hidePop();return;}open();};
+
+/* Fiche d'un membre : toucher son nom ou son avatar dans la conversation */
+function openUserCard(id,anchor){
+  if(!id) return;
+  togglePop(anchor,()=>{
+    const me=id===myId,isMember=!!members[id]||me,role=(roleOf(id)||{}).name||"Membre",h=handleOf(id),did=dmId(id),dmOn=!!dmChans[did];
+    const html=`<div class="uc-head">${avHTML(id,"uc-av")}<div class="uc-id"><b translate="no">${esc(pName(id))}</b><span translate="no">@${esc(h)}${me?" · "+esc(tx("vous")):""}</span><span class="badge">${esc(role)}</span></div></div>
+      ${!me&&isMember?`<div class="uc-dm"><input type="text" id="ucMsg" maxlength="4000" data-focus placeholder="${esc(tx("Message à @{}",h))}" aria-label="${esc(tx("Message privé à {}",pName(id)))}" autocomplete="off" enterkeyhint="send"><button class="btn in" id="ucSend" style="border:none" aria-label="Envoyer">${ICO.send}</button></div>`:""}
+      <div class="uc-acts">
+        ${!me&&isMember?`<button class="uc-a" data-a="dm">${ICO.chat}<span>Ouvrir la conversation privée</span></button>`:""}
+        ${mode==="messages"&&!(isDmId(curChan)&&!me&&curChan===did)?`<button class="uc-a" data-a="mention">${ICO.at}<span>Mentionner dans cette conversation</span></button>`:""}
+        <button class="uc-a" data-a="copy">${ICO.copy}<span>Copier @${esc(h)}</span></button>
+        ${!me&&dmOn?`<button class="uc-a" data-a="mute">${isMuted(did)?ICO.bell:ICO.bellOff}<span>${isMuted(did)?"Réactiver ses notifications":"Mettre ses messages en sourdine"}</span></button>`:""}
+        ${me?`<button class="uc-a" data-a="me">${ICO.user}<span>Modifier mon profil</span></button>`:""}
+      </div>`;
+    showPop(html,anchor,p=>{
+      const send=()=>{const v=$("ucMsg").value.trim();if(!v)return;hidePop();openDM(id);$("msgText").value=v;autoGrow();sendMsg();};
+      if($("ucSend")){$("ucSend").onclick=send;$("ucMsg").onkeydown=e=>{if(e.key==="Enter"&&!e.isComposing){e.preventDefault();send();}};}
+      p.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{
+        const a=b.dataset.a;hidePop();
+        if(a==="dm") openDM(id);
+        else if(a==="mention") insertMention(id);
+        else if(a==="copy"){const s="@"+h;(navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(()=>toast(tx("{} copié",s))).catch(()=>toast(s));}
+        else if(a==="mute"){const m=isMuted(did);setChPref(did,{mute:m?null:-1});toast(m?"Notifications réactivées":tx("Messages de {} en sourdine",pName(id)));}
+        else if(a==="me") openAccount();
+      });
+    },tx("Fiche de {}",pName(id)));
+  });
+}
+$("msgTtl").onclick=()=>{const c=curChanObj();if(c.kind==="dm")openUserCard(dmOther(c),$("msgTtl"));};
+$("msgTtl").onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&$("msgTtl").getAttribute("role")==="button"){e.preventDefault();$("msgTtl").click();}};
+
+/* Réglages de notification d'une conversation (cloche de l'en-tête, clic droit dans la liste) */
+const fmtUntil=t=>startOfDay(t)===startOfDay(Date.now())?fmtTime(t):new Date(t).toLocaleDateString(LOC(),{weekday:"short",day:"numeric",month:"short"})+" "+fmtTime(t);
+function openNotifMenu(id,anchor,keep){
+  const build=()=>{
+    const c=allChans()[id]||{kind:isDmId(id)?"dm":"channel",name:id==="general"?"général":id,memberIds:pendingDm&&pendingDm.id===id?[myId,pendingDm.other]:[]};
+    const lv=levelOf(id,c),mu=muteUntil(id),dm=c.kind==="dm",def=dm?"all":nprefs().chanDef;
+    const opt=(v,t,s)=>`<button class="np-opt" role="menuitemradio" aria-checked="${lv===v}" data-lv="${v}"><span class="np-radio" aria-hidden="true"></span><span><b>${esc(t)}</b>${s?`<small>${esc(s)}</small>`:""}</span></button>`;
+    const html=`<div class="np-h"><span translate="no">${esc(chanName(id,c))}</span><small>Notifications de la conversation</small></div>
+      ${opt("all",tx("Tous les messages"),tx("Pastille et alerte à chaque message")+(def==="all"?" · "+tx("par défaut"):""))}
+      ${opt("mentions",tx("@mentions seulement"),dm?"":tx("Seulement quand on vous nomme ou @tous")+(def==="mentions"?" · "+tx("par défaut"):""))}
+      ${opt("none",tx("Rien"),tx("Ni alerte ni pastille"))}
+      <div class="np-sep"></div>
+      ${mu?`<div class="np-mute-on">${ICO.bellOff}<span>${esc(mu===-1?tx("En sourdine jusqu'à ce que vous la retiriez"):tx("En sourdine jusqu'à {}",fmtUntil(mu)))}</span></div><button class="np-act" data-unmute>${ICO.bell}<span>Réactiver maintenant</span></button>`
+        :`<div class="np-sub">Mettre en sourdine</div><div class="np-chips">${[[15,"15 min"],[60,"1 h"],[480,"8 h"],[1440,"24 h"],[-1,tx("Jusqu'à réactivation")]].map(([v,t])=>`<button class="np-chip" data-mute="${v}">${esc(t)}</button>`).join("")}</div>`}
+      ${isUnread(id,c)||pingMap()[id]?`<div class="np-sep"></div><button class="np-act" data-read>${ICO.chat}<span>Marquer comme lu</span></button>`:""}`;
+    showPop(html,anchor,p=>{
+      p.querySelectorAll("[data-lv]").forEach(b=>b.onclick=()=>{const v=b.dataset.lv;setChPref(id,{level:v===def?null:v});build();});
+      p.querySelectorAll("[data-mute]").forEach(b=>b.onclick=()=>{const v=Number(b.dataset.mute);setChPref(id,{mute:v<0?-1:Date.now()+v*60000});hidePop();toast(tx("{} en sourdine",chanName(id,c)));});
+      const u=p.querySelector("[data-unmute]");if(u)u.onclick=()=>{setChPref(id,{mute:null});build();};
+      const r=p.querySelector("[data-read]");if(r)r.onclick=()=>{markRead(id,(c.lastAt||Date.now()));const pm=pingMap();if(pm[id]){delete pm[id];lsSet(pingKey(),pm);refreshMsgUI();}hidePop();};
+    },tx("Notifications de {}",chanName(id,c)));
+  };
+  if(keep) build();else togglePop(anchor,build);
+}
+$("msgBell").onclick=()=>openNotifMenu(curChan,$("msgBell"));
+
+/* Réglages généraux (cloche de la liste des conversations) */
+async function enableSysNotif(){
+  if(!("Notification" in window)) return;
+  if(notifSysOn()){try{localStorage.setItem("pointeuse-sysnotif","0");}catch(e){}}
+  else{let p=Notification.permission;if(p==="default"){try{p=await Notification.requestPermission();}catch(e){}}
+    if(p==="granted"){try{localStorage.setItem("pointeuse-sysnotif","1");}catch(e){}}else toast("Les notifications sont bloquées par le navigateur",3500);}
+  try{notifSysLabel();}catch(e){}
+}
+function openNotifSettings(anchor,keep){
+  const build=()=>{
+    const p=nprefs(),has="Notification" in window,perm=has?Notification.permission:"none",sys=notifSysOn();
+    const sw=(k,t,s)=>`<div class="np-sw"><span><b>${esc(t)}</b>${s?`<small>${esc(s)}</small>`:""}</span><label class="switch"><input type="checkbox" data-k="${k}"${p[k]?" checked":""} aria-label="${esc(t)}"><span></span></label></div>`;
+    const html=`<div class="np-h"><span>Notifications des messages</span><small>Réglages propres à cet appareil</small></div>
+      ${sw("dnd",tx("Ne pas déranger"),tx("Aucun son ni alerte ; les pastilles restent visibles"))}
+      ${sw("sound",tx("Son des messages"),tx("Un petit carillon à chaque alerte"))}
+      ${sw("noEveryone",tx("Ignorer @tous"),tx("Les annonces à tous ne vous signalent rien de spécial"))}
+      <div class="np-sep"></div>
+      <div class="np-sub">Canaux, par défaut</div>
+      <div class="np-seg"><div class="seg" role="group" aria-label="${esc(tx("Canaux, par défaut"))}">${[["all","Tous"],["mentions","@mentions"],["none","Rien"]].map(([v,t])=>`<button data-def="${v}" aria-pressed="${p.chanDef===v}">${esc(tx(t))}</button>`).join("")}</div></div>
+      <p class="since np-note">Les messages directs vous avertissent toujours, sauf si vous les mettez en sourdine.</p>
+      <div class="np-sep"></div>
+      <div class="np-sw"><span><b>Alertes du navigateur</b><small>${esc(!has?tx("Non disponibles sur ce navigateur"):perm==="denied"?tx("Bloquées : autorisez-les dans les réglages du site"):sys?tx("Activées quand l'onglet est en arrière-plan"):tx("Pour être averti quand l'onglet est en arrière-plan"))}</small></span><button class="btn" id="npSys"${!has||perm==="denied"?" disabled":""}>${esc(sys?tx("Désactiver"):tx("Activer"))}</button></div>
+      ${Object.entries(allChans()).some(([id,c])=>isUnread(id,c))?`<div class="np-sep"></div><button class="np-act" id="npAllRead">${ICO.chat}<span>Tout marquer comme lu</span></button>`:""}`;
+    showPop(html,anchor,el=>{
+      el.querySelectorAll("[data-k]").forEach(c=>c.onchange=()=>{p[c.dataset.k]=c.checked;nsave();if(c.dataset.k==="sound"&&c.checked)ding(false);});
+      el.querySelectorAll("[data-def]").forEach(b=>b.onclick=()=>{p.chanDef=b.dataset.def;nsave();build();});
+      $("npSys").onclick=async()=>{await enableSysNotif();build();};
+      const ar=$("npAllRead");if(ar)ar.onclick=()=>{Object.entries(allChans()).forEach(([id,c])=>markRead(id,c.lastAt));pingC={};lsSet(pingKey(),{});refreshMsgUI();hidePop();toast("Tout est lu");};
+    },tx("Notifications des messages"));
+  };
+  if(keep) build();else togglePop(anchor,build);
+}
+$("msgNotifSet").onclick=()=>openNotifSettings($("msgNotifSet"));
+
+/* ---------- Nouveau message direct, canaux ---------- */
 function dmPickRender(){
-  const q=$("dmSearch").value.trim().toLocaleLowerCase();
-  const ids=memberIds().filter(id=>id!==myId&&(!q||pName(id).toLocaleLowerCase().includes(q)));
-  $("dmPick").innerHTML=ids.length?ids.map(id=>`<button class="dm-row" data-dm="${esc(id)}">${avHTML(id)}<span><b>${esc(pName(id))}</b><small>${esc((roleOf(id)||{}).name||"Membre")}</small></span></button>`).join(""):`<p class="since">Aucun membre ne correspond.</p>`;
+  const q=normTxt($("dmSearch").value.trim().replace(/^@/,""));
+  const ids=memberIds().filter(id=>id!==myId&&(!q||normTxt(pName(id)).includes(q)||normTxt(handleOf(id)).includes(q)));
+  $("dmPick").innerHTML=ids.length?ids.map(id=>`<button class="dm-row" data-dm="${esc(id)}">${avHTML(id)}<span><b translate="no">${esc(pName(id))}</b><small><span translate="no">@${esc(handleOf(id))}</span> · ${esc((roleOf(id)||{}).name||"Membre")}</small></span></button>`).join(""):`<p class="since">Aucun membre ne correspond.</p>`;
   $("dmPick").querySelectorAll("[data-dm]").forEach(b=>b.onclick=()=>{$("dmDlg").close();openDM(b.dataset.dm);});
 }
 $("msgNew").onclick=()=>{$("dmSearch").value="";dmPickRender();$("dmDlg").showModal();setTimeout(()=>$("dmSearch").focus(),50);};
@@ -3507,11 +4311,14 @@ $("chanDel").onclick=async()=>{
   if(!chanDelConfirm){chanDelConfirm=true;$("chanDel").textContent="Confirmer : tous les messages seront effacés";setTimeout(()=>{chanDelConfirm=false;if(mode==="messages")$("chanDel").textContent="Supprimer le canal";},5000);return;}
   chanDelConfirm=false;const id=curChan;if(id==="general") return;
   try{if(msgUnsub){msgUnsub();msgUnsub=null;msgSubFor=null;}
+    await wipeCol(CH().doc(id).collection("files"));
     await wipeCol(CH().doc(id).collection("messages"));await CH().doc(id).delete();
-    delete chans[id];curChan="general";render();toast("Canal supprimé");}
+    delete chans[id];setChPref(id,{level:null,mute:null});curChan="general";render();toast("Canal supprimé");}
   catch(e){toast("Suppression refusée");}
 };
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&mode==="messages")renderMsgList();});
+document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("#tabs button"))hidePop();},true);
+
 
 /* Langue */
 {const sl=$("sLang");sl.innerHTML=Object.keys(I18N).map(k=>`<option value="${k}" lang="${k}" translate="no">${esc(I18N[k]._name)}</option>`).join("");sl.value=LANG;
