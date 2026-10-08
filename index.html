@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261007a">
+<link rel="stylesheet" href="css/style.css?v=20261007b">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -28,6 +28,7 @@ window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.g
 <div class="wrap" id="authView" hidden>
   <div style="text-align:center;margin-top:24px"><svg class="auth-logo" width="72" height="72" viewBox="0 0 200 200" role="img" aria-label="Logo de la pointeuse"><rect width="200" height="200" rx="47" fill="#14213D"/><g transform="translate(100 100) scale(.75) translate(-100 -100)"><circle cx="100" cy="100" r="70" fill="none" stroke="#EEF1F5" stroke-width="20"/><line x1="100" y1="100" x2="160" y2="24" stroke="#14213D" stroke-width="46" stroke-linecap="round"/><polyline points="74,76 100,108 160,24" fill="none" style="stroke:var(--accent)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/></g></svg></div>
   <div class="card auth">
+    <div class="notice invite-note" id="inviteNote" hidden>Vous avez reçu une invitation. Connectez-vous ou créez un compte gratuit : vous pourrez rejoindre l'association juste après.</div>
     <h2 id="authTitle">Connexion</h2>
     <button class="btn big in" id="gBtn">Continuer avec Google</button>
     <div class="or">ou avec votre courriel</div>
@@ -59,6 +60,7 @@ window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.g
       <button role="tab" data-tab="projects" aria-selected="false" id="projTab" title="Projets"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M9.5 4v16M15 4v9"/></svg><span class="lbl">Projets</span><span class="cnt" id="projCnt"></span></button>
       <button role="tab" data-tab="calendar" aria-selected="false" id="calTab" title="Calendrier"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span class="lbl">Calendrier</span></button>
       <button role="tab" data-tab="messages" aria-selected="false" id="msgTab" title="Messages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 5.5h15a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10l-4.5 3.5V16.5h-1a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/></svg><span class="lbl">Messages</span><span class="cnt" id="msgCnt"></span></button>
+      <button role="tab" data-tab="board" aria-selected="false" id="boardTab" title="Babillard"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5h6l-1 5.5 3 3V14H7v-2l3-3z"/><path d="M12 14v6.5"/></svg><span class="lbl">Babillard</span></button>
       <button role="tab" data-tab="chart" aria-selected="false" id="chartTab" title="Organigramme"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span class="lbl">Organigramme</span></button>
       <button role="tab" data-tab="team" aria-selected="false" id="teamTab" title="Équipe" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.7-3.2 3.1-5 6-5s5.3 1.8 6 5"/><path d="M15.5 5.3a3.2 3.2 0 0 1 0 6.4M17.5 14.8c1.7.7 2.9 2.3 3.4 4.7"/></svg><span class="lbl">Équipe</span><span class="cnt muted" id="teamCnt"></span></button>
       <button role="tab" data-tab="roles" aria-selected="false" id="rolesTab" title="Rôles" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l7 2.8v5c0 4.3-2.9 7.8-7 9.2-4.1-1.4-7-4.9-7-9.2v-5z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg><span class="lbl">Rôles</span></button>
@@ -119,6 +121,7 @@ window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.g
           <button data-p="week">Semaine</button>
           <button data-p="month">Mois</button>
         </div>
+        <button class="btn" id="teamInvite">Inviter des membres</button>
         <button class="btn" id="openReportTeam">Rapport d'activités</button>
         <button class="btn" id="exportTeam">Exporter l'équipe en CSV</button>
       </div>
@@ -257,7 +260,7 @@ window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.g
         <div class="set-row"><div class="set-lbl"><b>Nom de l'association</b><span>Affiché sur les attestations.</span></div><div class="set-ctl"><input type="text" id="sOrg"></div></div>
         <div class="set-row"><div class="set-lbl"><b>Valeur d'une heure de bénévolat</b><span>Sert à estimer la valeur des heures validées (attestations, accueil). Laissez vide pour ne pas l'afficher.</span></div><div class="set-ctl"><input type="number" id="sRate" min="0" step="0.5" inputmode="decimal" placeholder="Ex. 25" style="max-width:120px" aria-label="Valeur d'une heure de bénévolat, en dollars"><span class="since">$/h</span></div></div>
         <div class="set-row" id="sBgRow"><div class="set-lbl"><b>Arrière-plan de la page</b><span>Une image ou un motif propre à l'association, visible par tous ses membres.</span></div><div class="set-ctl"><button class="btn" id="sBgBtn">Choisir l'arrière-plan</button></div></div>
-        <div class="set-row" id="sCodeRow"><div class="set-lbl"><b>Code d'invitation</b><span>À transmettre aux personnes qui veulent rejoindre l'association.</span></div><div class="set-ctl"><span class="invite" id="sCode"></span><button class="btn" id="sCopyCode">Copier</button><button class="btn ghost" id="sNewCode">Nouveau code</button></div></div>
+        <div class="set-row" id="sCodeRow"><div class="set-lbl"><b>Code d'invitation</b><span>À transmettre aux personnes qui veulent rejoindre l'association.</span></div><div class="set-ctl"><span class="invite" id="sCode"></span><button class="btn" id="sCopyCode">Copier</button><button class="btn" id="sQrCode">Code QR</button><button class="btn ghost" id="sNewCode">Nouveau code</button></div></div>
         <div class="set-row" id="sRolesRow"><div class="set-lbl"><b>Rôles et accès</b></div><div class="set-ctl"><button class="btn" id="sToRoles">Gérer les rôles ›</button></div></div>
         <div class="set-row" id="sLeaveRow"><div class="set-lbl"><b>Quitter l'association</b><span>Vos heures restent enregistrées, mais vous n'y aurez plus accès.</span></div><div class="set-ctl"><button class="btn danger" id="sLeave">Quitter</button></div></div>
         <div class="set-row" id="sDelOrgRow" hidden><div class="set-lbl"><b>Supprimer l'association</b><span>Efface définitivement l'association et toutes ses données, pour tous les membres.</span></div><div class="set-ctl"><button class="btn danger" id="sDelOrg">Supprimer l'association</button></div></div>
@@ -318,6 +321,7 @@ window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.g
           <input type="file" id="msgFile" hidden aria-hidden="true" tabindex="-1">
           <input type="file" id="gifFile" accept="image/gif" hidden aria-hidden="true" tabindex="-1">
           <textarea id="msgText" rows="1" maxlength="4000" placeholder="Écrire un message…" aria-label="Écrire un message" aria-autocomplete="list" aria-controls="mentPop" aria-expanded="false"></textarea>
+          <button class="mc-btn" id="msgPoll" title="Créer un sondage" aria-label="Créer un sondage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6"/></svg></button>
           <button class="mc-btn mc-gif" id="msgGif" title="GIF" aria-label="Envoyer un GIF" aria-expanded="false" aria-controls="gifPop"><span>GIF</span></button>
           <button class="btn in msg-send" id="msgMic" style="border:none" title="Enregistrer un message vocal" aria-label="Enregistrer un message vocal"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
           <button class="btn in msg-send" id="msgSend" style="border:none" aria-label="Envoyer"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z"/><path d="M11.5 13.5L20 4"/></svg></button>
@@ -329,9 +333,23 @@ window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.g
             <button class="btn in msg-send" id="recSend" style="border:none" title="Envoyer le message vocal" aria-label="Envoyer le message vocal"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l16-8-6 16-2.5-6.5z"/><path d="M11.5 13.5L20 4"/></svg></button>
           </div>
         </div>
-        <div class="msg-hint since">Entrée pour envoyer · Maj + Entrée pour un saut de ligne · @ pour mentionner. Glissez ou collez une image pour la joindre.</div>
+        <div class="msg-hint since">Entrée pour envoyer · Maj + Entrée pour un saut de ligne · @ pour mentionner. Glissez ou collez une image pour la joindre. Survolez un message pour y réagir (appui long sur mobile).</div>
       </section>
     </div>
+  </div>
+
+  <div id="boardView" hidden>
+    <div class="sechead bd-head">
+      <div class="bd-headtxt"><h2>Babillard</h2><span class="since">Idées, annonces, photos et liens de l'association, épinglés par ses membres.</span></div>
+      <div class="row">
+        <div class="seg" id="bdLayout" role="group" aria-label="Disposition du babillard"><button data-v="wall">Mur</button><button data-v="time">Chronologie</button></div>
+        <div class="seg" id="bdSort" role="group" aria-label="Ordre des cartes"><button data-v="recent">Récentes</button><button data-v="votes">Plus de votes</button></div>
+        <button class="btn" id="bdCols" hidden>Gérer les colonnes</button>
+        <button class="btn in" id="bdNew" style="border:none">Épingler une carte</button>
+      </div>
+    </div>
+    <div class="bwall" id="bdWall"></div>
+    <div class="card btime" id="bdTime" hidden></div>
   </div>
 
   <div id="personalView" data-lay="mine">
@@ -741,10 +759,58 @@ window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.g
   <div class="media-acts"><a class="btn ghost" id="mediaDl" download>Télécharger</a></div>
 </dialog>
 
+<dialog id="pollDlg" aria-labelledby="pollTitle">
+  <h3 id="pollTitle">Nouveau sondage</h3>
+  <div class="field"><label for="plQ">Question</label><input type="text" id="plQ" maxlength="300" placeholder="Ex. Qui vient au kiosque jeudi ?"></div>
+  <div class="field"><label>Choix</label><div class="pl-opts" id="plOpts"></div>
+    <button class="btn ghost" id="plAdd">+ Ajouter un choix</button></div>
+  <label class="row" style="gap:8px;margin-bottom:10px"><input type="checkbox" id="plMulti" style="width:18px;height:18px;accent-color:var(--accent)"> Permettre plusieurs réponses</label>
+  <div class="since">Les résultats s'affichent en direct. Vous pourrez clore le sondage quand vous le voudrez.</div>
+  <div class="err" id="plErr"></div>
+  <div class="dlgacts"><button class="btn ghost" id="plCancel">Annuler</button><button class="btn in" id="plSend" style="border:none">Publier le sondage</button></div>
+</dialog>
+
+<dialog id="qrDlg" class="qrdlg" aria-labelledby="qrTitle">
+  <button class="dlgx" id="qrX" aria-label="Fermer" title="Fermer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="qrTitle" style="padding-right:44px">Inviter des membres</h3>
+  <p class="since" style="margin-top:0">Faites scanner ce code avec l'appareil photo d'un téléphone : la personne arrive directement sur la page pour rejoindre <b id="qrOrg"></b>.</p>
+  <div class="qr-box" id="qrBox" aria-live="polite"></div>
+  <div class="qr-code"><span class="since">Ou entrez le code d'invitation</span><span class="invite" id="qrCode"></span></div>
+  <div class="qr-link"><input type="text" id="qrLink" readonly aria-label="Lien d'invitation"><button class="btn" id="qrCopy">Copier le lien</button></div>
+  <div class="dlgacts qr-acts"><button class="btn" id="qrPng">Télécharger l'image</button><button class="btn" id="qrShow">Projeter en plein écran</button><button class="btn in" id="qrPdf" style="border:none">Télécharger l'affiche (PDF)</button></div>
+</dialog>
+
+<dialog id="boardDlg" aria-labelledby="bdDlgTitle">
+  <h3 id="bdDlgTitle">Nouvelle carte</h3>
+  <div class="field"><label for="bdTitleIn">Titre</label><input type="text" id="bdTitleIn" maxlength="120" placeholder="Ex. Soirée jeux de société"></div>
+  <div class="field"><label for="bdText">Texte</label><textarea id="bdText" maxlength="4000" placeholder="Une idée, une annonce, un compte rendu…"></textarea></div>
+  <div class="field"><label for="bdUrl">Lien</label><input type="text" id="bdUrl" inputmode="url" placeholder="https://…" autocomplete="off" spellcheck="false"></div>
+  <div class="field"><label>Photo</label>
+    <div class="bd-imgprev" id="bdImgPrev" hidden><img id="bdImgEl" alt="Aperçu de la photo"></div>
+    <div class="row"><span class="btn upl">🖼️ Choisir une photo<input type="file" id="bdImg" accept="image/png,image/jpeg,image/webp,image/gif" aria-label="Choisir une photo"></span><button class="btn ghost danger" id="bdImgDel" hidden>Retirer la photo</button></div>
+    <span class="since">La photo est allégée automatiquement.</span></div>
+  <div class="grid2">
+    <div class="field"><label for="bdCol">Colonne</label><select id="bdCol"></select></div>
+    <div class="field"><label for="bdDate">Date</label><input type="date" id="bdDate"><span class="since">Facultative : place la carte dans la chronologie.</span></div>
+  </div>
+  <div class="field"><label>Couleur</label><div class="swatch-row" id="bdColors"></div></div>
+  <div class="err" id="bdErr"></div>
+  <div class="dlgacts"><button class="btn ghost danger" id="bdDel" hidden>Supprimer</button><button class="btn ghost" id="bdCancel">Annuler</button><button class="btn in" id="bdSave" style="border:none">Épingler</button></div>
+</dialog>
+
+<dialog id="bdColsDlg" aria-labelledby="bdcTitle">
+  <h3 id="bdcTitle">Colonnes du babillard</h3>
+  <p class="since" style="margin-top:0">Par exemple « Idées », « À voter », « Adopté ». Les cartes d'une colonne retirée passent dans la première.</p>
+  <div class="bdc-list" id="bdcList"></div>
+  <button class="btn ghost" id="bdcAdd">+ Ajouter une colonne</button>
+  <div class="err" id="bdcErr"></div>
+  <div class="dlgacts"><button class="btn ghost" id="bdcCancel">Annuler</button><button class="btn in" id="bdcSave" style="border:none">Enregistrer</button></div>
+</dialog>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="savenote" id="saveNote" role="status" aria-live="polite"></div>
 
-<script src="js/i18n.js?v=20261007a"></script>
-<script src="js/app.js?v=20261007a"></script>
+<script src="js/i18n.js?v=20261007b"></script>
+<script src="js/app.js?v=20261007b"></script>
 </body>
 </html>
