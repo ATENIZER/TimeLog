@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20261007b">
+<link rel="stylesheet" href="css/style.css?v=20261008a">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -56,14 +56,16 @@ window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.g
     </div>
     <nav class="tabs" id="tabs" role="tablist" aria-orientation="vertical">
       <button role="tab" data-tab="mine" aria-selected="true" title="Accueil"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 10.5 12 4l8.5 6.5"/><path d="M5.5 9v10.5h13V9"/><path d="M10 19.5v-5h4v5"/></svg><span class="lbl">Accueil</span></button>
+      <div class="tgroup" aria-hidden="true"><span class="lbl">Travail</span></div>
       <button role="tab" data-tab="activities" aria-selected="false" id="actTab" title="Activités"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5H6.5A1.5 1.5 0 0 0 5 6v13.5A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H15"/><rect x="9" y="3" width="6" height="3" rx="1"/><path d="M8.5 13.5l2.2 2.2 4.8-4.8"/></svg><span class="lbl">Activités</span></button>
       <button role="tab" data-tab="projects" aria-selected="false" id="projTab" title="Projets"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2.5"/><path d="M9.5 4v16M15 4v9"/></svg><span class="lbl">Projets</span><span class="cnt" id="projCnt"></span></button>
       <button role="tab" data-tab="calendar" aria-selected="false" id="calTab" title="Calendrier"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span class="lbl">Calendrier</span></button>
+      <div class="tgroup" aria-hidden="true"><span class="lbl">Communication</span></div>
       <button role="tab" data-tab="messages" aria-selected="false" id="msgTab" title="Messages"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 5.5h15a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H10l-4.5 3.5V16.5h-1a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/></svg><span class="lbl">Messages</span><span class="cnt" id="msgCnt"></span></button>
       <button role="tab" data-tab="board" aria-selected="false" id="boardTab" title="Babillard"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5h6l-1 5.5 3 3V14H7v-2l3-3z"/><path d="M12 14v6.5"/></svg><span class="lbl">Babillard</span></button>
-      <button role="tab" data-tab="chart" aria-selected="false" id="chartTab" title="Organigramme"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span class="lbl">Organigramme</span></button>
-      <button role="tab" data-tab="team" aria-selected="false" id="teamTab" title="Équipe" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.7-3.2 3.1-5 6-5s5.3 1.8 6 5"/><path d="M15.5 5.3a3.2 3.2 0 0 1 0 6.4M17.5 14.8c1.7.7 2.9 2.3 3.4 4.7"/></svg><span class="lbl">Équipe</span><span class="cnt muted" id="teamCnt"></span></button>
-      <button role="tab" data-tab="roles" aria-selected="false" id="rolesTab" title="Rôles" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l7 2.8v5c0 4.3-2.9 7.8-7 9.2-4.1-1.4-7-4.9-7-9.2v-5z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg><span class="lbl">Rôles</span></button>
+      <div class="tgroup" aria-hidden="true"><span class="lbl">Association</span></div>
+      <button role="tab" data-tab="media" aria-selected="false" id="mediaTab" title="Médiathèque"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 15.5l-5-5-9 9"/></svg><span class="lbl">Médiathèque</span></button>
+      <button role="tab" data-tab="chart" aria-selected="false" id="chartTab" title="Organisation"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span class="lbl">Organisation</span></button>
       <button role="tab" data-tab="settings" aria-selected="false" id="settingsTab" title="Paramètres"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="lbl">Paramètres</span></button>
     </nav>
   <div class="side-foot">
@@ -105,6 +107,11 @@ window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.g
   </div>
 
 
+  <div class="subtabs" id="orgSub" role="tablist" aria-label="Organisation" hidden>
+    <button role="tab" data-sub="chart" aria-selected="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="5" rx="1.2"/><rect x="3" y="16" width="6" height="5" rx="1.2"/><rect x="15" y="16" width="6" height="5" rx="1.2"/><path d="M12 8v4M6 16v-4h12v4"/></svg><span>Organigramme</span></button>
+    <button role="tab" data-sub="team" aria-selected="false" id="teamTab" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M3 19.5c.7-3.2 3.1-5 6-5s5.3 1.8 6 5"/><path d="M15.5 5.3a3.2 3.2 0 0 1 0 6.4M17.5 14.8c1.7.7 2.9 2.3 3.4 4.7"/></svg><span>Équipe</span><span class="cnt muted" id="teamCnt"></span></button>
+    <button role="tab" data-sub="roles" aria-selected="false" id="rolesTab" hidden><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l7 2.8v5c0 4.3-2.9 7.8-7 9.2-4.1-1.4-7-4.9-7-9.2v-5z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg><span>Rôles</span></button>
+  </div>
   <div class="homebar" id="homeBar"><button class="btn ghost" id="homeEdit"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="4" rx="1.5"/><rect x="13" y="10" width="7" height="10" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/></svg><span id="homeEditLbl">Modifier l'accueil</span></button></div>
   <div class="homeedit" id="homeEditBar" role="toolbar" aria-label="Modifier la disposition" hidden>
     <span class="he-hint">Glissez les blocs par la poignée ⠿, ou utilisez les flèches du clavier.</span>
@@ -350,6 +357,30 @@ window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.g
     </div>
     <div class="bwall" id="bdWall"></div>
     <div class="card btime" id="bdTime" hidden></div>
+  </div>
+
+  <div id="mediaView" hidden>
+    <section>
+      <div class="sechead"><h2>Médiathèque</h2>
+        <div class="md-acts-top">
+          <button class="btn ghost" id="mdRefresh">Actualiser</button>
+          <button class="btn in" id="mdUpload" style="border:none">Déposer des fichiers</button>
+          <input type="file" id="mdFile" multiple hidden aria-hidden="true" tabindex="-1">
+        </div>
+      </div>
+      <p class="md-intro">Historique de tous les fichiers de l'association : dépôts directs, fichiers des projets et pièces jointes des canaux.</p>
+      <div class="md-bar">
+        <input type="search" id="mdSearch" placeholder="Rechercher un fichier ou une personne" aria-label="Rechercher dans la médiathèque">
+        <div class="seg" id="mdKind" role="group" aria-label="Type de fichier">
+          <button data-v="all" aria-pressed="true">Tous</button><button data-v="image" aria-pressed="false">Images</button><button data-v="video" aria-pressed="false">Vidéos</button><button data-v="audio" aria-pressed="false">Audio</button><button data-v="doc" aria-pressed="false">Documents</button><button data-v="other" aria-pressed="false">Autres</button>
+        </div>
+        <select id="mdSrc" aria-label="Source">
+          <option value="all">Toutes les sources</option><option value="media">Dépôts directs</option><option value="project">Projets</option><option value="channel">Canaux</option>
+        </select>
+      </div>
+      <div class="md-stats" id="mdStats"></div>
+      <div class="md-drop" id="mdList"></div>
+    </section>
   </div>
 
   <div id="personalView" data-lay="mine">
@@ -810,7 +841,8 @@ window.loadStyleFont=function(st){var f=window.STYLE_FONTS[st];if(!f||document.g
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="savenote" id="saveNote" role="status" aria-live="polite"></div>
 
-<script src="js/i18n.js?v=20261007b"></script>
-<script src="js/app.js?v=20261007b"></script>
+<script src="js/i18n.js?v=20261008a"></script>
+<script src="js/app.js?v=20261008a"></script>
+<script src="js/media.js?v=20261008a"></script>
 </body>
 </html>
