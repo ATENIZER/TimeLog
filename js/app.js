@@ -1732,6 +1732,7 @@ $("doOk").onclick=async()=>{
     fail+=await wipeCol(o.collection("people"));
     fail+=await wipeCol(o.collection("validations"));
     fail+=await wipeCol(o.collection("board"));
+    fail+=await wipeCol(o.collection("media"),{chunks:{}});
     fail+=await wipeCol(o.collection("channels").where("kind","==","channel"),{messages:{},files:{}});
     fail+=await wipeCol(o.collection("channels").where("memberIds","array-contains",myId),{messages:{},files:{}});
     fail+=await wipeCol(o.collection("members"));
@@ -2717,6 +2718,7 @@ $("navBack").onclick=()=>history.back();
 document.querySelectorAll("#period button").forEach(b=>b.onclick=()=>{period=b.dataset.p;renderSummary();const bs=$("bars");bs.classList.remove("anim");void bs.offsetWidth;bs.classList.add("anim");});
 document.querySelectorAll("#teamPeriod button").forEach(b=>b.onclick=()=>{teamPeriod=b.dataset.p;renderTeam();});
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{mode=b.dataset.tab;viewingId=null;journalLimit=14;render();});
+document.querySelectorAll("#orgSub [data-sub]").forEach(b=>b.onclick=()=>{mode=b.dataset.sub;viewingId=null;render();});
 // Regroupe les nombreux rendus déclenchés par les mises à jour en direct : un seul rendu par image.
 let _rq=0;
 function render(){if(_rq)return;_rq=1;const run=()=>{if(!_rq)return;_rq=0;renderNow();};requestAnimationFrame(run);setTimeout(run,80);}
@@ -2729,9 +2731,11 @@ function renderNow(){
   const hr=new Date().getHours();const nm=myId?nameOf(myId):"";
   const first=nm&&nm!=="Moi"&&nm!=="Personne sans nom"?" "+nm.split(/\s+/)[0]:"";
   $("today").textContent=tx(hr>=18||hr<5?"Bonsoir":"Bonjour")+first+(curOrg&&org.orgName?" · "+org.orgName:"")+" · "+new Date().toLocaleDateString(LOC(),{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  const tabSel=mode==="person"?"team":mode==="project"?"projects":mode;
-  $("pageTitle").textContent={board:"Babillard",chart:"Organigramme",messages:"Messages",settings:"Paramètres",calendar:"Calendrier",activities:"Activités",mine:"Accueil",projects:"Projets",project:"Projets",team:"Équipe",person:"Équipe",roles:"Rôles"}[mode]||"";
+  const tabSel=(mode==="person"||mode==="team"||mode==="roles")?"chart":mode==="project"?"projects":mode;
+  $("pageTitle").textContent={media:"Médiathèque",board:"Babillard",chart:"Organisation",messages:"Messages",settings:"Paramètres",calendar:"Calendrier",activities:"Activités",mine:"Accueil",projects:"Projets",project:"Projets",team:"Organisation",person:"Équipe",roles:"Organisation"}[mode]||"";
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===tabSel));
+  $("orgSub").hidden=!adminUI()||!(mode==="chart"||mode==="team"||mode==="roles");
+  document.querySelectorAll("#orgSub [data-sub]").forEach(b=>b.setAttribute("aria-selected",b.dataset.sub===mode));
   recordNav();
   renderAccess();
   $("teamView").hidden=mode!=="team";
@@ -2743,8 +2747,9 @@ function renderNow(){
   $("chartView").hidden=mode!=="chart";
   $("msgView").hidden=mode!=="messages";
   $("boardView").hidden=mode!=="board";
+  $("mediaView").hidden=mode!=="media";
   document.body.classList.toggle("in-msg",mode==="messages");
-  $("personalView").hidden=mode==="team"||mode==="roles"||inProj||mode==="settings"||mode==="calendar"||mode==="activities"||mode==="chart"||mode==="messages"||mode==="board";
+  $("personalView").hidden=mode==="team"||mode==="roles"||inProj||mode==="settings"||mode==="calendar"||mode==="activities"||mode==="chart"||mode==="messages"||mode==="board"||mode==="media";
   $("activitiesView").hidden=!(mode==="activities"||mode==="person");
   if(mode!=="activities") $("pendSec").hidden=true;
   if(layEdit&&layCurView()!==layView) laySetEdit(false);
@@ -2753,6 +2758,7 @@ function renderNow(){
   else if(mode==="chart") renderChart();
   else if(mode==="messages") renderMessages();
   else if(mode==="board") renderBoard();
+  else if(mode==="media"){if(window.MediaLib)MediaLib.render();}
   else if(inProj) renderProjects();
   else if(mode==="team"){renderTeam();renderTeamDay();renderTeamCharts();}
   else if(mode==="roles") renderRoles();
@@ -4805,5 +4811,13 @@ $("bdcSave").onclick=async()=>{
 {const sl=$("sLang");sl.innerHTML=Object.keys(I18N).map(k=>`<option value="${k}" lang="${k}" translate="no">${esc(I18N[k]._name)}</option>`).join("");sl.value=LANG;
  sl.onchange=()=>setLang(sl.value);
  window.onLangChange=()=>{sl.value=LANG;render();};}
+/* Pont vers les modules séparés (js/media.js) : accès en lecture aux données utiles, sans exposer l'état */
+window.PT={
+  ready:()=>PA.ready(),db:()=>fdb,org:()=>curOrg,me:()=>myId,admin:()=>adminUI(),active:()=>mode==="media",
+  esc,toast,fmtSize,uploadErr,name:id=>pName(id),CHUNK,maxSize:PA.maxSize,
+  projects:()=>projects,chans:()=>chans,
+  msgFileUrl:(cid,mid,a)=>loadFile(cid,mid,a),
+  goProject:pid=>openProject(pid),goChannel:cid=>openChan(cid)
+};
 initFirebase();
 })();

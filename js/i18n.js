@@ -12,6 +12,20 @@
 const I18N={
 fr:{_name:"Français",_locale:"fr-CA"},
 en:{_name:"English",_locale:"en-CA",
+// Navigation regroupée et médiathèque
+"Communication":"Communication","Organisation":"Organization",
+"Médiathèque":"Media library","Actualiser":"Refresh","Déposer des fichiers":"Upload files","Envoi en cours… ({})":"Uploading… ({})",
+"Historique de tous les fichiers de l'association : dépôts directs, fichiers des projets et pièces jointes des canaux.":"History of all the association's files: direct uploads, project files and channel attachments.",
+"Rechercher un fichier ou une personne":"Search for a file or a person","Rechercher dans la médiathèque":"Search the media library","Type de fichier":"File type","Source":"Source",
+"Images":"Images","Vidéos":"Videos","Documents":"Documents","Autres":"Other",
+"Toutes les sources":"All sources","Dépôts directs":"Direct uploads","Dépôt direct":"Direct upload","Projet « {} »":"Project “{}”","Sans nom":"Untitled",
+"Ouvrir":"Open","Voir la source":"View source",
+"Historique actualisé":"History refreshed",
+"{} fichier(s)":"{} file(s)","{} fichier(s) ignoré(s) : 5 Mo maximum":"{} file(s) skipped: 5 MB maximum","{} fichier(s) ajouté(s) à la médiathèque":"{} file(s) added to the media library",
+"L'envoi de « {} » a échoué.":"Uploading “{}” failed.","Dépôt refusé. Publiez les nouvelles règles Firestore.":"Upload denied. Publish the new Firestore rules.",
+"Chargement de l'historique…":"Loading history…","Aucun fichier ne correspond à ces filtres.":"No file matches these filters.",
+"Aucun fichier pour l'instant. Déposez-en un ou glissez-le ici.":"No files yet. Upload one or drop it here.",
+"La médiathèque est disponible une fois connecté à une association.":"The media library is available once you join an association.",
 // Idées inspirées de Padlet : réactions, sondages, code QR, babillard
 "Babillard":"Board","Idées, annonces, photos et liens de l'association, épinglés par ses membres.":"Ideas, announcements, photos and links pinned by the association's members.",
 "Disposition du babillard":"Board layout","Mur":"Wall","Ordre des cartes":"Card order","Récentes":"Newest","Plus de votes":"Most votes",
